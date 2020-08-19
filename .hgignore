@@ -1,0 +1,8 @@
+syntax: glob
+__pycache__/cdxml_styler.cpython-36.pyc
+.idea/.gitignore
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/CDXMLStyler.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/workspace.xml
