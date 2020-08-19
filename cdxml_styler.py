@@ -22,20 +22,35 @@ class CDXMLStyler(object):
             self.style = self.get_style(style_name)
         else:
             self.style = self.get_style_from_cdxml(style_source)
+    
+    def apply_style_to_file(self, cdxml_path, outpath=None):
 
-    def apply_style(self, cdxml) ->str:
+        tree = ET.parse(cdxml_path)
+        root = tree.getroot()
+        result = self.apply_style(root)
+        xml = ET.tostring(result, encoding='unicode', method='xml')
+        if outpath is None:
+            outpath = cdxml_path
+        with open(outpath, "w", encoding='UTF-8') as xf:
+            file = f"{self.xml_header}{xml}"
+            xf.write(file)
+
+    def apply_style_to_string(self, cdxml):
+
+        root = ET.fromstring(cdxml)
+        result = self.apply_style(root)
+
+        xml = ET.tostring(result, encoding='unicode', method='xml')
+        return self.xml_header + xml
+
+    def apply_style(self, root) ->str:
 
         """Applies the selected style to the input cdxml string and all contained drawings and returns the modified
         cdxml as string.
 
         Parameters:
-        cdxml (string): the cdxml        o
-        style_name (string): name of the desired drawing style ('ACS 1996' or 'Wiley')
+        root (string): the root element of the cdxml
        """
-
-        root = ET.fromstring(cdxml)
-        #root = tree.getroot()
-
         # Set stlye on document level
 
         root.attrib["BondSpacing"] = self.style["BondSpacing"]
@@ -109,8 +124,7 @@ class CDXMLStyler(object):
                             s.attrib["font"] = self.style["LabelFont"]
                     idx += 1
 
-            xml =  ET.tostring(root, encoding='unicode', method='xml')
-            return self.xml_header + xml
+            return root
 
         except KeyError:
             # When atoms (the nodes) have no coordinates, attribute p doesn't exist -> Key error
