@@ -76,15 +76,15 @@ class CDXMLStyler(object):
         try:
             for fragment in root.iter('fragment'):
 
-                all_coords, node_id_mapping, bonds = self.get_coords_and_mapping(fragment)
+                all_coords, node_id_mapping, bonds = CDXMLStyler.get_coords_and_mapping(fragment)
 
-                avg_bl = self.get_avg_bl(all_coords, bonds, node_id_mapping)
+                avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
 
                 scaling_factor = bond_length / avg_bl
 
                 scaled_coords = all_coords * scaling_factor
 
-                final_coords = self.translate(all_coords, scaled_coords)
+                final_coords = CDXMLStyler.translate(all_coords, scaled_coords)
 
                 # set coords and clean nodes
                 max_x, max_y = final_coords.max(axis=0)
@@ -121,7 +121,8 @@ class CDXMLStyler(object):
             # If this applies to one fragment, assumption is all fragments have no coordinates
             raise ValueError("Molecule has no coordinates")
 
-    def get_coords_and_mapping(self, fragment):
+    @staticmethod
+    def get_coords_and_mapping(fragment):
 
         bond_attributes = ['id', 'Z', 'B', 'E', 'BS', 'Order', 'BondCircularOrdering', 'Display']
 
@@ -148,8 +149,8 @@ class CDXMLStyler(object):
 
         return all_coords, node_id_mapping, bonds
 
-
-    def get_center(self, all_coords):
+    @staticmethod
+    def get_center(all_coords):
         """Gets the center of current fragment
 
         Parameters:
@@ -168,7 +169,8 @@ class CDXMLStyler(object):
 
         return x_center, y_center
 
-    def get_avg_bl(self, all_coords, bonds, node_id_mapping):
+    @staticmethod
+    def get_avg_bl(all_coords, bonds, node_id_mapping):
         """Gets the average bond length of current fragment
 
         Parameters:
@@ -196,7 +198,8 @@ class CDXMLStyler(object):
         avg_bl = round(np.mean(bond_length), 1)
         return avg_bl
 
-    def translate(self, all_coords, scaled_coords):
+    @staticmethod
+    def translate(all_coords, scaled_coords):
         """Translates the scaled fragment back to it's previous center
 
         Parameters:
@@ -209,8 +212,8 @@ class CDXMLStyler(object):
 
        """
 
-        x_center, y_center = self.get_center(all_coords)
-        scaled_x_center, scaled_y_center = self.get_center(scaled_coords)
+        x_center, y_center = CDXMLStyler.get_center(all_coords)
+        scaled_x_center, scaled_y_center = CDXMLStyler.get_center(scaled_coords)
 
         x_translate = x_center - scaled_x_center
         y_translate = y_center - scaled_y_center
@@ -218,7 +221,8 @@ class CDXMLStyler(object):
         final_coords = scaled_coords + translate
         return final_coords
 
-    def get_style_from_cdxml(self, style_source):
+    @staticmethod
+    def get_style_from_cdxml(style_source):
 
         tree = ET.parse(style_source)
         root = tree.getroot()
@@ -238,7 +242,8 @@ class CDXMLStyler(object):
 
         return style
 
-    def get_style(self, style_name):
+    @staticmethod
+    def get_style(style_name):
 
         style = {}
 
