@@ -71,13 +71,12 @@ class CDXMLStyler(object):
         root.attrib["LabelFont"] = self.style["LabelFont"]
 
         bond_length = float(self.style["BondLength"])
-        bond_attributes = ['id', 'Z', 'B', 'E', 'BS', 'Order', 'BondCircularOrdering', 'Display']
 
         # Get all nodes (atoms) and bonds
         try:
             for fragment in root.iter('fragment'):
 
-                all_coords, node_id_mapping, bonds = self.get_coords_and_mapping(fragment, bond_attributes)
+                all_coords, node_id_mapping, bonds = self.get_coords_and_mapping(fragment)
 
                 avg_bl = self.get_avg_bl(all_coords, bonds, node_id_mapping)
 
@@ -118,7 +117,9 @@ class CDXMLStyler(object):
             # If this applies to one fragment, assumption is all fragments have no coordinates
             raise ValueError("Molecule has no coordinates")
 
-    def get_coords_and_mapping(self, fragment, bond_attributes):
+    def get_coords_and_mapping(self, fragment):
+
+        bond_attributes = ['id', 'Z', 'B', 'E', 'BS', 'Order', 'BondCircularOrdering', 'Display']
 
         all_coords = []
         node_id_mapping = {}
