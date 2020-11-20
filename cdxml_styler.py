@@ -77,34 +77,15 @@ class CDXMLStyler(object):
         try:
             for fragment in root.iter('fragment'):
 
-                all_coords = []
-                node_id_mapping = {}
-                bonds = []
+                all_coords, node_id_mapping, bonds = self.get_coords_and_mapping(fragment, bond_attributes)
 
-                idx = 0
-                for node in fragment.iter('n'):
-                    coords_raw = node.attrib['p']
-                    coords = [float(x) for x in coords_raw.split(" ")]
-                    all_coords.append(coords)
-                    node_id_mapping[int(node.attrib['id'])] = idx
-                    idx += 1
-                for bond in fragment.iter('b'):
-                    bond_dict = {'start': int(bond.attrib['B']), 'end': int(bond.attrib['E'])}
-                    bonds.append(bond_dict)
-                    # Remove bond attributes set at bond level
-                    # Removing them will use the document level settings
-                    unwanted = set(bond.attrib) - set(bond_attributes)
-                    for unwanted_key in unwanted: del bond.attrib[unwanted_key]
-
-                all_coords = np.asarray(all_coords)
-
-                avg_bl = self._get_avg_bl(all_coords, bonds, node_id_mapping)
+                avg_bl = self.get_avg_bl(all_coords, bonds, node_id_mapping)
 
                 scaling_factor = bond_length / avg_bl
 
                 scaled_coords = all_coords * scaling_factor
 
-                final_coords = self._translate(all_coords, scaled_coords)
+                final_coords = self.translate(all_coords, scaled_coords)
 
                 # set coords and clean nodes
 
@@ -137,7 +118,33 @@ class CDXMLStyler(object):
             # If this applies to one fragment, assumption is all fragments have no coordinates
             raise ValueError("Molecule has no coordinates")
 
-    def _get_center(self, all_coords):
+    def get_coords_and_mapping(self, fragment, bond_attributes):
+
+        all_coords = []
+        node_id_mapping = {}
+        bonds = []
+
+        idx = 0
+        for node in fragment.iter('n'):
+            coords_raw = node.attrib['p']
+            coords = [float(x) for x in coords_raw.split(" ")]
+            all_coords.append(coords)
+            node_id_mapping[int(node.attrib['id'])] = idx
+            idx += 1
+        for bond in fragment.iter('b'):
+            bond_dict = {'start': int(bond.attrib['B']), 'end': int(bond.attrib['E'])}
+            bonds.append(bond_dict)
+            # Remove bond attributes set at bond level
+            # Removing them will use the document level settings
+            unwanted = set(bond.attrib) - set(bond_attributes)
+            for unwanted_key in unwanted: del bond.attrib[unwanted_key]
+
+        all_coords = np.asarray(all_coords)
+
+        return (all_coords, node_id_mapping, bonds)
+
+
+    def get_center(self, all_coords):
         """Gets the center of current fragment
 
         Parameters:
@@ -156,7 +163,7 @@ class CDXMLStyler(object):
 
         return x_center, y_center
 
-    def _get_avg_bl(self, all_coords, bonds, node_id_mapping):
+    def get_avg_bl(self, all_coords, bonds, node_id_mapping):
         """Gets the average bond length of current fragment
 
         Parameters:
@@ -184,7 +191,7 @@ class CDXMLStyler(object):
         avg_bl = round(np.mean(bond_length), 1)
         return avg_bl
 
-    def _translate(self, all_coords, scaled_coords):
+    def translate(self, all_coords, scaled_coords):
         """Translates the scaled fragment back to it's previous center
 
         Parameters:
@@ -197,8 +204,8 @@ class CDXMLStyler(object):
 
        """
 
-        x_center, y_center = self._get_center(all_coords)
-        scaled_x_center, scaled_y_center = self._get_center(scaled_coords)
+        x_center, y_center = self.get_center(all_coords)
+        scaled_x_center, scaled_y_center = self.get_center(scaled_coords)
 
         x_translate = x_center - scaled_x_center
         y_translate = y_center - scaled_y_center
