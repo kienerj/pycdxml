@@ -87,6 +87,10 @@ class CDXMLStyler(object):
                 final_coords = self.translate(all_coords, scaled_coords)
 
                 # set coords and clean nodes
+                max_x, max_y = final_coords.max(axis=0)
+                min_x, min_y = final_coords.min(axis=0)
+                bounding_box = "{} {} {} {}".format(min_x, min_y, max_x, max_y)
+                fragment.attrib["BoundingBox"] = bounding_box
 
                 node_attributes = ['id', 'p', 'Z', 'AS', 'Element', 'NumHydrogens', 'Geometry']
                 t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment']
