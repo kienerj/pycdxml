@@ -24,10 +24,16 @@ class CDXMLStyler(object):
             self.style = self.get_style_from_cdxml(style_source)
     
     def apply_style_to_file(self, cdxml_path, outpath=None):
-
+        """
+        Converts the passed in cdxml to the defined style and writes the result to outpath. If outpath is none, the input
+        will be overwritten.
+        :param cdxml_path: path of cdxml file to convert
+        :param outpath: path to write converted file. If None will overwrite input file.
+        :return:
+        """
         tree = ET.parse(cdxml_path)
         root = tree.getroot()
-        result = self.apply_style(root)
+        result = self._apply_style(root)
         xml = ET.tostring(result, encoding='unicode', method='xml')
         if outpath is None:
             outpath = cdxml_path
@@ -38,12 +44,12 @@ class CDXMLStyler(object):
     def apply_style_to_string(self, cdxml):
 
         root = ET.fromstring(cdxml)
-        result = self.apply_style(root)
+        result = self._apply_style(root)
 
         xml = ET.tostring(result, encoding='unicode', method='xml')
         return self.xml_header + xml
 
-    def apply_style(self, root) ->str:
+    def _apply_style(self, root) ->str:
 
         """Applies the selected style to the input cdxml string and all contained drawings and returns the modified
         cdxml as string.
