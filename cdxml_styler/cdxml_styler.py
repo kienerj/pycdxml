@@ -142,7 +142,7 @@ class CDXMLStyler(object):
 
         all_coords = np.asarray(all_coords)
 
-        return (all_coords, node_id_mapping, bonds)
+        return all_coords, node_id_mapping, bonds
 
 
     def get_center(self, all_coords):
