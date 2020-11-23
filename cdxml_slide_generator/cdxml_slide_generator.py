@@ -31,17 +31,27 @@ class CDXMLSlideGenerator(object):
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
         self.styler = CDXMLStyler()
+        self.colortable = {}
+        self.slide = self._build_base_document()
 
-    def generate_slide(self, cdxml_documents):
+    def generate_slide(self, cdxml_documents, properties):
         """
         Each document is expected to contain exactly 1 entry (=one structure) for the slide there for only the first
         fragment in the first page is extracted and place in the slide per document.
 
+        :param properties:
         :param cdxml_documents:
         :return:
         """
 
-        slide = self._build_base_document()
+        if cdxml_documents is None:
+            raise ValueError('Expected a list of cdxml documents but got \'None\'')
+
+        # cut-off mols + properties silently. I think this is better than raising a ValueError
+        cdxml_documents = cdxml_documents[:self.mols_per_slide]
+        properties = properties[:self.mols_per_slide]
+        if len(cdxml_documents) != len(properties):
+            raise ValueError('Number of documents must match number of properties.')
 
         for index, cdxml in enumerate(cdxml_documents):
             # Set style to ACS 1996
@@ -81,9 +91,45 @@ class CDXMLSlideGenerator(object):
                 node.attrib['p'] = coords_xml
                 idx += 1
 
-            slide.find('page').append(fragment)
+            self.slide.find('page').append(fragment)
 
-        xml = ET.tostring(slide, encoding='unicode', method='xml')
+            #handle properties
+            if self.number_of_properties > 0:
+                properties = properties[:self.number_of_properties]
+                y_top = row * self.row_height + self.molecule_height + self.margin
+                y_bottom = y_top + self.text_height
+                y_center_props = y_top + 0.5 * self.text_height
+                fragment_bb = np.asarray([float(x) for x in fragment.attrib['BoundingBox'].split(" ")])
+                txt_bounding_box = np.array([fragment_bb[0], y_top, fragment_bb[2], y_bottom])
+
+                txt = ET.Element('t')
+                txt.attrib["LineHeight"] = "auto"
+                txt.attrib["id"] = str(5000 + index)
+                txt.attrib['BoundingBox'] = "{} {} {} {}".format(txt_bounding_box[0], txt_bounding_box[1],
+                                                                 txt_bounding_box[2], txt_bounding_box[3])
+                # TODO: proper position calculation
+                # with Arial font 10 the y-coord of p of a t element is 8.95 points higher than the bounding box top edge
+                # No logical explanation / formula available for this. Empirical observation
+                txt.attrib['p'] = "{} {}".format(txt_bounding_box[0], txt_bounding_box[1] + 8.95)
+                line_starts = []
+                text_length = 0
+                for prop_index, prop in enumerate(properties[index]):
+                    s = ET.SubElement(txt,'s')
+                    s.attrib['font'] = "3" #Arial default for now
+                    s.attrib['color'] = str(self.register_color(prop.color))
+                    s.attrib['size'] = str(self.font_size)
+
+                    if prop_index + 1 == self.number_of_properties:
+                        s.text = prop.get_display_value()
+                    else:
+                        s.text = prop.get_display_value() + '\n'
+                    text_length += len(s.text)
+                    line_starts.append(str(text_length))
+
+                txt.attrib['LineStarts'] = ' '.join(line_starts)
+                self.slide.find('page').append(txt)
+
+        xml = ET.tostring(self.slide, encoding='unicode', method='xml')
         return self.styler.xml_header + xml
 
     @staticmethod
@@ -135,3 +181,94 @@ class CDXMLSlideGenerator(object):
         root.append(ET.fromstring(page))
 
         return root
+
+    def register_color(self, color):
+        """
+
+        :param color: a FontColor object
+        :return:
+        """
+
+        if color.rgb == (0,0,0):
+            return 0 #black
+        if color.rgb == (1,1,1):
+            return 1 #white
+
+        if not color.hex in self.colortable:
+
+            colortable_xml = self.slide.find('colortable')
+            c = ET.SubElement(colortable_xml,'color')
+            c.attrib["r"] = str(color.rgb[0])
+            c.attrib["g"] = str(color.rgb[1])
+            c.attrib["b"] = str(color.rgb[2])
+            # 0=black, 1=white,2=bg,3=fg
+            color_index = len(self.colortable) + 4
+            self.colortable[color.hex] = len(self.colortable) + 4
+            return color_index
+        else:
+            return self.colortable[color.hex]
+
+
+class TextProperty(object):
+
+    def __init__(self, name, value, show_name=False, color=(0, 0, 0)):
+        """
+        Sets options of the data below the molecule is displayed.
+
+        Color is either a HEX value or a RGB 3-tuple.
+
+        :param name: display name of the property
+        :param value: the value of the property
+        :param show_name: if the name of the property should be displayed or not
+        :param color: color of the text for this property. Default is black.
+        """
+        self.name = name
+        self.value = value
+        self.show_name = show_name
+        self.color = FontColor(color)
+
+    def get_display_value(self):
+
+        if self.show_name:
+            return self.name + ': ' + str(self.value)
+        else:
+            return str(self.value)
+
+
+class FontColor(object):
+
+    def __init__(self, color=(0, 0, 0)):
+
+        if isinstance(color, tuple):
+            if len(color) == 3:
+                # hacky Assumption: if no value bigger 1 -> color range 0->1 /float) else 0-255 (int)
+                if max(color) > 1:
+                    self.rgb = FontColor._scale_color(color)
+                else:
+                    self.rgb = color
+                self.hex = FontColor.rgb_to_hex(self.rgb)
+            else:
+                raise ValueError('Expected a RGB color tuple of 3 values. Got tuple with {} values'.format(len(color)))
+        elif isinstance(color, str) and color[0] == '#':
+            self.rgb = FontColor.hex_to_rgb(color)
+            self.hex = color.upper()
+        else:
+            raise ValueError('Expected a hex color string or RGB 3-tuple but got {}.'.format(color))
+
+    @staticmethod
+    def _scale_color(rgb):
+
+        return tuple([round(x/255,2) for x in rgb])
+
+    @staticmethod
+    def hex_to_rgb(hex_code):
+        # from stackoverflow
+        hex_code = hex_code.lstrip('#').upper()
+        rgb = tuple(int(hex_code[i:i + 2], 16) for i in (0, 2, 4))
+        return FontColor._scale_color(rgb)
+
+    @staticmethod
+    def rgb_to_hex(rgb):
+        if 1 > max(rgb) > 0:
+            rgb = tuple([round(x * 255, 2) for x in rgb])
+        return '#' + ''.join(f'{i:02X}' for i in rgb)

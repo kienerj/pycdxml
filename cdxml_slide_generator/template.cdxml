@@ -48,14 +48,6 @@
 ><colortable>
 <color r="1" g="1" b="1"/>
 <color r="0" g="0" b="0"/>
-<color r="1" g="0" b="0"/>
-<color r="1" g="1" b="0"/>
-<color r="0" g="1" b="0"/>
-<color r="0" g="1" b="1"/>
-<color r="0" g="0" b="1"/>
-<color r="1" g="0" b="1"/>
-<color r="1" g="0.5020" b="0"/>
-<color r="0" g="0.5020" b="0"/>
 </colortable><fonttable>
 <font id="3" charset="iso-8859-1" name="Arial"/>
 </fonttable>
