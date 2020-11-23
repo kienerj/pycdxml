@@ -89,11 +89,8 @@ class CDXMLStyler(object):
                     scaled_labels = label_coords * scaling_factor
                     final_labels = CDXMLStyler.translate(label_coords, scaled_labels)
 
-                # set coords and clean nodes
-                max_x, max_y = final_coords.max(axis=0)
-                min_x, min_y = final_coords.min(axis=0)
-                bounding_box = "{} {} {} {}".format(min_x, min_y, max_x, max_y)
-                fragment.attrib["BoundingBox"] = bounding_box
+                # bounding box of fragment
+                CDXMLStyler.fix_bounding_box(fragment, scaling_factor)
 
                 node_attributes = ['id', 'p', 'Z', 'AS', 'Element', 'NumHydrogens', 'Geometry']
                 t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment']
@@ -165,6 +162,24 @@ class CDXMLStyler(object):
         label_coords = np.asarray(label_coords)
 
         return all_coords, node_id_mapping, bonds, label_coords
+
+    @staticmethod
+    def fix_bounding_box(element, scaling_factor):
+
+        fragment_bb = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
+        scaled_coords = fragment_bb * scaling_factor
+
+        x_center = (fragment_bb[0] + fragment_bb[2]) / 2
+        y_center = (fragment_bb[1] + fragment_bb[3]) / 2
+        scaled_x_center = (scaled_coords[0] + scaled_coords[2]) / 2
+        scaled_y_center = (scaled_coords[1] + scaled_coords[3]) / 2
+
+        x_translate = x_center - scaled_x_center
+        y_translate = y_center - scaled_y_center
+        translate = np.array([x_translate, y_translate, x_translate, y_translate])
+        final_coords = scaled_coords + translate
+        final_coords = np.round(final_coords, 2)
+        element.attrib['BoundingBox'] = "{} {} {} {}".format(final_coords[0], final_coords[1], final_coords[2], final_coords[3])
 
     @staticmethod
     def get_center(all_coords):
