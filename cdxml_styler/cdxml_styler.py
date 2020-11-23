@@ -76,15 +76,18 @@ class CDXMLStyler(object):
         try:
             for fragment in root.iter('fragment'):
 
-                all_coords, node_id_mapping, bonds = CDXMLStyler.get_coords_and_mapping(fragment)
+                all_coords, node_id_mapping, bonds, label_coords = CDXMLStyler.get_coords_and_mapping(fragment)
 
                 avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
 
+                # Scale Nodes (=Atoms)
                 scaling_factor = bond_length / avg_bl
-
                 scaled_coords = all_coords * scaling_factor
-
                 final_coords = CDXMLStyler.translate(all_coords, scaled_coords)
+                # Scale atom labels
+                if len(label_coords) > 0:
+                    scaled_labels = label_coords * scaling_factor
+                    final_labels = CDXMLStyler.translate(label_coords, scaled_labels)
 
                 # set coords and clean nodes
                 max_x, max_y = final_coords.max(axis=0)
@@ -96,6 +99,7 @@ class CDXMLStyler(object):
                 t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment']
 
                 idx = 0
+                label_idx = 0
                 for node in fragment.iter('n'):
                     coords_xml = str(final_coords[idx][0]) + " " + str(final_coords[idx][1])
                     node.attrib['p'] = coords_xml
@@ -104,6 +108,10 @@ class CDXMLStyler(object):
                     for unwanted_key in unwanted: del node.attrib[unwanted_key]
 
                     for t in node.iter('t'):
+                        #set new coordinates for lables (t elements)
+                        coords_label = str(final_labels[label_idx][0]) + " " + str(final_labels[label_idx][1])
+                        t.attrib['p'] = coords_label
+                        label_idx +=1
 
                         unwanted = set(t.attrib) - set(t_attributes)
                         for unwanted_key in unwanted: del t.attrib[unwanted_key]
@@ -128,6 +136,9 @@ class CDXMLStyler(object):
 
         all_coords = []
         node_id_mapping = {}
+        bounding_boxes = {}
+        label_coords = []
+        label_bbs = []
         bonds = []
 
         idx = 0
@@ -136,6 +147,11 @@ class CDXMLStyler(object):
             coords = [float(x) for x in coords_raw.split(" ")]
             all_coords.append(coords)
             node_id_mapping[int(node.attrib['id'])] = idx
+            for t in node.iter('t'):
+                label_p= [float(x) for x in t.attrib['p'].split(" ")]
+                label_coords.append(label_p)
+                label_bb = [float(x) for x in t.attrib['BoundingBox'].split(" ")]
+                label_bbs.append(label_bb)
             idx += 1
         for bond in fragment.iter('b'):
             bond_dict = {'start': int(bond.attrib['B']), 'end': int(bond.attrib['E'])}
@@ -146,8 +162,9 @@ class CDXMLStyler(object):
             for unwanted_key in unwanted: del bond.attrib[unwanted_key]
 
         all_coords = np.asarray(all_coords)
+        label_coords = np.asarray(label_coords)
 
-        return all_coords, node_id_mapping, bonds
+        return all_coords, node_id_mapping, bonds, label_coords
 
     @staticmethod
     def get_center(all_coords):

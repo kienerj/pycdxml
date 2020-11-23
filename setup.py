@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="cxdml-styler",
+    name="cdxml-styler",
     version="0.0.1",    
     author="Joos Kiener",
     author_email="joos.kiener@gmail.com",
