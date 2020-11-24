@@ -76,6 +76,7 @@ class CDXMLStyler(object):
         try:
             for fragment in root.iter('fragment'):
 
+                CDXMLStyler.add_missing_bounding_box(fragment)
                 all_coords, node_id_mapping, bonds, label_coords = CDXMLStyler.get_coords_and_mapping(fragment)
 
                 avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
@@ -125,6 +126,24 @@ class CDXMLStyler(object):
             # When atoms (the nodes) have no coordinates, attribute p doesn't exist -> Key error
             # If this applies to one fragment, assumption is all fragments have no coordinates
             raise ValueError("Molecule has no coordinates")
+
+    @staticmethod
+    def add_missing_bounding_box(fragment):
+
+        if not 'BoundingBox' in fragment.attrib:
+            all_coords = []
+            for node in fragment.iter('n'):
+                if 'p' in node.attrib:
+                    coords_raw = node.attrib['p']
+                    coords = [float(x) for x in coords_raw.split(" ")]
+                    all_coords.append(coords)
+                else:
+                    raise ValueError("Molecule has no coordinates")
+            # add missing BoundingBox
+            all_coords = np.asarray(all_coords)
+            max_x, max_y = all_coords.max(axis=0)
+            min_x, min_y = all_coords.min(axis=0)
+            fragment.attrib['BoundingBox'] = "{} {} {} {}".format(min_x, min_y, max_x, max_y)
 
     @staticmethod
     def get_coords_and_mapping(fragment):
