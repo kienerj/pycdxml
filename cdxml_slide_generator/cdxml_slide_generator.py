@@ -56,9 +56,10 @@ class CDXMLSlideGenerator(object):
         for index, cdxml in enumerate(cdxml_documents):
             # Set style to ACS 1996
             cdxml = self.styler.apply_style_to_string(cdxml)
-            root = ET.fromstring(cdxml)
+            root = ET.fromstring(cdxml.encode('utf-8'))
             # Only first structure in document is put into slide
-            fragment = root.find('page').find('fragment')
+            # fragment can also be in a group inside page so just find inside page doesn't work
+            fragment = list(root.find('page').iter('fragment'))[0]
 
             #shrinks fragment in case it doesn't fit into available space
             self._shrink_to_fit(fragment)
@@ -95,25 +96,25 @@ class CDXMLSlideGenerator(object):
 
             #handle properties
             if self.number_of_properties > 0:
-                properties = properties[:self.number_of_properties]
+                props = properties[index][:self.number_of_properties]
                 y_top = row * self.row_height + self.molecule_height + self.margin
                 y_bottom = y_top + self.text_height
-                y_center_props = y_top + 0.5 * self.text_height
-                fragment_bb = np.asarray([float(x) for x in fragment.attrib['BoundingBox'].split(" ")])
-                txt_bounding_box = np.array([fragment_bb[0], y_top, fragment_bb[2], y_bottom])
+                #y_center_props = y_top + 0.5 * self.text_height
+                x_left = column * self.column_width + self.margin
+                x_right = (column + 1) * self.column_width - self.margin
 
                 txt = ET.Element('t')
                 txt.attrib["LineHeight"] = "auto"
                 txt.attrib["id"] = str(5000 + index)
-                txt.attrib['BoundingBox'] = "{} {} {} {}".format(txt_bounding_box[0], txt_bounding_box[1],
-                                                                 txt_bounding_box[2], txt_bounding_box[3])
+                txt.attrib['BoundingBox'] = "{} {} {} {}".format(x_left, y_top, x_right, y_bottom)
                 # TODO: proper position calculation
                 # with Arial font 10 the y-coord of p of a t element is 8.95 points higher than the bounding box top edge
                 # No logical explanation / formula available for this. Empirical observation
-                txt.attrib['p'] = "{} {}".format(txt_bounding_box[0], txt_bounding_box[1] + 8.95)
+                txt.attrib['p'] = "{} {}".format(x_left, y_top + 8.95)
                 line_starts = []
                 text_length = 0
-                for prop_index, prop in enumerate(properties[index]):
+
+                for prop_index, prop in enumerate(props):
                     s = ET.SubElement(txt,'s')
                     s.attrib['font'] = "3" #Arial default for now
                     s.attrib['color'] = str(self.register_color(prop.color))
