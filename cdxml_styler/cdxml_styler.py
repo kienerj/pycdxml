@@ -79,6 +79,17 @@ class CDXMLStyler(object):
                 CDXMLStyler.add_missing_bounding_box(fragment)
                 all_coords, node_id_mapping, bonds, label_coords = CDXMLStyler.get_coords_and_mapping(fragment)
 
+                num_nodes = len(node_id_mapping)
+                if num_nodes == 0:
+                    raise ValueError("Molecule has no Atoms")
+                elif num_nodes == 1:
+                    # only one node usually a text like 'HCl' -> only fix label size
+                    for s in fragment.iter('s'):
+                        s.attrib["size"] = self.style["LabelSize"]
+                        s.attrib["face"] = self.style["LabelFace"]
+                        s.attrib["font"] = self.style["LabelFont"]
+                    return root
+
                 avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
 
                 # Scale Nodes (=Atoms)
