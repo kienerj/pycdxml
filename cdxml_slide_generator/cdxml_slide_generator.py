@@ -10,7 +10,7 @@ from cdxml_styler import CDXMLStyler
 class CDXMLSlideGenerator(object):
 
     def __init__(self, columns=7, rows=3, font_size=10, font='Arial', number_of_properties=4, slide_width=30.4,
-                 slide_height=13):
+                 slide_height=13, style='ACS 1996'):
 
         self.style_name = "ACS 1996"
         self.font_size = font_size
@@ -30,9 +30,9 @@ class CDXMLSlideGenerator(object):
         self.text_height = math.ceil(self.line_height * number_of_properties)
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
-        self.styler = CDXMLStyler()
+        self.styler = CDXMLStyler(style_name=style)
         self.colortable = {}
-        self.slide = self._build_base_document()
+        self.slide = self._build_base_document(style)
 
     def generate_slide(self, cdxml_documents, properties):
         """
@@ -54,12 +54,11 @@ class CDXMLSlideGenerator(object):
             raise ValueError('Number of documents must match number of properties.')
 
         for index, cdxml in enumerate(cdxml_documents):
-            # Set style to ACS 1996
             cdxml = self.styler.apply_style_to_string(cdxml)
-            root = ET.fromstring(cdxml.encode('utf-8'))
+            root = ET.fromstring(cdxml)
             # Only first structure in document is put into slide
             # fragment can also be in a group inside page so just find inside page doesn't work
-            fragment = list(root.find('page').iter('fragment'))[0]
+            fragment = root.findall('.//fragment')[0]
 
             #shrinks fragment in case it doesn't fit into available space
             self._shrink_to_fit(fragment)
@@ -168,15 +167,16 @@ class CDXMLSlideGenerator(object):
                         s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
                 idx += 1
 
-    def _build_base_document(self):
+    def _build_base_document(self, style):
 
         sb = ['<page\n id="146"\n HeaderPosition="36"\n FooterPosition="36"\n PageOverlap="0"\n PrintTrimMarks="yes"\n '
               'HeightPages="1"\n WidthPages="1"\n DrawingSpace="poster"', '\n BoundingBox="0 0 ', str(self.slide_width), " ",
               str(self.slide_height), '"\n Width="', str(self.slide_width), '"\n Height="', str(self.slide_height), '"\n></page>']
         page = ''.join(sb)
 
+        template_name = style + '.cdxml'
         module_path = Path(__file__).parent
-        template_path = module_path / 'template.cdxml'
+        template_path = module_path / template_name
         tree = ET.parse(template_path)
         root = tree.getroot()
         root.append(ET.fromstring(page))
