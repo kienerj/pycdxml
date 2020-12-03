@@ -1,0 +1,897 @@
+0x0001: 
+  name: CreationUserName
+  type: CDXString
+0x0002:
+  name: CreationDate
+  type: CDXDate
+0x0003:
+  name: CreationProgram
+  type: CDXString
+0x0004:
+  name: ModificationUserName
+  type: CDXString
+0x0005:
+  name: ModificationDate
+  type: CDXDate
+0x0006:
+  name: ModificationProgram
+  type: CDXString
+0x0008:
+  name: Name
+  type: CDXString
+0x0009:
+  name: Comment
+  type: CDXString
+0x000A:
+  name: Z
+  type: INT16
+0x000B:
+  name: RegistryNumber
+  type: CDXString
+0x000C:
+  name: RegistryAuthority
+  type: CDXString
+0x000E:
+  name: RepresentsProperty
+  type: CDXRepresentsProperty
+0x000F:
+  name: IgnoreWarnings
+  type: CDXBooleanImplied
+0x0010:
+  name: Warning
+  type: CDXString
+0x0011:
+  name: Visible
+  type: CDXBoolean
+0x0013:
+  name: SupersededBy
+  type: CDXObjectID
+0x0100:
+  name: fonttable
+  type: CDXFontTable
+0x0200:
+  name: p
+  type: CDXPoint2D
+0x0201:
+  name: xyz
+  type: CDXPoint3D
+0x0202:
+  name: extent
+  type: CDXPoint2D
+0x0203:
+  name: extent3D
+  type: CDXPoint3D
+0x0204:
+  name: BoundingBox
+  type: CDXRectangle
+0x0205:
+  name: RotationAngle
+  type: INT32
+0x0207:
+  name: Head3D
+  type: CDXPoint3D
+0x0208:
+  name: Tail3D
+  type: CDXPoint3D
+0x0209:
+  name: TopLeft
+  type: CDXPoint2D
+0x020A:
+  name: TopRight
+  type: CDXPoint2D
+0x020B:
+  name: BottomRight
+  type: CDXPoint2D
+0x020C:
+  name: BottomLeft
+  type: CDXPoint2D
+0x020D:
+  name: Center3D
+  type: CDXPoint3D
+0x020E:
+  name: Center3D
+  type: CDXPoint3D
+0x020F:
+  name: Center3D
+  type: CDXPoint3D
+0x0300:
+  name: colortable
+  type: CDXColorTable
+0x0301:
+  name: color
+  type: UINT16
+0x0302:
+  name: bgcolor
+  type: INT16
+0x0400:
+  name: NodeType
+  type: INT16
+0x0401:
+  name: LabelDisplay
+  type: INT8
+0x0402:
+  name: Element
+  type: INT16
+0x0403:
+  name: ElementList
+  type: CDXElementList
+0x0404:
+  name: Formula
+  type: CDXFormula
+0x0420:
+  name: Isotope
+  type: INT16
+0x0421:
+  name: Charge
+  type: INT8
+0x0422:
+  name: Radical
+  type: UINT8
+0x0423:
+  name: FreeSites
+  type: UINT8
+0x0424:
+  name: ImplicitHydrogens
+  type: CDXBooleanImplied
+0x0425:
+  name: RingBondCount
+  type: INT8
+0x0426:
+  name: UnsaturatedBonds
+  type: INT8
+0x0427:
+  name: RxnChange
+  type: CDXBooleanImplied
+0x0428:
+  name: RxnStereo
+  type: INT8
+0x0429:
+  name: AbnormalValence
+  type: CDXBooleanImplied
+0x042B:
+  name: NumHydrogens
+  type: UINT16
+0x042E:
+  name: HDot
+  type: CDXBooleanImplied
+0x042F:
+  name: HDash
+  type: CDXBooleanImplied
+0x0430:
+  name: Geometry
+  type: INT8
+0x0431:
+  name: BondOrdering
+  type: CDXObjectIDArray
+0x0432:
+  name: Attachments
+  type: CDXObjectIDArrayWithCounts
+0x0433:
+  name: GenericNickname
+  type: CDXString
+0x0434:
+  name: AltGroupID
+  type: CDXObjectID
+0x0435:
+  name: SubstituentsUpTo
+  type: UINT8
+0x0436:
+  name: SubstituentsExactly
+  type: UINT8
+0x0437:
+  name: AS
+  type: INT8
+0x0438:
+  name: Translation
+  type: INT8
+0x0439:
+  name: AtomNumber
+  type: CDXString
+0x043A:
+  name: ShowAtomQuery
+  type: CDXBoolean
+0x043B:
+  name: ShowAtomStereo
+  type: CDXBoolean
+0x043C:
+  name: ShowAtomNumber
+  type: CDXBoolean
+0x043D:
+  name: LinkCountLow
+  type: INT16
+0x043E:
+  name: LinkCountHigh
+  type: INT16
+0x043F:
+  name: IsotopicAbundance
+  type: INT8
+0x0440:
+  name: ExternalConnectionType
+  type: INT8
+0x0441:
+  name: GenericList
+  type: CDXGenericList
+0x0442:
+  name: ShowTerminalCarbonLabels
+  type: CDXBoolean
+0x0443:
+  name: ShowNonTerminalCarbonLabels
+  type: CDXBoolean
+0x0444:
+  name: HideImplicitHydrogens
+  type: CDXBoolean
+0x0445:
+  name: ShowAtomEnhancedStereo
+  type: CDXBoolean
+0x0446:
+  name: EnhancedStereoType
+  type: UINT8
+0x0447:
+  name: EnhancedStereoGroupNum
+  type: UINT16
+0x0500:
+  name: Racemic
+  type: CDXBoolean
+0x0501:
+  name: Absolute
+  type: CDXBoolean
+0x0502:
+  name: Relative
+  type: CDXBoolean
+0x0503:
+  name: Formula
+  type: CDXFormula
+0x0504:
+  name: Weight
+  type: FLOAT64
+0x0505:
+  name: ConnectionOrder
+  type: CDXObjectIDArray
+0x0600:
+  name: Order
+  type: INT16
+0x0601:
+  name: Display
+  type: INT16
+0x0602:
+  name: Display2
+  type: INT16
+0x0603:
+  name: DoublePosition
+  type: INT16
+0x0604:
+  name: B
+  type: UINT32
+0x0605:
+  name: E
+  type: UINT32
+0x0606:
+  name: Topology
+  type: INT8
+0x0607:
+  name: RxnParticipation
+  type: INT8
+0x0608:
+  name: BeginAttach
+  type: UINT8
+0x0609:
+  name: EndAttach
+  type: UINT8
+0x060A:
+  name: BS
+  type: INT8
+0x060B:
+  name: BondCircularOrdering
+  type: CDXObjectIDArray
+0x060C:
+  name: ShowBondQuery
+  type: CDXBoolean
+0x060D:
+  name: ShowBondStereo
+  type: CDXBoolean
+0x060E:
+  name: CrossingBonds
+  type: CDXObjectIDArray
+0x060F:
+  name: ShowBondRxn
+  type: CDXBoolean
+0x0700:
+  name: Text
+  type: CDXString
+0x0701:
+  name: Justification
+  type: INT8
+0x0702:
+  name: LineHeight
+  type: UINT16
+0x0703:
+  name: WordWrapWidth
+  type: INT16
+0x0704:
+  name: LineStarts
+  type: INT16ListWithCounts
+0x0705:
+  name: LabelAlignment
+  type: INT8
+0x0706:
+  name: LabelLineHeight
+  type: INT16
+0x0707:
+  name: CaptionLineHeight
+  type: INT16
+0x0708:
+  name: InterpretChemically
+  type: CDXBoolean
+0x0800:
+  name: MacPrintInfo
+  type: Unformatted
+0x0801:
+  name: WinPrintInfo
+  type: Unformatted
+0x0802:
+  name: PrintMargins
+  type: CDXRectangle
+0x0803:
+  name: ChainAngle
+  type: INT32
+0x0804:
+  name: BondSpacing
+  type: INT16
+0x0805:
+  name: BondLength
+  type: CDXCoordinate
+0x0806:
+  name: BoldWidth
+  type: CDXCoordinate
+0x0807:
+  name: LineWidth
+  type: CDXCoordinate
+0x0808:
+  name: MarginWidth
+  type: CDXCoordinate
+0x0809:
+  name: HashSpacing
+  type: CDXCoordinate
+0x080A:
+  name: LabelStyle
+  type: CDXFontStyle
+0x080B:
+  name: CaptionStyle
+  type: CDXFontStyle
+0x080C:
+  name: CaptionJustification
+  type: INT8
+0x080D:
+  name: FractionalWidths
+  type: CDXBoolean
+0x080E:
+  name: Magnification
+  type: INT16
+0x080F:
+  name: WidthPages
+  type: INT16
+0x0810:
+  name: HeightPages
+  type: INT16
+0x0811:
+  name: DrawingSpace
+  type: INT8
+0x0812:
+  name: Width
+  type: CDXCoordinate
+0x0813:
+  name: Height
+  type: CDXCoordinate
+0x0814:
+  name: PageOverlap
+  type: CDXCoordinate
+0x0815:
+  name: Header
+  type: CDXString
+0x0816:
+  name: HeaderPosition
+  type: CDXCoordinate
+0x0817:
+  name: Footer
+  type: CDXString
+0x0818:
+  name: FooterPosition
+  type: CDXCoordinate
+0x0819:
+  name: PrintTrimMarks
+  type: CDXBooleanImplied
+0x081A:
+  name: LabelFont
+  type: INT16
+0x081B:
+  name: CaptionFont
+  type: INT16
+0x081C:
+  name: LabelSize
+  type: INT16
+0x081D:
+  name: CaptionSize
+  type: INT16
+0x081E:
+  name: LabelFace
+  type: INT16
+0x081F:
+  name: CaptionFace
+  type: INT16
+0x0820:
+  name: LabelColor
+  type: INT16
+0x0821:
+  name: CaptionColor
+  type: INT16
+0x0822:
+  name: BondSpacingAbs
+  type: CDXCoordinate
+0x0823:
+  name: LabelJustification
+  type: INT8
+0x0824:
+  name: FixInPlaceExtent
+  type: CDXPoint2D
+0x0825:
+  name: Side
+  type: UINT16
+0x0826:
+  name: FixInPlaceGap
+  type: CDXPoint2D
+0x0827:
+  name: CartridgeData
+  type: Unformatted
+0x0900:
+  name: WindowIsZoomed
+  type: CDXBooleanImplied
+0x0901:
+  name: WindowPosition
+  type: CDXPoint2D
+0x0902:
+  name: WindowSize
+  type: CDXPoint2D
+0x0A00:
+  name: GraphicType
+  type: INT16
+0x0A01:
+  name: LineType
+  type: INT16
+0x0A02:
+  name: ArrowType
+  type: INT16
+0x0A03:
+  name: RectangleType
+  type: INT16
+0x0A04:
+  name: OvalType
+  type: INT16
+0x0A05:
+  name: OrbitalType
+  type: INT16
+0x0A06:
+  name: BracketType
+  type: INT16
+0x0A07:
+  name: SymbolType
+  type: INT16
+0x0A08:
+  name: CurveType
+  type: INT16
+0x0A20:
+  name: HeadSize
+  type: INT16
+0x0A21:
+  name: AngularSize
+  type: INT16
+0x0A22:
+  name: LipSize
+  type: INT16
+0x0A23:
+  name: CurvePoints
+  type: CDXCurvePoints
+0x0A24:
+  name: BracketUsage
+  type: INT8
+0x0A25:
+  name: PolymerRepeatPattern
+  type: INT8
+0x0A26:
+  name: PolymerFlipType
+  type: INT8
+0x0A27:
+  name: BracketedObjectIDs
+  type: CDXObjectIDArray
+0x0A28:
+  name: RepeatCount
+  type: FLOAT64
+0x0A29:
+  name: ComponentOrder
+  type: INT16
+0x0A2A:
+  name: SRULabel
+  type: CDXString
+0x0A2B:
+  name: GraphicID
+  type: CDXObjectID
+0x0A2C:
+  name: BondID
+  type: CDXObjectID
+0x0A2D:
+  name: BInnerAtomID
+  type: CDXObjectID
+0x0A2E:
+  name: CurvePoints3D
+  type: CDXCurvePoints3D
+0x0A2F:
+  name: ArrowHeadType
+  type: INT16
+0x0A30:
+  name: HeadCenterSize
+  type: UINT16
+0x0A31:
+  name: HeadWidth
+  type: UINT16
+0x0A32:
+  name: ShadowSize
+  type: UINT16
+0x0A33:
+  name: ArrowShaftSpacing
+  type: UINT16
+0x0A34:
+  name: ArrowEquilibriumRatio
+  type: UINT16
+0x0A35:
+  name: ArrowHeadHead
+  type: INT16
+0x0A36:
+  name: ArrowHeadTail
+  type: INT16
+0x0A37:
+  name: FillType
+  type: INT16
+0x0A38:
+  name: CurveSpacing
+  type: UINT16
+0x0A38:
+  name: Closed
+  type: CDXBoolean
+0x0A3A:
+  name: Dipole
+  type: CDXBoolean
+0x0A3B:
+  name: NoGo
+  type: INT8
+0x0A3C:
+  name: CornerRadius
+  type: INT16
+0x0A3D:
+  name: FrameType
+  type: INT16
+0x0A60:
+  name: Edition
+  type: Unformatted
+0x0A61:
+  name: EditionAlias
+  type: Unformatted
+0x0A62:
+  name: MacPICT
+  type: Unformatted
+0x0A63:
+  name: WindowsMetafile
+  type: Unformatted
+0x0A64:
+  name: OLEObject
+  type: Unformatted
+0x0A65:
+  name: EnhancedMetafile
+  type: Unformatted
+0x0A6E:
+  name: GIF
+  type: Unformatted
+0x0A6F:
+  name: TIFF
+  type: Unformatted
+0x0A70:
+  name: PNG
+  type: Unformatted
+0x0A71:
+  name: JPEG
+  type: Unformatted
+0x0A72:
+  name: BMP
+  type: Unformatted
+0x0A80:
+  name: XSpacing
+  type: FLOAT64
+0x0A81:
+  name: XLow
+  type: FLOAT64
+0x0A82:
+  name: XType
+  type: INT16
+0x0A83:
+  name: YType
+  type: INT16
+0x0A84:
+  name: XAxisLabel
+  type: CDXString
+0x0A85:
+  name: YAxisLabel
+  type: CDXString
+0x0A86:
+  name: DataPoint
+  type: FLOAT64
+0x0A87:
+  name: Class
+  type: INT16
+0x0A88:
+  name: YLow
+  type: FLOAT64
+0x0A89:
+  name: YScale
+  type: FLOAT64
+0x0AA0:
+  name: OriginFraction
+  type: FLOAT64
+0x0AA1:
+  name: SolventFrontFraction
+  type: FLOAT64
+0x0AA2:
+  name: ShowOrigin
+  type: CDXBoolean
+0x0AA3:
+  name: ShowSolventFront
+  type: CDXBoolean
+0x0AA4:
+  name: ShowBorders
+  type: CDXBooleanImplied
+0x0AA5:
+  name: ShowSideTicks
+  type: CDXBoolean
+0x0AB0:
+  name: Rf
+  type: FLOAT64
+0x0AB1:
+  name: Tail
+  type: CDXCoordinate
+0x0AB2:
+  name: ShowRf
+  type: CDXBoolean
+0x0B00:
+  name: TextFrame
+  type: CDXRectangle
+0x0B01:
+  name: GroupFrame
+  type: CDXRectangle
+0x0B02:
+  name: Valence
+  type: INT16
+0x0B80:
+  name: GeometricFeature
+  type: INT8
+0x0B81:
+  name: RelationValue
+  type: FLOAT64
+0x0B82:
+  name: BasisObjects
+  type: CDXObjectIDArray
+0x0B83:
+  name: ConstraintType
+  type: INT8
+0x0B84:
+  name: ConstraintMin
+  type: FLOAT64
+0x0B85:
+  name: ConstraintMax
+  type: FLOAT64
+0x0B86:
+  name: IgnoreUnconnectedAtoms
+  type: CDXBooleanImplied
+0x0B87:
+  name: DihedralIsChiral
+  type: CDXBooleanImplied
+0x0B88:
+  name: PointIsDirected
+  type: CDXBooleanImplied
+0x0BB0:
+  name: ChemicalPropertyType
+  type: UINT32
+0x0BB1:
+  name: ChemicalPropertyDisplayID
+  type: CDXObjectID
+0x0BB2:
+  name: ChemicalPropertyIsActive
+  type: CDXBoolean
+0x0C00:
+  name: ReactionStepAtomMap
+  type: CDXObjectIDArray
+0x0C01:
+  name: ReactionStepReactants
+  type: CDXObjectIDArray
+0x0C02:
+  name: ReactionStepProducts
+  type: CDXObjectIDArray
+0x0C03:
+  name: ReactionStepPlusses
+  type: CDXObjectIDArray
+0x0C04:
+  name: ReactionStepArrows
+  type: CDXObjectIDArray
+0x0C05:
+  name: ReactionStepObjectsAboveArrow
+  type: CDXObjectIDArray
+0x0C06:
+  name: ReactionStepObjectsBelowArrow
+  type: CDXObjectIDArray
+0x0C07:
+  name: ReactionStepAtomMapManual
+  type: CDXObjectIDArray
+0x0C08:
+  name: ReactionStepAtomMapAuto
+  type: CDXObjectIDArray
+0x0D00:
+  name: TagType
+  type: INT16
+0x0D03:
+  name: Tracking
+  type: CDXBoolean
+0x0D04:
+  name: Persistent
+  type: CDXBoolean
+0x0D05:
+  name: Value
+  type: varies
+0x0D06:
+  name: PositioningType
+  type: INT8
+0x0D07:
+  name: PositioningAngle
+  type: INT32
+0x0D08:
+  name: PositioningOffset
+  type: CDXPoint2D
+0x0E00:
+  name: SequenceIdentifier
+  type: CDXString
+0x0F00:
+  name: CrossReferenceContainer
+  type: CDXString
+0x0F01:
+  name: CrossReferenceDocument
+  type: CDXString
+0x0F02:
+  name: CrossReferenceIdentifier
+  type: CDXString
+0x0F03:
+  name: CrossReferenceSequence
+  type: CDXString
+0x1000:
+  name: PaneHeight
+  type: CDXCoordinate
+0x1001:
+  name: NumRows
+  type: INT16
+0x1002:
+  name: NumColumns
+  type: INT16
+0x1100:
+  name: Integral
+  type: CDXBoolean
+0x1FF0:
+  name: SplitterPositions
+  type: CDXObjectIDArray
+0x1FF1:
+  name: PageDefinition
+  type: INT8
+0x206:
+  name: BoundsInParent
+  type: CDXRectangle
+0x044A:
+  name: ShowResidueID
+  type: CDXBoolean
+0x0828:
+  name: AminoAcidTermini
+  type: CDXAminoAcidTermini
+0x0829:
+  name: ShowSequenceTermini
+  type: CDXBoolean
+0x082A:
+  name: ShowSequenceBonds
+  type: CDXBoolean
+0x0832:
+  name: ShowSequenceUnlinkedBranches
+  type: CDXBoolean
+0x082B:
+  name: ResidueWrapCount
+  type: UINT8
+0x082C:
+  name: ResidueBlockCount
+  type: UINT8
+0x082D:
+  name: ResidueZigZag
+  type: CDXBoolean
+0x082E:
+  name: NumberResidueBlocks
+  type: CDXBoolean
+0x0BB4:
+  name: ChemPropName
+  type: CDXString
+0x0BB5:
+  name: ChemPropFormula
+  type: CDXString
+0x0BB6:
+  name: ChemPropExactMass
+  type: CDXString
+0x0BB7:
+  name: ChemPropMolWt
+  type: CDXString
+0x0BB8:
+  name: ChemPropMOverZ
+  type: CDXString
+0x0BB9:
+  name: ChemPropAnalysis
+  type: CDXString
+0x0BBA:
+  name: ChemPropBoilingPt
+  type: CDXString
+0x0BBB:
+  name: ChemPropMeltingPt
+  type: CDXString
+0x0BBC:
+  name: ChemPropCritTemp
+  type: CDXString
+0x0BBD:
+  name: ChemPropCritPres
+  type: CDXString
+0x0BBE:
+  name: ChemPropCritVol
+  type: CDXString
+0x0BBF:
+  name: ChemPropGibbs
+  type: CDXString
+0x0BC0:
+  name: ChemPropLogP
+  type: CDXString
+0x0BC1:
+  name: ChemPropMR
+  type: CDXString
+0x0BC2:
+  name: ChemPropHenry
+  type: CDXString
+0x0BC3:
+  name: ChemPropEForm
+  type: CDXString
+0x0BC4:
+  name: ChemProptPSA
+  type: CDXString
+0x0BC5:
+  name: ChemPropCLogP
+  type: CDXString
+0x0BC6:
+  name: ChemPropCMR
+  type: CDXString
+0x0BC7:
+  name: ChemPropLogS
+  type: CDXString
+0x0BC8:
+  name: ChemPropPKa
+  type: CDXString
+0x0BC9:
+  name: ChemPropID
+  type: CDXString
+0x0BCA:
+  name: FragmentLabel
+  type: CDXString
+0x0C0B:
+  name: RxnAutonumberStart
+  type: UINT16
+0x0C0A:
+  name: RxnAutonumberConditions
+  type: CDXBoolean
+0x0C09:
+  name: RxnAutonumberStyle
+  type: CDXAutonumberStyle
+0x0C0C:
+  name: RxnAutonumberFormat
+  type: CDXString
