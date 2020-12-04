@@ -1,34 +1,105 @@
-0x8000: Document
-0x8001: Page
-0x8002: Group
-0x8003: Fragment
-0x8004: Node
-0x8005: Bond
-0x8006: Text
-0x8007: Graphic
-0x8017: BracketedGroup
-0x8018: BracketAttachment
-0x8019: CrossingBond
-0x8008: Curve
-0x8009: EmbeddedObject
-0x8016: Table
-0x800A: NamedAlternativeGroup
-0x800B: TemplateGrid
-0x800C: RegistryNumber
-0x800D: ReactionScheme
-0x800E: ReactionStep
-0x8010: Spectrum
-0x8011: ObjectTag
-0x8013: Sequence
-0x8014: CrossReference
-0x8020: Border
-0x8021: Geometry
-0x8022: Constraint
-0x8023: TLCPlate
-0x8024: TLCLane
-0x8025: TLCSpot
-0x8015: Splitter
-0x8026: ChemicalProperty
-0x8027: Arrow
-0x0100: FontTable
-0x0300: ColorTable
+0x8000:   
+  type: Document
+  element_name: CDXML
+0x8001: 
+  type: Page
+  element_name: page
+0x8002: 
+  type: Group
+  element_name: group
+0x8003: 
+  type: Fragment
+  element_name: fragment
+0x8004: 
+  type: Node
+  element_name: n
+0x8005: 
+ type: Bond
+ element_name: b
+0x8006: 
+  type: Text
+  element_name: t
+0x8007: 
+  type: Graphic
+  element_name: graphic
+0x8017: 
+  type: BracketedGroup
+  element_name: bracketedgroup
+0x8018: 
+ type: BracketAttachment
+ element_name: bracketattachment
+0x8019: 
+  tpye: CrossingBond
+  element_name: crossingbond
+0x8008: 
+  type: Curve
+  element_name: curve
+0x8009: 
+  type: EmbeddedObject
+  element_name: embeddedobject
+0x8016: 
+  type: Table
+  element_name: table
+0x800A: 
+  type: element_namedAlternativeGroup
+  element_name: altgroup
+0x800B: 
+  type: TemplateGrid
+  element_name: templategrid
+0x800C:
+  type: RegistryNumber
+  element_name: regnum
+0x800D:
+  type: ReactionScheme
+  element_name: scheme
+0x800E:
+  type: ReactionStep
+  element_name: step
+0x8010:
+  type: Spectrum
+  element_name: spectrum
+0x8011:
+  type: ObjectTag
+  element_name: objecttag
+0x8013:
+  type: Sequence
+  element_name: sequence
+0x8014:
+  type: CrossReference
+  element_name: crossreference
+0x8020:
+  type: Border
+  element_name: border
+0x8021:
+  type: Geometry
+  element_name: geometry
+0x8022:
+  type: Constraint
+  element_name: constraint
+0x8023:
+  type: TLCPlate
+  element_name: tlcplate
+0x8024:
+  type: TLCLane
+  element_name: tlclane
+0x8025:
+  type: TLCSpot
+  element_name: tlcspot
+0x8015:
+  type: Splitter
+  element_name: splitter
+0x8026:
+  type: ChemicalProperty
+  element_name: chemicalproperty
+0x8027:
+  type: Arrow
+  element_name: arrow
+0x0100:
+  type: FontTable 
+  element_name: fonttable
+0x0300:
+  type: ColorTable
+  element_name: colortable
+0x000e:
+  type: RepresentsProperty
+  element_name: represents

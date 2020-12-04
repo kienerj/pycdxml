@@ -30,9 +30,10 @@ class ChemDrawObject(NodeMixin):
     with open(cdx_properties_path, 'r') as stream:
         CDX_PROPERTIES = yaml.safe_load(stream)
 
-    def __init__(self, tag_id, element_name, id, properties=[],  parent=None, children=None):
+    def __init__(self, tag_id, type, element_name, id, properties=[],  parent=None, children=None):
 
         self.tag_id = tag_id
+        self.type = type
         self.element_name = element_name
         self.id = id
         self.properties = properties
@@ -41,14 +42,21 @@ class ChemDrawObject(NodeMixin):
             self.children = children
 
     @staticmethod
-    def from_bytes(cdx) -> 'ChemDrawObject':
+    def from_bytes(cdx:io.BytesIO, tag_id: int, parent:'ChemDrawObject') -> 'ChemDrawObject':
         """
         cdx must be a BytesIO instance at the begining of the ID positon. Eg. the tag_id has been read and the next 4
         bytes are the objects id inside the document.
-        :param bytes:
-        :return:
+        :param cdx: BytesIO stream at position right before object ID
+        :param tag_id: objects tag identifier
+        :param parent: container of this new object
+        :return: a new ChemDrawObject
         """
-        raise NotImplementedError("Should have implemented this")
+        object_id = int.from_bytes(cdx.read(4), "little")
+        props = ChemDrawObject._read_properties(cdx)
+        type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
+        element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
+        obj = ChemDrawObject(tag_id, type, element_name, object_id, properties=props, parent=parent)
+        return obj
 
     @staticmethod
     def _read_properties(cdx:io.BytesIO) -> list:
@@ -165,7 +173,7 @@ class ChemDrawDocument(ChemDrawObject):
 
     def __init__(self, id, properties=[], children=None):
 
-        super().__init__(0x8000, 'CDXML', id, properties=properties, children=children)
+        super().__init__(0x8000, 'Document', 'CDXML', id, properties=properties, children=children)
 
 
     @staticmethod
@@ -192,10 +200,11 @@ class ChemDrawDocument(ChemDrawObject):
 
         while tag_id in ChemDrawObject.CDX_OBJECTS:
             try:
-                class_name = ChemDrawObject.CDX_OBJECTS[tag_id]
-                klass = globals()[class_name]
-                obj = klass.from_bytes(cdx, parent_stack[-1])
-                logger.debug('Created object of type {} with id: {}'.format(class_name, obj.id))
+                # class_name = ChemDrawObject.CDX_OBJECTS[tag_id]
+                # klass = globals()[class_name]
+                # obj = klass.from_bytes(cdx, parent_stack[-1])
+                obj = ChemDrawObject.from_bytes(cdx, tag_id, parent_stack[-1])
+                logger.debug('Created object of type {} with id: {}'.format(obj.type, obj.id))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 if tag_id == 0:
@@ -216,97 +225,3 @@ class ChemDrawDocument(ChemDrawObject):
                     parent_stack.append(obj)
             except KeyError as err:
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
-
-
-class Page(ChemDrawObject):
-
-    def __init__(self, id, parent, properties=[], children=None):
-
-        super().__init__(0x8001, 'page', id, properties=properties, parent=parent, children=children)
-
-    @staticmethod
-    def from_bytes(cdx:io.BytesIO, parent) -> 'Page':
-        """
-        cdx BytesIO must be at position after object tag but before reading object id.
-        :param cdx: byte stream
-        :return:
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        page = Page(object_id, parent, properties=props)
-        return page
-
-
-class Group(ChemDrawObject):
-
-    def __init__(self, id, parent, properties=[], children=None):
-
-        super().__init__(0x8002, 'group', id, properties=properties, parent=parent, children=children)
-
-    @staticmethod
-    def from_bytes(cdx:io.BytesIO, parent) -> 'Group':
-        """
-        cdx BytesIO must be at position after object tag but before reading object id.
-        :param cdx: byte stream
-        :return:
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        grp = Group(object_id, parent, properties=props)
-        return grp
-
-
-class Fragment(ChemDrawObject):
-
-    def __init__(self, id, parent, properties=[], children=None):
-
-        super().__init__(0x8003, 'fragment', id, properties=properties, parent=parent, children=children)
-
-    @staticmethod
-    def from_bytes(cdx:io.BytesIO, parent) -> 'Fragment':
-        """
-        cdx BytesIO must be at position after object tag but before reading object id.
-        :param cdx: byte stream
-        :return:
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        frag = Fragment(object_id, parent, properties=props)
-        return frag
-
-
-class Node(ChemDrawObject):
-
-    def __init__(self, id, parent, properties=[], children=None):
-
-        super().__init__(0x8004, 'n', id, properties=properties, parent=parent, children=children)
-
-    @staticmethod
-    def from_bytes(cdx:io.BytesIO, parent) -> 'Node':
-        """
-        cdx BytesIO must be at position after object tag but before reading object id.
-        :param cdx: byte stream
-        :return:
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        node = Node(object_id, parent, properties=props)
-        return node
-
-class Bond(ChemDrawObject):
-
-    def __init__(self, id, parent, properties=[], children=None):
-
-        super().__init__(0x8005, 'b', id, properties=properties, parent=parent, children=children)
-
-    @staticmethod
-    def from_bytes(cdx:io.BytesIO, parent) -> 'Bond':
-        """
-        cdx BytesIO must be at position after object tag but before reading object id.
-        :param cdx: byte stream
-        :return:
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        bond = Bond(object_id, parent, properties=props)
-        return bond
