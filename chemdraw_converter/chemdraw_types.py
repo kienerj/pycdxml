@@ -474,8 +474,9 @@ class CDXObjectIDArray(CDXType):
             raise ValueError('CDXObjectIDArray must consist of n*4 bytes. Found {} bytes.'.format(len(property_bytes)))
         array_length = len(property_bytes) // 4
         ids = []
+        stream = io.BytesIO(property_bytes)
         for i in range(array_length):
-            id = int.from_bytes(property_bytes[i:(i+4)], "little", signed=False)
+            id = int.from_bytes(stream.read(4), "little", signed=False)
             ids.append(id)
         return CDXObjectIDArray(ids)
 

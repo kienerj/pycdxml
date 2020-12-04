@@ -247,7 +247,7 @@ class ChemDrawDocument(ChemDrawObject):
         for child in self.children:
             ChemDrawDocument._traverse(child, stream)
 
-        stream.write(b'\x00\x00')
+        stream.write(b'\x00\x00\x00\x00') # end of document and end of file
         stream.seek(0)
         return stream.read()
 
