@@ -548,6 +548,131 @@ class CDXAutonumberStyle(CDXType):
             return 'Alphabetic'
 
 
+class CDXBondSpacing(CDXType):
+
+    def __init__(self, value: int):
+        if -32768 > value > 32767:
+            raise ValueError("Needs to be a 16-bit int in range -32768 to 32767.")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBondSpacing':
+        if len(property_bytes) != 2:
+            raise ValueError("INT16 should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBondSpacing(value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        return str(self.value / 10)
+
+
+class CDXDoubleBondPosition(CDXType):
+    """
+    The position of the second line of a double bond.
+
+    This is an enumerated property. Acceptible values are shown in the following list:
+    Value	CDXML Name	Description
+    0	Center	Double bond is centered, but was positioned automatically by the program
+    1	Right	Double bond is on the right (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    2	Left	Double bond is on the left (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    256	Center	Double bond is centered, and was positioned manually by the user
+    257	Right	Double bond is on the right (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
+    258	Left	Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
+    """
+    def __init__(self, value: int):
+        if 0 > value > 258:
+            raise ValueError("Needs to be in [0,1,2,256,257,258].")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXDoubleBondPosition':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXDoubleBondPosition should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXDoubleBondPosition(value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.value == 0 or self.value == 256:
+            return 'Center'
+        elif self.value == 1 or self.value == 257:
+            return 'Right'
+        elif self.value == 2 or self.value == 258:
+            return 'Left'
+
+
+class CDXBondDisplay(CDXType):
+    """
+    Value   CDXML Name	        Description
+    0       Solid	        Solid bond
+    1	    Dash	        Dashed bond
+    2	    Hash	        Hashed bond
+    3	    WedgedHashBegin	Wedged hashed bond with the narrow end on the "begin" atom
+    4	    WedgedHashEnd	Wedged hashed bond with the narrow end on the "end" atom
+    5	    Bold	        Bold bond
+    6	    WedgeBegin	    Wedged solid bond with the narrow end on the "begin" atom
+    7	    WedgeEnd	    Wedged solid bond with the narrow end on the "end" atom
+    8	    Wavy	        Wavy bond
+    9	    HollowWedgeBegin	Wedged hollow bond with the narrow end on the "begin" atom
+    10	    HollowWedgeEnd	Wedged hollow bond with the narrow end on the "end" atom
+    11	    WavyWedgeBegin	Wedged wavy bond with the narrow end on the "begin" atom
+    12	    WavyWedgeEnd	Wedged wavy bond with the narrow end on the "end" atom
+    13	    Dot	            Dotted bond
+    14	    DashDot	        Dashed-and-dotted bond
+    """
+    def __init__(self, value: int):
+        if 0 > value > 14:
+            raise ValueError("Needs to be between 0 and 14")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBondDisplay':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXBondDisplay should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBondDisplay(value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.value == 0:
+            return 'Solid'
+        elif self.value == 1:
+            return 'Dash'
+        elif self.value == 2:
+            return 'Hash'
+        elif self.value == 3:
+            return 'WedgedHashBegin'
+        elif self.value == 4:
+            return 'WedgedHashEnd'
+        elif self.value == 5:
+            return 'Bold'
+        elif self.value == 6:
+            return 'WedgeBegin'
+        elif self.value == 7:
+            return 'WedgeEnd'
+        elif self.value == 8:
+            return 'Wavy'
+        elif self.value == 9:
+            return 'HollowWedgeBegin'
+        elif self.value == 10:
+            return 'HollowWedgeEnd'
+        elif self.value == 11:
+            return 'WavyWedgeBegin'
+        elif self.value == 12:
+            return 'WavyWedgeEnd'
+        elif self.value == 13:
+            return 'Dot'
+        elif self.value == 14:
+            return 'DashDot'
+
+
 class CDXAtomStereo(CDXType):
     """
     This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.

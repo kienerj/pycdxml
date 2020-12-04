@@ -252,13 +252,13 @@
   type: INT16
 0x0601:
   name: Display
-  type: INT16
+  type: CDXBondDisplay
 0x0602:
   name: Display2
-  type: INT16
+  type: CDXBondDisplay
 0x0603:
   name: DoublePosition
-  type: INT16
+  type: CDXDoubleBondPosition
 0x0604:
   name: B
   type: UINT32
@@ -336,7 +336,7 @@
   type: INT32
 0x0804:
   name: BondSpacing
-  type: INT16
+  type: CDXBondSpacing
 0x0805:
   name: BondLength
   type: CDXCoordinate
