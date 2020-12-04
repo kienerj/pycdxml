@@ -100,6 +100,7 @@ class ChemDrawObject(NodeMixin):
         :return:
         """
         e = ET.SubElement(parent, self.element_name)
+        e.attrib['id'] = str(self.id)
         for prop in self.properties:
             prop.add_as_attribute(e)
 
