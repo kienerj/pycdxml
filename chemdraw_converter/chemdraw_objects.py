@@ -5,6 +5,7 @@ from pathlib import Path
 from .chemdraw_types import *
 import logging
 import logging.config
+from lxml import etree as ET
 
 module_path = Path(__file__).parent
 log_config_path = module_path / 'logging.yml'
@@ -183,8 +184,8 @@ class ChemDrawDocument(ChemDrawObject):
 
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     CDXML_HEADER = """<?xml version="1.0" encoding="UTF-8" ?>
-    <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-    """
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd">
+"""
     # According to spec if a "tag_ids" most significant bit (15th bit, 0-based index) is clear, then it's a property
     # else it's an object. This leaves 15 bits resulting gin a max value for a property tag equal to 32767 due to
     # 2^15-1 (max value bits can represent is 2^n-1)
