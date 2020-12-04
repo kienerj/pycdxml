@@ -454,7 +454,7 @@ class CDXBooleanImplied(CDXType):
     def to_bytes(self) -> bytes:
         if not self.value:
             raise ValueError("A BooleanImplied with value 'False' should not be written to cdx file.")
-        return bytes() # empty bytes, see doc comment -> presence marks True value, absence false
+        return b'' # empty bytes, see doc comment -> presence marks True value, absence false
 
     def to_property_value(self) -> str:
         if self.value:

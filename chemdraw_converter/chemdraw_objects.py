@@ -67,16 +67,15 @@ class ChemDrawObject(NodeMixin):
         while tag_id in ChemDrawObject.CDX_PROPERTIES:
             prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']
             length = int.from_bytes(cdx.read(2), "little")
-            if length > 0:
-                if length == 0xFFFF: #special meaning: property bigger than 65534 bytes
-                    length = int.from_bytes(cdx.read(4), "little")
+            if length == 0xFFFF: #special meaning: property bigger than 65534 bytes
+                length = int.from_bytes(cdx.read(4), "little")
 
-                prop_bytes = cdx.read(length)
-                chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
-                klass = globals()[chemdraw_type]
-                type_obj = klass.from_bytes(prop_bytes)
-                prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
-                props.append(prop)
+            prop_bytes = cdx.read(length)
+            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+            klass = globals()[chemdraw_type]
+            type_obj = klass.from_bytes(prop_bytes)
+            prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
+            props.append(prop)
             # read next tag
             tag_id = int.from_bytes(cdx.read(2), "little")
             bit15 = tag_id >> 15 & 1
