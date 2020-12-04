@@ -236,6 +236,26 @@ class Page(ChemDrawObject):
         page = Page(object_id, parent, properties=props)
         return page
 
+
+class Group(ChemDrawObject):
+
+    def __init__(self, id, parent, properties=[], children=None):
+
+        super().__init__(0x8002, 'group', id, properties=properties, parent=parent, children=children)
+
+    @staticmethod
+    def from_bytes(cdx:io.BytesIO, parent) -> 'Group':
+        """
+        cdx BytesIO must be at position after object tag but before reading object id.
+        :param cdx: byte stream
+        :return:
+        """
+        object_id = int.from_bytes(cdx.read(4), "little")
+        props = ChemDrawObject._read_properties(cdx)
+        grp = Group(object_id, parent, properties=props)
+        return grp
+
+
 class Fragment(ChemDrawObject):
 
     def __init__(self, id, parent, properties=[], children=None):
