@@ -71,6 +71,18 @@ class ChemDrawObject(NodeMixin):
                 props.append(prop)
             # read next tag
             tag_id = int.from_bytes(cdx.read(2), "little")
+            bit15 = tag_id >> 15 & 1
+            # Determine if this is a unknown property. Properties have the most significant bit clear (=0).
+            # If property is unknown, log it and read next property until a known one is found.
+            # 0 is end of object hence ignore here
+            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
+                logger.warning(
+                    'Found unknown property {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little")))
+                # read next tag
+                tag_id = int.from_bytes(cdx.read(2), "little")
+                bit15 = tag_id >> 15 & 1
+
+        logger.debug('Successfully finished reading properties.')
         # move back 2 positions, finished reading attributes
         cdx.seek(cdx.tell() - 2)
         return props
