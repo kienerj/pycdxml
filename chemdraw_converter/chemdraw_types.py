@@ -62,6 +62,7 @@ class CDXString(CDXType):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
             stream.write(style.to_bytes())
         stream.write(self.value.encode('iso-8859-1'))
+        logger.debug('Wrote CDXString with value {}.'.format(self.value))
         stream.seek(0)
         return stream.read()
 
@@ -164,14 +165,14 @@ class CDXFontTable(CDXType):
     def to_bytes(self) -> bytes:
 
         stream = io.BytesIO()
-        stream.write(len(self.platform).to_bytes(2, byteorder='little'))
+        stream.write(self.platform.to_bytes(2, byteorder='little'))
         # number of fonts
         stream.write(len(self.fonts).to_bytes(2, byteorder='little'))
         for font in self.fonts:
             stream.write(font.id.to_bytes(2, byteorder='little'))
             stream.write(font.charset.to_bytes(2, byteorder='little'))
             stream.write(len(font.font_name).to_bytes(2, byteorder='little'))
-            stream.write(font.font_name.to_bytes(len(font.font_name), byteorder='little'))
+            stream.write(font.font_name.encode('ascii'))
         stream.seek(0)
         return stream.read()
 

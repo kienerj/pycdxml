@@ -1,6 +1,6 @@
 import io
 import yaml
-from anytree import NodeMixin, RenderTree
+from anytree import NodeMixin
 from pathlib import Path
 from .chemdraw_types import *
 import logging
@@ -102,12 +102,20 @@ class ChemDrawObject(NodeMixin):
         """
         raise NotImplementedError("Should have implemented this")
 
-    def get_bytes(self) -> bytes:
+    def to_bytes(self) -> bytes:
         """
         Generates and returns the bytes of this object for adding to a cdx binary file
+        The end tag \x00\x00 is not written and must be hnadeled by the Document object which is aware of the
+        full tree structure.
         :return:
         """
-        raise NotImplementedError("Should have implemented this")
+        stream = io.BytesIO()
+        stream.write(self.tag_id.to_bytes(2, "little"))
+        stream.write(self.id.to_bytes(4, "little"))
+        for prop in self.properties:
+            stream.write(prop.to_bytes())
+        stream.seek(0)
+        return  stream.read()
 
     def __repr__(self):
         return '{}: {}'.format(self.element_name, self.id)
@@ -128,6 +136,7 @@ class ChemDrawProperty(object):
 
         :return: bytes representing this property
         """
+        logger.debug('Writing property {} with value {}.'.format(self.name, self.get_value()))
         stream = io.BytesIO()
         stream.write(self.tag_id.to_bytes(2, byteorder='little'))
         if self.length <= 65534:
@@ -225,3 +234,27 @@ class ChemDrawDocument(ChemDrawObject):
                     parent_stack.append(obj)
             except KeyError as err:
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+
+    def to_bytes(self) -> bytes:
+
+        stream = io.BytesIO()
+        stream.write(ChemDrawDocument.HEADER)
+        stream.write(self.tag_id.to_bytes(2, byteorder='little'))  # object tag
+        stream.write(self.id.to_bytes(4, byteorder='little'))  # object id
+
+        for prop in self.properties:
+            stream.write(prop.to_bytes())
+
+        for child in self.children:
+            ChemDrawDocument._traverse(child, stream)
+
+        stream.write(b'\x00\x00')
+        stream.seek(0)
+        return stream.read()
+
+    @staticmethod
+    def _traverse(node: ChemDrawObject, stream:io.BytesIO):
+        stream.write(node.to_bytes())
+        for child in node.children:
+            ChemDrawDocument._traverse(child, stream)
+        stream.write(b'\x00\x00')
