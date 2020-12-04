@@ -134,7 +134,7 @@ class Font(object):
     with open(charsets_path, 'r') as stream:
         CHARSETS = yaml.safe_load(stream)
 
-    def __init__(self, id:int, charset: int, font_name):
+    def __init__(self, id:int, charset: int, font_name: str):
 
         self.id = id
         self.charset = charset

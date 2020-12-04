@@ -94,12 +94,16 @@ class ChemDrawObject(NodeMixin):
         cdx.seek(cdx.tell() - 2)
         return props
 
-    def get_element(self):
+    def add_as_element(self, parent: ET.Element):
         """
         Build and return the cdxml element for this object
         :return:
         """
-        raise NotImplementedError("Should have implemented this")
+        e = ET.SubElement(parent, self.element_name)
+        for prop in self.properties:
+            prop.add_as_attribute(e)
+
+        return e
 
     def to_bytes(self) -> bytes:
         """
@@ -147,22 +151,22 @@ class ChemDrawProperty(object):
         stream.seek(0)
         return stream.read()
 
-    def add_attribute(self, element: ET.Element):
+    def add_as_attribute(self, element: ET.Element):
         """
         Adds this property as attribute to the passed in Element
 
         :param element: an ElementTree element instance
         """
         if self.name == "LabelStyle":
-            element['LabelFont'] = self.type.font_id
-            element['LabelSize'] = self.type.font_size_points()
-            element['LabelSize'] = self.type.font_type
+            element.attrib['LabelFont'] = str(self.type.font_id)
+            element.attrib['LabelSize'] = str(self.type.font_size_points())
+            element.attrib['LabelFace'] = str(self.type.font_type)
         elif self.name == "CaptionStyle":
-            element['CaptionFont'] = self.type.font_id
-            element['CaptionSize'] = self.type.font_size_points()
-            element['CaptionSize'] = self.type.font_type
+            element.attrib['CaptionFont'] = str(self.type.font_id)
+            element.attrib['CaptionSize'] = str(self.type.font_size_points())
+            element.attrib['CaptionFace'] = str(self.type.font_type)
         else:
-            element[self.name] = self.type.to_property_value()
+            element.attrib[self.name] = self.type.to_property_value()
 
     def get_value(self):
         return self.type.to_property_value()
@@ -174,6 +178,9 @@ class ChemDrawProperty(object):
 class ChemDrawDocument(ChemDrawObject):
 
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    CDXML_HEADER = """<?xml version="1.0" encoding="UTF-8" ?>
+    <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+    """
     # According to spec if a "tag_ids" most significant bit (15th bit, 0-based index) is clear, then it's a property
     # else it's an object. This leaves 15 bits resulting gin a max value for a property tag equal to 32767 due to
     # 2^15-1 (max value bits can represent is 2^n-1)
@@ -245,15 +252,33 @@ class ChemDrawDocument(ChemDrawObject):
             stream.write(prop.to_bytes())
 
         for child in self.children:
-            ChemDrawDocument._traverse(child, stream)
+            ChemDrawDocument._traverse_cdx(child, stream)
 
         stream.write(b'\x00\x00\x00\x00') # end of document and end of file
         stream.seek(0)
         return stream.read()
 
+    def to_cdxml(self) ->str:
+
+        cdxml = ET.Element('CDXML')
+        for prop in self.properties:
+            prop.add_as_attribute(cdxml)
+
+        for child in self.children:
+            ChemDrawDocument._traverse_xml(child, cdxml)
+
+        xml = ET.tostring(cdxml, encoding='unicode', method='xml')
+        return ChemDrawDocument.CDXML_HEADER + xml
+
     @staticmethod
-    def _traverse(node: ChemDrawObject, stream:io.BytesIO):
+    def _traverse_cdx(node: ChemDrawObject, stream:io.BytesIO):
         stream.write(node.to_bytes())
         for child in node.children:
-            ChemDrawDocument._traverse(child, stream)
+            ChemDrawDocument._traverse_cdx(child, stream)
         stream.write(b'\x00\x00')
+
+    @staticmethod
+    def _traverse_xml(node: ChemDrawObject, parent: ET.Element):
+        elm = node.add_as_element(parent)
+        for child in node.children:
+            ChemDrawDocument._traverse_xml(child, elm)
