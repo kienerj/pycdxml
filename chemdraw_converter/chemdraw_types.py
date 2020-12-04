@@ -548,6 +548,89 @@ class CDXAutonumberStyle(CDXType):
             return 'Alphabetic'
 
 
+class CDXAtomStereo(CDXType):
+    """
+    This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
+    This is an enumerated property. Acceptible values are shown in the following list:
+    Value	CDXML Name	Description
+    0	U	Undetermined
+    1	N	Determined to be symmetric
+    2	R	Asymmetric: (R)
+    3	S	Asymmetric: (S)
+    4	r	Pseudoasymmetric: (r)
+    5	s	Pseudoasymmetric: (s)
+    6	u	Unspecified: The node is not symmetric (might be asymmetric or pseudoasymmetric), but lacks a hash/wedge so
+            absolute configuration cannot be determined
+
+    """
+    def __init__(self, value: int):
+        if 0 > value > 6:
+            raise ValueError("Needs to be between 0-6")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXAtomStereo':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXAtomStereo should consist of exactly 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXAtomStereo(value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.value == 0:
+            return 'U'
+        elif self.value == 1:
+            return 'N'
+        elif self.value == 2:
+            return 'R'
+        elif self.value == 3:
+            return 'S'
+        elif self.value == 4:
+            return 'r'
+        elif self.value == 5:
+            return 's'
+        elif self.value == 6:
+            return 'u'
+
+
+class CDXBondStereo(CDXType):
+    """
+    This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
+
+    This is an enumerated property. Acceptible values are shown in the following list:
+    Value	CDXML Name	Description
+    0	U	Undetermined
+    1	N	Determined to be symmetric
+    2	E	Asymmetric: (E)
+    3	Z	Asymmetric: (Z)
+    """
+    def __init__(self, value: int):
+        if 0 > value > 3:
+            raise ValueError("Needs to be between 0-3")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBondStereo':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXBondStereo should consist of exactly 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBondStereo(value)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.value == 0:
+            return 'U'
+        elif self.value == 1:
+            return 'N'
+        elif self.value == 2:
+            return 'E'
+        elif self.value == 3:
+            return 'Z'
+
 class INT8(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier

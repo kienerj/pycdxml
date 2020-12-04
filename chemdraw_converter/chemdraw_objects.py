@@ -165,6 +165,9 @@ class ChemDrawProperty(object):
             element.attrib['CaptionFont'] = str(self.type.font_id)
             element.attrib['CaptionSize'] = str(self.type.font_size_points())
             element.attrib['CaptionFace'] = str(self.type.font_type)
+        elif self.name == 'fonttable' or self.name == 'colortable':
+            tbl = self.type.to_element()
+            element.append(tbl)
         else:
             element.attrib[self.name] = self.type.to_property_value()
 

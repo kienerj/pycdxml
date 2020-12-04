@@ -180,7 +180,7 @@
   type: UINT8
 0x0437:
   name: AS
-  type: INT8
+  type: CDXAtomStereo
 0x0438:
   name: Translation
   type: INT8
@@ -279,7 +279,7 @@
   type: UINT8
 0x060A:
   name: BS
-  type: INT8
+  type: CDXBondStereo
 0x060B:
   name: BondCircularOrdering
   type: CDXObjectIDArray
