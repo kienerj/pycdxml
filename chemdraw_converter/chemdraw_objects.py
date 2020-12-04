@@ -1,8 +1,17 @@
 import io
 import yaml
-from anytree import NodeMixin
+from anytree import NodeMixin, RenderTree
 from pathlib import Path
 from .chemdraw_types import *
+import logging
+import logging.config
+
+module_path = Path(__file__).parent
+log_config_path = module_path / 'logging.yml'
+with open(log_config_path, 'r') as stream:
+    log_config = yaml.safe_load(stream)
+logging.config.dictConfig(log_config)
+logger = logging.getLogger('chemdraw_objects')
 
 
 class ChemDrawObject(NodeMixin):
@@ -79,6 +88,9 @@ class ChemDrawObject(NodeMixin):
         :return:
         """
         raise NotImplementedError("Should have implemented this")
+
+    def __repr__(self):
+        return '{}: {}'.format(self.element_name, self.id)
 
 
 class ChemDrawProperty(object):
@@ -158,6 +170,7 @@ class ChemDrawDocument(ChemDrawObject):
         if document_tag != b'\x00\x80':
             raise ValueError('File is not a valid cdx file. Document tag not found.')
         object_id = int.from_bytes(cdx.read(4), "little")
+        logger.debug('Reading document with id: {}'.format(object_id))
         # Document Properties
         props = ChemDrawObject._read_properties(cdx)
 
@@ -165,11 +178,12 @@ class ChemDrawDocument(ChemDrawObject):
         parent_stack = [chemdraw_document]
         tag_id = int.from_bytes(cdx.read(2), "little")
 
-        try:
-            while tag_id in ChemDrawObject.CDX_OBJECTS:
+        while tag_id in ChemDrawObject.CDX_OBJECTS:
+            try:
                 class_name = ChemDrawObject.CDX_OBJECTS[tag_id]
                 klass = globals()[class_name]
                 obj = klass.from_bytes(cdx, parent_stack[-1])
+                logger.debug('Created object of type {} with id: {}'.format(class_name, obj.id))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 if tag_id == 0:
@@ -183,14 +197,13 @@ class ChemDrawDocument(ChemDrawObject):
                             parent_stack.pop()
                             tag_id = int.from_bytes(cdx.read(2), "little")
                         else:
+                            logger.info('Finished reading document.')
                             return chemdraw_document
                 else:
                     # no object end found, hence we move deeper inside the object tree
                     parent_stack.append(obj)
-        except KeyError as err:
-            print(err)
-
-        return chemdraw_document
+            except KeyError as err:
+                logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
 
 
 class Page(ChemDrawObject):
