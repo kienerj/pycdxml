@@ -66,13 +66,14 @@ class ChemDrawObject(NodeMixin):
         tag_id = int.from_bytes(cdx.read(2), "little")
 
         while tag_id in ChemDrawObject.CDX_PROPERTIES:
-            prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']
+            prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']            
             length = int.from_bytes(cdx.read(2), "little")
             if length == 0xFFFF: #special meaning: property bigger than 65534 bytes
                 length = int.from_bytes(cdx.read(4), "little")
 
             prop_bytes = cdx.read(length)
             chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+            logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
             klass = globals()[chemdraw_type]
             type_obj = klass.from_bytes(prop_bytes)
             prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
@@ -84,8 +85,10 @@ class ChemDrawObject(NodeMixin):
             # If property is unknown, log it and read next property until a known one is found.
             # 0 is end of object hence ignore here
             while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
+                length = int.from_bytes(cdx.read(2), "little")
+                prop_bytes = cdx.read(length)
                 logger.warning(
-                    'Found unknown property {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little")))
+                    'Found unknown property {} with content {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little"), prop_bytes))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 bit15 = tag_id >> 15 & 1
