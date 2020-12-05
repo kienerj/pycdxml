@@ -44,19 +44,20 @@ class CDXString(CDXType):
         stream = io.BytesIO(property_bytes)
         style_runs = int.from_bytes(stream.read(2), "little")
         font_styles = []
-        style_starts = []
+        style_starts = []        
         for idx in range(style_runs):
             style_start = int.from_bytes(stream.read(2), "little")
             style_starts.append(style_start)
             font_style = CDXFontStyle.from_bytes(stream.read(8))
             font_styles.append(font_style)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
-        value = stream.read(text_length).decode('iso-8859-1')
-        return CDXString(value, font_styles)
+        value = stream.read(text_length).decode('iso-8859-1')        
+        logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
+        return CDXString(value, style_starts, font_styles)
 
     def to_bytes(self) -> bytes:
         stream = io.BytesIO()
-        # number of styles (s elements
+        # number of styles (s elements)
         stream.write(len(self.styles).to_bytes(2, byteorder='little'))
         for idx, style in enumerate(self.styles):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
@@ -66,21 +67,27 @@ class CDXString(CDXType):
         stream.seek(0)
         return stream.read()
 
-    def to_element(self) -> ET.Element:
+    def to_element(self, t: ET.Element):
         """
-        Generates a 't' element contains all the styles as 's' elements.
+        Takes a t element and adds all the styles as 's' elements.
         This method must only be called from a text object and never for getting a properties value. To get a properties
         value use the 'value' attribute directly.
-        :return:
+        :return: the passed in element with the style elements added
         """
         if len(self.style_starts) == 0:
-            raise TypeError('Call of to_element on CDXString is invalid if no styles are present. If CDXString is part of a property there are no styles.')
-
-        t = ET.Element('t')
+            raise TypeError('Call of to_element on CDXString is invalid if no styles are present. If CDXString is part of a property there are no styles.')        
         for idx, style in enumerate(self.styles):
             s = style.to_element()
-            s.text = self.value[self.style_starts[idx]:self.style_starts[idx+1]]
+            text_start_index = self.style_starts[idx]
+            if len(self.styles) > (idx + 1):
+                text_end_index = self.style_starts[(idx+1)]
+                txt = self.value[text_start_index:text_end_index]
+                s.text = txt
+            else:
+                txt = self.value[text_start_index:]
+                s.text = txt 
             t.append(s)
+            logger.debug("Appended style to t element.")
         return t
 
     def to_property_value(self) -> str:
@@ -116,15 +123,15 @@ class CDXFontStyle(CDXType):
 
     def to_element(self) -> ET.Element:
         s = ET.Element('s')
-        s.attrib['font'] = self.font_id
-        s.attrib['size'] = self.font_size_points()
-        s.attrib['face'] = self.font_type
-        s.attrib['color'] = self.font_color
-
+        s.attrib['font'] = str(self.font_id)
+        s.attrib['size'] = str(self.font_size_points())
+        s.attrib['face'] = str(self.font_type)
+        s.attrib['color'] = str(self.font_color)
+        logger.debug("Created element '{}'.".format(ET.tostring(s, encoding='unicode', method='xml')))
         return s
 
     def to_property_value(self) -> str:
-        return 'font={} size={} face={} color={}'.format(self.font_id, self.font_size_points(), self.font_type, self.font_color)
+        return 'font="{}" size="{}" face="{}" color="{}"'.format(self.font_id, self.font_size_points(), self.font_type, self.font_color)
 
 
 class Font(object):

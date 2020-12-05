@@ -88,7 +88,7 @@ class ChemDrawObject(NodeMixin):
                 length = int.from_bytes(cdx.read(2), "little")
                 prop_bytes = cdx.read(length)
                 logger.warning(
-                    'Found unknown property {} with content {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little"), prop_bytes))
+                    'Found unknown property {} with length {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little"), length))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 bit15 = tag_id >> 15 & 1
@@ -144,7 +144,7 @@ class ChemDrawProperty(object):
 
         :return: bytes representing this property
         """
-        logger.debug('Writing property {} with value {}.'.format(self.name, self.get_value()))
+        logger.debug("Writing property {} with value '{}'.".format(self.name, self.get_value()))
         stream = io.BytesIO()
         stream.write(self.tag_id.to_bytes(2, byteorder='little'))
         if self.length <= 65534:
@@ -162,6 +162,7 @@ class ChemDrawProperty(object):
 
         :param element: an ElementTree element instance
         """
+        logger.debug("Adding attribute '{}' to element.".format(self.name))
         if self.name == "LabelStyle":
             element.attrib['LabelFont'] = str(self.type.font_id)
             element.attrib['LabelSize'] = str(self.type.font_size_points())
@@ -173,6 +174,10 @@ class ChemDrawProperty(object):
         elif self.name == 'fonttable' or self.name == 'colortable':
             tbl = self.type.to_element()
             element.append(tbl)
+        elif self.name == 'Text':
+            # adds style tags <s></s> to this t element containing styled text
+            self.type.to_element(element)            
+            logger.debug("Added {} styles to text object.".format(len(self.type.styles)))
         else:
             element.attrib[self.name] = self.type.to_property_value()
 
