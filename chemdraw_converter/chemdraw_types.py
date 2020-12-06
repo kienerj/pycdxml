@@ -2,6 +2,7 @@ import io
 import yaml
 from lxml import etree as ET
 from pathlib import Path
+from enum import Enum
 import logging
 import logging.config
 
@@ -902,6 +903,38 @@ class UINT32(CDXType):
         return str(self.value)
 
 
+class INT16ListWithCounts(CDXType):
+    """
+    This data type consists of a series of UINT16 values.
+    In CDX files, this data type is prefixed by an additional UINT16 value indicating 
+    the total number of values to follow.
+    """
+    def __init__(self, values: list):
+        self.values = values
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'INT16ListWithCounts':
+        stream = io.BytesIO(property_bytes)
+        length = int.from_bytes(stream.read(2), "little", signed=False)
+        values=[]
+        for i in range(length):
+            value = int.from_bytes(stream.read(2), "little", signed=False)
+            values.append(value)
+        return INT16ListWithCounts(values)
+
+    def to_bytes(self) -> bytes:  
+        stream = io.BytesIO()
+        length = len(self.values)
+        stream.write(length.to_bytes(2, byteorder='little', signed=False))        
+        for value in self.values:
+            stream.write(value.to_bytes(2, byteorder='little', signed=False)) 
+        stream.seek(0)
+        return stream.read()
+        
+    def to_property_value(self) -> str:
+        return str(self.value)
+
+
 class Unformatted(CDXType):
 
     def __init__(self, value: bytes):
@@ -917,3 +950,39 @@ class Unformatted(CDXType):
 
     def to_property_value(self) -> str:
         return self.value.hex()
+        
+class CDXBracketUsage(CDXType, Enum):
+
+    Unspecified = 0
+    Unused1 = 1
+    Unused2 = 2
+    SRU = 3
+    Monomer = 4
+    Mer = 5
+    Copolymer = 6
+    CopolymerAlternating = 7
+    CopolymerRandom = 8
+    CopolymerBlock = 9
+    Crosslink = 10
+    Graft = 11
+    Modification = 12
+    Component = 13
+    MixtureUnordered = 14
+    MixtureOrdered = 15
+    MultipleGroup = 16
+    Generic = 17
+    Anypolymer = 18
+    
+    def __init__(self, value: int):        
+        self.bracket_usage = value
+        
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBracketUsage':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXBracketUsage should consist of exactly 1 byte but found '{}'.".format(property_bytes))
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBracketUsage(value)
+        
+    def to_property_value(self) -> str:
+        val = str(BracketUsage(self.bracket_usage))        
+        return val.split('.')[1] # only actually value without enum name

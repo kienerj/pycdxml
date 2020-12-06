@@ -229,6 +229,9 @@
 0x0447:
   name: EnhancedStereoGroupNum
   type: UINT16
+0x0448:
+  name: NeedsClean
+  type: CDXBooleanImplied
 0x0500:
   name: Racemic
   type: CDXBoolean
@@ -495,7 +498,7 @@
   type: CDXCurvePoints
 0x0A24:
   name: BracketUsage
-  type: INT8
+  type: CDXBracketUsage
 0x0A25:
   name: PolymerRepeatPattern
   type: INT8
