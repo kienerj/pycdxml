@@ -33,13 +33,14 @@ class CDXString(CDXType):
     # TODO: implement different charsets from fonttable
     BYTES_PER_STYLE = 10
 
-    def __init__(self, value: str, style_starts=[], styles=[]):
+    def __init__(self, value: str, style_starts=[], styles=[], charset='iso-8859-1'):
         self.value = value
         self.style_starts = style_starts
         self.styles = styles
+        self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes:bytes) -> 'CDXString':
+    def from_bytes(property_bytes:bytes, charset='iso-8859-1') -> 'CDXString':
 
         stream = io.BytesIO(property_bytes)
         style_runs = int.from_bytes(stream.read(2), "little")
@@ -51,9 +52,9 @@ class CDXString(CDXType):
             font_style = CDXFontStyle.from_bytes(stream.read(8))
             font_styles.append(font_style)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
-        value = stream.read(text_length).decode('iso-8859-1')        
+        value = stream.read(text_length).decode(charset)        
         logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
-        return CDXString(value, style_starts, font_styles)
+        return CDXString(value, style_starts, font_styles, charset)
 
     def to_bytes(self) -> bytes:
         stream = io.BytesIO()
@@ -62,7 +63,7 @@ class CDXString(CDXType):
         for idx, style in enumerate(self.styles):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
             stream.write(style.to_bytes())
-        stream.write(self.value.encode('iso-8859-1'))
+        stream.write(self.value.encode(self.charset))
         logger.debug('Wrote CDXString with value {}.'.format(self.value))
         stream.seek(0)
         return stream.read()

@@ -75,7 +75,10 @@ class ChemDrawObject(NodeMixin):
             chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
             logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
             klass = globals()[chemdraw_type]
-            type_obj = klass.from_bytes(prop_bytes)
+            if prop_name == 'UTF8Text':
+                type_obj = klass.from_bytes(prop_bytes, 'utf8')
+            else:
+                type_obj = klass.from_bytes(prop_bytes)
             prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
             props.append(prop)
             # read next tag
@@ -178,6 +181,10 @@ class ChemDrawProperty(object):
             # adds style tags <s></s> to this t element containing styled text
             self.type.to_element(element)            
             logger.debug("Added {} styles to text object.".format(len(self.type.styles)))
+        elif self.name == 'UTF8Text':
+            # Do nothing. This is a new property no in official spec and represents the 
+            # value of a text objext in UTF-8 inside a cdx file.
+            pass
         else:
             element.attrib[self.name] = self.type.to_property_value()
 

@@ -322,6 +322,9 @@
 0x0708:
   name: InterpretChemically
   type: CDXBoolean
+0x0709:
+  name: UTF8Text
+  type: CDXString
 0x0800:
   name: MacPrintInfo
   type: Unformatted
