@@ -78,7 +78,19 @@ class ChemDrawObject(NodeMixin):
             if prop_name == 'UTF8Text':
                 type_obj = klass.from_bytes(prop_bytes, 'utf8')
             else:
-                type_obj = klass.from_bytes(prop_bytes)
+                try:
+                    type_obj = klass.from_bytes(prop_bytes)
+                except ValueError as err:
+                    if prop_name == 'color' and length == 4:
+                        # A simple test while had a color property instance of length 4
+                        # but it's an uint16 and should only be 2 bytes. first 2 bytes contained correct value
+                        type_obj = klass.from_bytes(prop_bytes[:2])
+                        length = 2
+                        logger.warning("Property color of type UINT16 found with length {} instead of required length 2."
+                                       "Fixed by taking only first 2 bytes into account.".format(length))
+                    else:
+                        raise err
+
             prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
             props.append(prop)
             # read next tag
