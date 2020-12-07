@@ -2,8 +2,6 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import math
 from pathlib import Path
-import sys
-sys.path.insert(0, 'C:\\Users\\kienerj\\PycharmProjects\\CDXMLStyler')
 from cdxml_styler import CDXMLStyler
 
 
