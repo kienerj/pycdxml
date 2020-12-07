@@ -984,5 +984,5 @@ class CDXBracketUsage(CDXType, Enum):
         return CDXBracketUsage(value)
         
     def to_property_value(self) -> str:
-        val = str(BracketUsage(self.bracket_usage))        
+        val = str(CDXBracketUsage(self.bracket_usage))
         return val.split('.')[1] # only actually value without enum name
