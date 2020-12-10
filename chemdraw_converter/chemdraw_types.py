@@ -35,7 +35,7 @@ class CDXString(CDXType):
     BYTES_PER_STYLE = 10
 
     def __init__(self, value: str, style_starts=[], styles=[], charset='iso-8859-1'):
-        self.value = value
+        self.str_value = value
         self.style_starts = style_starts
         self.styles = styles
         self.charset = charset
@@ -64,8 +64,8 @@ class CDXString(CDXType):
         for idx, style in enumerate(self.styles):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
             stream.write(style.to_bytes())
-        stream.write(self.value.encode(self.charset))
-        logger.debug('Wrote CDXString with value {}.'.format(self.value))
+        stream.write(self.str_value.encode(self.charset))
+        logger.debug('Wrote CDXString with value {}.'.format(self.str_value))
         stream.seek(0)
         return stream.read()
 
@@ -83,17 +83,17 @@ class CDXString(CDXType):
             text_start_index = self.style_starts[idx]
             if len(self.styles) > (idx + 1):
                 text_end_index = self.style_starts[(idx+1)]
-                txt = self.value[text_start_index:text_end_index]
+                txt = self.str_value[text_start_index:text_end_index]
                 s.text = txt
             else:
-                txt = self.value[text_start_index:]
+                txt = self.str_value[text_start_index:]
                 s.text = txt 
             t.append(s)
             logger.debug("Appended style to t element.")
         return t
 
     def to_property_value(self) -> str:
-        return self.value
+        return self.str_value
 
 
 class CDXFontStyle(CDXType):
@@ -271,7 +271,7 @@ class CDXCoordinate(CDXType):
     CDXML_CONVERSION_FACTOR = 65536
 
     def __init__(self, value: int):
-        self.value = value
+        self.coordinate = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXCoordinate':
@@ -280,11 +280,11 @@ class CDXCoordinate(CDXType):
         return CDXCoordinate(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(4, byteorder='little', signed=True)
+        return self.coordinate.to_bytes(4, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
 
-        return str(round(self.value / CDXCoordinate.CDXML_CONVERSION_FACTOR, 2))
+        return str(round(self.coordinate / CDXCoordinate.CDXML_CONVERSION_FACTOR, 2))
 
 
 class CDXPoint2D(CDXType):
@@ -412,7 +412,7 @@ class CDXBoolean(CDXType):
 
     def __init__(self, value: bool):
 
-        self.value = value
+        self.bool_value = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBoolean':
@@ -424,13 +424,13 @@ class CDXBoolean(CDXType):
             return CDXBoolean(True)
 
     def to_bytes(self) -> bytes:
-        if self.value:
+        if self.bool_value:
             return b'\x01'
         else:
             return b'\x00'
 
     def to_property_value(self) -> str:
-        if self.value:
+        if self.bool_value:
             return "yes"
         else:
             return "no"
@@ -452,7 +452,7 @@ class CDXBooleanImplied(CDXType):
 
     def __init__(self, value: bool):
 
-        self.value = value
+        self.bool_value = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBooleanImplied':
@@ -461,12 +461,12 @@ class CDXBooleanImplied(CDXType):
         return CDXBooleanImplied(True)
 
     def to_bytes(self) -> bytes:
-        if not self.value:
+        if not self.bool_value:
             raise ValueError("A BooleanImplied with value 'False' should not be written to cdx file.")
         return b'' # empty bytes, see doc comment -> presence marks True value, absence false
 
     def to_property_value(self) -> str:
-        if self.value:
+        if self.bool_value:
             return "yes"
         else:
             return "no"
@@ -501,15 +501,18 @@ class CDXObjectIDArray(CDXType):
 
 
 
-class CDXAminoAcidTermini(CDXType):
+class CDXAminoAcidTermini(CDXType, Enum):
     """
     This type doesn't exist in spec. It's stored as 1 byte in cdx and in ChemDraw 18 there are 2 possible settings
     which are shown as text in cdxml
     """
+    HOH = 1
+    NH2COOH = 2
+
     def __init__(self, value: int):
         if 1 > value > 2:
             raise ValueError("Currently only 2 values allowed: 1 or 2.")
-        self.value = value
+        self.termini = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXAminoAcidTermini':
@@ -519,24 +522,26 @@ class CDXAminoAcidTermini(CDXType):
         return CDXAminoAcidTermini(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(1, byteorder='little', signed=False)
+        return self.termini.to_bytes(1, byteorder='little', signed=False)
 
     def to_property_value(self) -> str:
-        if self.value == 1:
-            return 'HOH'
-        elif self.value == 2:
-            return 'NH2COOH'
+        val = str(CDXAminoAcidTermini(self.termini))
+        return val.split('.')[1]
 
 
-class CDXAutonumberStyle(CDXType):
+class CDXAutonumberStyle(CDXType, Enum):
     """
     This type doesn't exist in spec. It's stored as 1 byte in cdx and in ChemDraw 18 there are 2 possible settings
     which are shown as text in cdxml
     """
+    Roman = 0
+    Arabic = 1
+    Alphabetic = 2
+
     def __init__(self, value: int):
         if 0 > value > 2:
             raise ValueError("Currently only 3 values allowed: 0-2.")
-        self.value = value
+        self.autonumber_style = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXAutonumberStyle':
@@ -546,15 +551,11 @@ class CDXAutonumberStyle(CDXType):
         return CDXAutonumberStyle(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(1, byteorder='little', signed=False)
+        return self.autonumber_style.to_bytes(1, byteorder='little', signed=False)
 
     def to_property_value(self) -> str:
-        if self.value == 0:
-            return 'Roman'
-        elif self.value == 1:
-            return 'Arabic'
-        elif self.value == 2:
-            return 'Alphabetic'
+        val = str(CDXAutonumberStyle(self.autonumber_style))
+        return val.split('.')[1]  # only actually value without enum name
 
 
 class CDXBondSpacing(CDXType):
@@ -578,7 +579,7 @@ class CDXBondSpacing(CDXType):
         return str(self.value / 10)
 
 
-class CDXDoubleBondPosition(CDXType):
+class CDXDoubleBondPosition(CDXType, Enum):
     """
     The position of the second line of a double bond.
 
@@ -591,10 +592,18 @@ class CDXDoubleBondPosition(CDXType):
     257	Right	Double bond is on the right (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
     258	Left	Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
     """
+
+    Center = 0
+    Right = 1
+    Left = 2
+    Center_m = 256
+    Right_m = 257
+    Left_m = 258
+
     def __init__(self, value: int):
         if 0 > value > 258:
             raise ValueError("Needs to be in [0,1,2,256,257,258].")
-        self.value = value
+        self.double_bond_position = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXDoubleBondPosition':
@@ -604,18 +613,16 @@ class CDXDoubleBondPosition(CDXType):
         return CDXDoubleBondPosition(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(2, byteorder='little', signed=True)
+        return self.double_bond_position.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        if self.value == 0 or self.value == 256:
-            return 'Center'
-        elif self.value == 1 or self.value == 257:
-            return 'Right'
-        elif self.value == 2 or self.value == 258:
-            return 'Left'
+        val = str(CDXDoubleBondPosition(self.double_bond_position))
+        val = val.split('.')[1] # only actually value without enum name
+        val = val.replace("_m", "") # cdxml only has 3 values, hence remove the trailing _m
+        return val
 
 
-class CDXBondDisplay(CDXType):
+class CDXBondDisplay(CDXType, Enum):
     """
     Value   CDXML Name	        Description
     0       Solid	        Solid bond
@@ -634,10 +641,26 @@ class CDXBondDisplay(CDXType):
     13	    Dot	            Dotted bond
     14	    DashDot	        Dashed-and-dotted bond
     """
+    Solid = 0
+    Dash = 1
+    Hash = 2
+    WedgedHashBegin = 3
+    WedgedHashEnd = 4
+    Bold = 5
+    WedgeBegin = 6
+    WedgeEnd = 7
+    Wavy = 8
+    HollowWedgeBegin = 9
+    HollowWedgeEnd = 10
+    WavyWedgeBegin = 11
+    WavyWedgeEnd = 12
+    Dot = 13
+    DashDot = 14
+
     def __init__(self, value: int):
         if 0 > value > 14:
             raise ValueError("Needs to be between 0 and 14")
-        self.value = value
+        self.bond_display = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBondDisplay':
@@ -647,39 +670,11 @@ class CDXBondDisplay(CDXType):
         return CDXBondDisplay(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(2, byteorder='little', signed=True)
+        return self.bond_display.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        if self.value == 0:
-            return 'Solid'
-        elif self.value == 1:
-            return 'Dash'
-        elif self.value == 2:
-            return 'Hash'
-        elif self.value == 3:
-            return 'WedgedHashBegin'
-        elif self.value == 4:
-            return 'WedgedHashEnd'
-        elif self.value == 5:
-            return 'Bold'
-        elif self.value == 6:
-            return 'WedgeBegin'
-        elif self.value == 7:
-            return 'WedgeEnd'
-        elif self.value == 8:
-            return 'Wavy'
-        elif self.value == 9:
-            return 'HollowWedgeBegin'
-        elif self.value == 10:
-            return 'HollowWedgeEnd'
-        elif self.value == 11:
-            return 'WavyWedgeBegin'
-        elif self.value == 12:
-            return 'WavyWedgeEnd'
-        elif self.value == 13:
-            return 'Dot'
-        elif self.value == 14:
-            return 'DashDot'
+        val = str(CDXBondDisplay(self.bond_display))
+        return val.split('.')[1]  # only actually value without enum name
 
 
 class CDXAtomStereo(CDXType):
@@ -932,7 +927,7 @@ class INT16ListWithCounts(CDXType):
         return stream.read()
         
     def to_property_value(self) -> str:
-        return str(self.value)
+        return str(self.values)
 
 
 class Unformatted(CDXType):
@@ -950,39 +945,54 @@ class Unformatted(CDXType):
 
     def to_property_value(self) -> str:
         return self.value.hex()
-        
-class CDXBracketUsage(CDXType, Enum):
 
-    Unspecified = 0
-    Unused1 = 1
-    Unused2 = 2
-    SRU = 3
-    Monomer = 4
-    Mer = 5
-    Copolymer = 6
-    CopolymerAlternating = 7
-    CopolymerRandom = 8
-    CopolymerBlock = 9
-    Crosslink = 10
-    Graft = 11
-    Modification = 12
-    Component = 13
-    MixtureUnordered = 14
-    MixtureOrdered = 15
-    MultipleGroup = 16
-    Generic = 17
-    Anypolymer = 18
-    
-    def __init__(self, value: int):        
-        self.bracket_usage = value
+
+class CDXBracketUsage(CDXType):
+    """
+    BracketUsage property is a INT8 enum according to spec. However an example files contained this property as a
+    2-byte value where additional byte was 0. So the hacky code in here works around this problem.
+
+    Python doesn't seem to allow having to extend enums when init methods gets more than 1 argument? Hence the inner class
+    enum.
+    """
+    def __init__(self, bracket_usage: int, additional_bytes: bytes = b''):
+        self.bracket_usage = bracket_usage
+        self.additional_bytes = additional_bytes
         
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBracketUsage':
-        if len(property_bytes) != 1:
-            raise ValueError("CDXBracketUsage should consist of exactly 1 byte but found '{}'.".format(property_bytes))
-        value = int.from_bytes(property_bytes, "little", signed=True)
-        return CDXBracketUsage(value)
-        
+        length = len(property_bytes)
+        if length > 1:
+            logger.warning("Passed bytes value of length {} to CDXBracketUsage which is an INT8 enum and should be only 1-byte.".format(length))
+        additional_bytes = property_bytes[1:]
+        val = property_bytes[0]
+        return CDXBracketUsage(val)
+
+    def to_bytes(self) -> bytes:
+        val = self.bracket_usage.to_bytes(1, byteorder='little', signed=True)
+        return val + self.additional_bytes
+
     def to_property_value(self) -> str:
-        val = str(CDXBracketUsage(self.bracket_usage))
+        val = str(CDXBracketUsage.BracketUsage(self.bracket_usage))
         return val.split('.')[1] # only actually value without enum name
+
+    class BracketUsage(Enum):
+        Unspecified = 0
+        Unused1 = 1
+        Unused2 = 2
+        SRU = 3
+        Monomer = 4
+        Mer = 5
+        Copolymer = 6
+        CopolymerAlternating = 7
+        CopolymerRandom = 8
+        CopolymerBlock = 9
+        Crosslink = 10
+        Graft = 11
+        Modification = 12
+        Component = 13
+        MixtureUnordered = 14
+        MixtureOrdered = 15
+        MultipleGroup = 16
+        Generic = 17
+        Anypolymer = 18
