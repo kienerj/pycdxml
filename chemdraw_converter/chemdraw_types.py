@@ -500,7 +500,6 @@ class CDXObjectIDArray(CDXType):
         return ' '.join(str(x) for x in self.ids)
 
 
-
 class CDXAminoAcidTermini(CDXType, Enum):
     """
     This type doesn't exist in spec. It's stored as 1 byte in cdx and in ChemDraw 18 there are 2 possible settings
@@ -580,25 +579,13 @@ class CDXBondSpacing(CDXType):
 
 
 class CDXDoubleBondPosition(CDXType, Enum):
-    """
-    The position of the second line of a double bond.
 
-    This is an enumerated property. Acceptible values are shown in the following list:
-    Value	CDXML Name	Description
-    0	Center	Double bond is centered, but was positioned automatically by the program
-    1	Right	Double bond is on the right (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
-    2	Left	Double bond is on the left (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
-    256	Center	Double bond is centered, and was positioned manually by the user
-    257	Right	Double bond is on the right (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
-    258	Left	Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
-    """
-
-    Center = 0
-    Right = 1
-    Left = 2
-    Center_m = 256
-    Right_m = 257
-    Left_m = 258
+    Center = 0     # Double bond is centered, but was positioned automatically by the program
+    Right = 1      # Double bond is on the right (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    Left = 2       # Double bond is on the left (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    Center_m = 256 # Double bond is centered, and was positioned manually by the user
+    Right_m = 257  # Double bond is on the right (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
+    Left_m = 258   # Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
 
     def __init__(self, value: int):
         if 0 > value > 258:
@@ -623,24 +610,7 @@ class CDXDoubleBondPosition(CDXType, Enum):
 
 
 class CDXBondDisplay(CDXType, Enum):
-    """
-    Value   CDXML Name	        Description
-    0       Solid	        Solid bond
-    1	    Dash	        Dashed bond
-    2	    Hash	        Hashed bond
-    3	    WedgedHashBegin	Wedged hashed bond with the narrow end on the "begin" atom
-    4	    WedgedHashEnd	Wedged hashed bond with the narrow end on the "end" atom
-    5	    Bold	        Bold bond
-    6	    WedgeBegin	    Wedged solid bond with the narrow end on the "begin" atom
-    7	    WedgeEnd	    Wedged solid bond with the narrow end on the "end" atom
-    8	    Wavy	        Wavy bond
-    9	    HollowWedgeBegin	Wedged hollow bond with the narrow end on the "begin" atom
-    10	    HollowWedgeEnd	Wedged hollow bond with the narrow end on the "end" atom
-    11	    WavyWedgeBegin	Wedged wavy bond with the narrow end on the "begin" atom
-    12	    WavyWedgeEnd	Wedged wavy bond with the narrow end on the "end" atom
-    13	    Dot	            Dotted bond
-    14	    DashDot	        Dashed-and-dotted bond
-    """
+
     Solid = 0
     Dash = 1
     Hash = 2
@@ -677,7 +647,7 @@ class CDXBondDisplay(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXAtomStereo(CDXType):
+class CDXAtomStereo(CDXType, Enum):
     """
     This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
     This is an enumerated property. Acceptible values are shown in the following list:
@@ -692,10 +662,19 @@ class CDXAtomStereo(CDXType):
             absolute configuration cannot be determined
 
     """
+
+    U = 0
+    N = 1
+    R = 2
+    S = 3
+    r = 4
+    s = 5
+    u = 6
+
     def __init__(self, value: int):
         if 0 > value > 6:
             raise ValueError("Needs to be between 0-6")
-        self.value = value
+        self.atom_stereo = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXAtomStereo':
@@ -705,26 +684,14 @@ class CDXAtomStereo(CDXType):
         return CDXAtomStereo(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(1, byteorder='little', signed=True)
+        return self.atom_stereo.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        if self.value == 0:
-            return 'U'
-        elif self.value == 1:
-            return 'N'
-        elif self.value == 2:
-            return 'R'
-        elif self.value == 3:
-            return 'S'
-        elif self.value == 4:
-            return 'r'
-        elif self.value == 5:
-            return 's'
-        elif self.value == 6:
-            return 'u'
+        val = str(CDXAtomStereo(self.atom_stereo))
+        return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXBondStereo(CDXType):
+class CDXBondStereo(CDXType, Enum):
     """
     This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
 
@@ -735,10 +702,15 @@ class CDXBondStereo(CDXType):
     2	E	Asymmetric: (E)
     3	Z	Asymmetric: (Z)
     """
+    U = 0
+    N = 1
+    E = 2
+    Z = 3
+
     def __init__(self, value: int):
         if 0 > value > 3:
             raise ValueError("Needs to be between 0-3")
-        self.value = value
+        self.bond_stereo = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBondStereo':
@@ -748,17 +720,12 @@ class CDXBondStereo(CDXType):
         return CDXBondStereo(value)
 
     def to_bytes(self) -> bytes:
-        return self.value.to_bytes(1, byteorder='little', signed=True)
+        return self.bond_stereo.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        if self.value == 0:
-            return 'U'
-        elif self.value == 1:
-            return 'N'
-        elif self.value == 2:
-            return 'E'
-        elif self.value == 3:
-            return 'Z'
+        val = str(CDXBondStereo(self.bond_stereo))
+        return val.split('.')[1]  # only actually value without enum name
+
 
 class INT8(CDXType):
     """
@@ -996,3 +963,63 @@ class CDXBracketUsage(CDXType):
         MultipleGroup = 16
         Generic = 17
         Anypolymer = 18
+
+
+class CDXBracketType(CDXType, Enum):
+
+    RoundPair = 0
+    SquarePair = 1
+    CurlyPair = 2
+    Square = 3
+    Curly = 4
+    Round = 5
+
+    def __init__(self, value: int):
+        if 0 > value > 5:
+            raise ValueError("Needs to be between 0-5")
+        self.bracket_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBracketType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXBracketType should consist of exactly 2 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBracketType(value)
+
+    def to_bytes(self) -> bytes:
+        return self.bracket_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXBracketType(self.bracket_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXGraphicType(CDXType, Enum):
+
+    Undefined = 0
+    Line = 1
+    Arc = 2
+    Rectangle = 3
+    Oval = 4
+    Orbital = 5
+    Bracket = 6
+    Symbol = 7
+
+    def __init__(self, value: int):
+        if 0 > value > 7:
+            raise ValueError("Needs to be between 0-7")
+        self.graphic_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXGraphicType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXGraphicType should consist of exactly 2 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXGraphicType(value)
+
+    def to_bytes(self) -> bytes:
+        return self.graphic_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXGraphicType(self.graphic_type))
+        return val.split('.')[1]  # only actually value without enum name

@@ -45,7 +45,7 @@
   type: CDXBoolean
 0x0013:
   name: SupersededBy
-  type: CDXObjectID
+  type: UINT32
 0x0100:
   name: fonttable
   type: CDXFontTable
@@ -171,7 +171,7 @@
   type: CDXString
 0x0434:
   name: AltGroupID
-  type: CDXObjectID
+  type: UINT32
 0x0435:
   name: SubstituentsUpTo
   type: UINT8
@@ -459,7 +459,7 @@
   type: CDXPoint2D
 0x0A00:
   name: GraphicType
-  type: INT16
+  type: CDXGraphicType
 0x0A01:
   name: LineType
   type: INT16
@@ -477,7 +477,7 @@
   type: INT16
 0x0A06:
   name: BracketType
-  type: INT16
+  type: CDXBracketType
 0x0A07:
   name: SymbolType
   type: INT16
@@ -519,13 +519,13 @@
   type: CDXString
 0x0A2B:
   name: GraphicID
-  type: CDXObjectID
+  type: UINT32
 0x0A2C:
   name: BondID
-  type: CDXObjectID
+  type: UINT32
 0x0A2D:
   name: BInnerAtomID
-  type: CDXObjectID
+  type: UINT32
 0x0A2E:
   name: CurvePoints3D
   type: CDXCurvePoints3D
@@ -705,7 +705,7 @@
   type: UINT32
 0x0BB1:
   name: ChemicalPropertyDisplayID
-  type: CDXObjectID
+  type: UINT32
 0x0BB2:
   name: ChemicalPropertyIsActive
   type: CDXBoolean
