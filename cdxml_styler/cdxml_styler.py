@@ -8,20 +8,30 @@ class CDXMLStyler(object):
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
 """
 
-    def __init__(self, style_name="ACS 1996", style_source=None):
+    def __init__(self, style_name="ACS 1996", style_source=None, style_dict=None):
         """
-        The output style can either be defined by selecting one of the built in styles (ACS 1996 or Wiley) or by
-        specifying a path to a cdxml file that has the desired style. Note that the structures within a cdxml file
-        do not necessarily have the style defined in the cdxml. A easy way to get a style is to open a style sheet (cds)
-        and save it as cdxml. But any cdxml document can be used.
+        The output style can be defined by selecting one of the built in styles (ACS 1996 or Wiley), by
+        specifying a path to a cdxml file that has the desired style or by supplying a dictionary containing the needed
+        style settings.
+
+        Note that the structures within a cdxml file do not necessarily have the style defined in the cdxml. A easy way
+        to get a style is to open a style sheet (cds) and save it as cdxml. But any cdxml document can be used.
+
+        For a style_dict the required settings are:
+
+       BondSpacing, BondLength, BoldWidth, LineWidth, MarginWidth, HashSpacing, CaptionSize, LabelSize, LabelFace
+       and LabelFont.
 
         :param style_name: name of built-in style to use (ACS 1996 or Wiley)
         :param style_source: path to cdxml file with the desired style
+        :param style_dict: dict containg the required style settings
         """
-        if style_source is None:
-            self.style = self.get_style(style_name)
-        else:
+        if style_source is not None:
             self.style = self.get_style_from_cdxml(style_source)
+        elif style_dict is not None:
+            self.style = style_dict
+        else:
+            self.style = self.get_style(style_name)
     
     def apply_style_to_file(self, cdxml_path, outpath=None):
         """
