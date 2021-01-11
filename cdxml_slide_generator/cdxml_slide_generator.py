@@ -17,7 +17,7 @@ class CDXMLSlideGenerator(object):
         self.rows = rows
         self.mols_per_slide = columns * rows
         self.number_of_properties = number_of_properties
-        #in ChemDraw units (= points with default being 72 DPI)
+        # in ChemDraw units (= points with default being 72 DPI)
         self.slide_width = slide_width / 2.54 * 72
         self.slide_height = slide_height / 2.54 * 72
         self.column_width = self.slide_width / columns
@@ -58,18 +58,18 @@ class CDXMLSlideGenerator(object):
             # fragment can also be in a group inside page so just find inside page doesn't work
             fragment = root.findall('.//fragment')[0]
 
-            #shrinks fragment in case it doesn't fit into available space
+            # shrinks fragment in case it doesn't fit into available space
             self._shrink_to_fit(fragment)
 
-            #determine final molecule position
+            # determine final molecule position
             row = index // self.columns
             column = index % self.columns
             x_center = (column + 0.5) * self.column_width
-            y_center = row * self.row_height+ 0.5 * self.molecule_height
+            y_center = row * self.row_height + 0.5 * self.molecule_height
 
             # get translation coords
             all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
-            #current_x_center, current_y_center = self.styler.get_center(all_coords)
+            # current_x_center, current_y_center = self.styler.get_center(all_coords)
             fragment_bb = np.asarray([float(x) for x in fragment.attrib['BoundingBox'].split(" ")])
             current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
             current_y_center = (fragment_bb[1] + fragment_bb[3]) / 2
@@ -78,7 +78,7 @@ class CDXMLSlideGenerator(object):
             y_translate = y_center - current_y_center
 
             translate = np.array([x_translate, y_translate])
-            final_coords = np.round(all_coords + translate,2)
+            final_coords = np.round(all_coords + translate, 2)
 
             # translate in xml
             CDXMLSlideGenerator._translate_bounding_box(fragment, x_translate, y_translate)
@@ -91,12 +91,12 @@ class CDXMLSlideGenerator(object):
 
             self.slide.find('page').append(fragment)
 
-            #handle properties
+            # handle properties
             if self.number_of_properties > 0:
                 props = properties[index][:self.number_of_properties]
                 y_top = row * self.row_height + self.molecule_height + self.margin
                 y_bottom = y_top + self.text_height
-                #y_center_props = y_top + 0.5 * self.text_height
+                # y_center_props = y_top + 0.5 * self.text_height
                 x_left = column * self.column_width + self.margin
                 x_right = (column + 1) * self.column_width - self.margin
 
@@ -112,8 +112,8 @@ class CDXMLSlideGenerator(object):
                 text_length = 0
 
                 for prop_index, prop in enumerate(props):
-                    s = ET.SubElement(txt,'s')
-                    s.attrib['font'] = "3" #Arial default for now
+                    s = ET.SubElement(txt, 's')
+                    s.attrib['font'] = "3"  # Arial default for now
                     s.attrib['color'] = str(self.register_color(prop.color))
                     s.attrib['size'] = str(self.font_size)
 
@@ -168,8 +168,9 @@ class CDXMLSlideGenerator(object):
     def _build_base_document(self, style):
 
         sb = ['<page\n id="146"\n HeaderPosition="36"\n FooterPosition="36"\n PageOverlap="0"\n PrintTrimMarks="yes"\n '
-              'HeightPages="1"\n WidthPages="1"\n DrawingSpace="poster"', '\n BoundingBox="0 0 ', str(self.slide_width), " ",
-              str(self.slide_height), '"\n Width="', str(self.slide_width), '"\n Height="', str(self.slide_height), '"\n></page>']
+              'HeightPages="1"\n WidthPages="1"\n DrawingSpace="poster"', '\n BoundingBox="0 0 ', str(self.slide_width),
+              " ", str(self.slide_height), '"\n Width="', str(self.slide_width), '"\n Height="', str(self.slide_height),
+              '"\n></page>']
         page = ''.join(sb)
 
         template_name = style + '.cdxml'
@@ -188,15 +189,15 @@ class CDXMLSlideGenerator(object):
         :return:
         """
 
-        if color.rgb == (0,0,0):
-            return 0 #black
-        if color.rgb == (1,1,1):
-            return 1 #white
+        if color.rgb == (0, 0, 0):
+            return 0  # black
+        if color.rgb == (1, 1, 1):
+            return 1  # white
 
-        if not color.hex in self.colortable:
+        if color.hex not in self.colortable:
 
             colortable_xml = self.slide.find('colortable')
-            c = ET.SubElement(colortable_xml,'color')
+            c = ET.SubElement(colortable_xml, 'color')
             c.attrib["r"] = str(color.rgb[0])
             c.attrib["g"] = str(color.rgb[1])
             c.attrib["b"] = str(color.rgb[2])
@@ -257,7 +258,7 @@ class FontColor(object):
     @staticmethod
     def _scale_color(rgb):
 
-        return tuple([round(x/255,2) for x in rgb])
+        return tuple([round(x/255, 2) for x in rgb])
 
     @staticmethod
     def hex_to_rgb(hex_code):
