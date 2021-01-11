@@ -28,9 +28,10 @@ class CDXMLSlideGenerator(object):
         self.text_height = math.ceil(self.line_height * number_of_properties)
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
-        self.styler = CDXMLStyler(style_name=style)
         self.colortable = {}
         self.slide = self._build_base_document(style)
+        style_dict = self.extract_style_as_dict()
+        self.styler = CDXMLStyler(style_dict=style_dict)
 
     def generate_slide(self, cdxml_documents, properties):
         """
@@ -203,10 +204,26 @@ class CDXMLSlideGenerator(object):
             c.attrib["b"] = str(color.rgb[2])
             # 0=black, 1=white,2=bg,3=fg
             color_index = len(self.colortable) + 4
-            self.colortable[color.hex] = len(self.colortable) + 4
+            self.colortable[color.hex] = color_index
             return color_index
         else:
             return self.colortable[color.hex]
+
+    def extract_style_as_dict(self):
+
+        style = {}
+        style["BondSpacing"] = self.slide.attrib["BondSpacing"]
+        style["BondLength"] = self.slide.attrib["BondLength"]
+        style["BoldWidth"] = self.slide.attrib["BoldWidth"]
+        style["LineWidth"] = self.slide.attrib["LineWidth"]
+        style["MarginWidth"] = self.slide.attrib["MarginWidth"]
+        style["HashSpacing"] = self.slide.attrib["HashSpacing"]
+        style["CaptionSize"] = self.slide.attrib["CaptionSize"]
+        style["LabelSize"] = self.slide.attrib["LabelSize"]
+        style["LabelFace"] = self.slide.attrib["LabelFace"]
+        style["LabelFont"] = self.slide.attrib["LabelFont"]
+
+        return style
 
 
 class TextProperty(object):
