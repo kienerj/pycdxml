@@ -24,7 +24,7 @@ class CDXMLSlideGenerator(object):
         self.row_height = self.slide_height / rows
 
         self.margin = 5
-        self.line_height = font_size + 2
+        self.line_height = font_size + 3
         self.text_height = math.ceil(self.line_height * number_of_properties)
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
@@ -103,7 +103,7 @@ class CDXMLSlideGenerator(object):
                 x_right = (column + 1) * self.column_width - self.margin
 
                 txt = ET.Element('t')
-                txt.attrib["LineHeight"] = "auto"
+                txt.attrib["LineHeight"] = str(self.line_height)
                 txt.attrib["id"] = str(5000 + index)
                 txt.attrib['BoundingBox'] = "{} {} {} {}".format(x_left, y_top, x_right, y_bottom)
                 # TODO: proper position calculation
