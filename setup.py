@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="cdxml-slide-generator",
-    version="0.0.1",    
+    version="0.1.0",    
     author="Joos Kiener",
     author_email="joos.kiener@gmail.com",
     description="Generate cdxml documents for usage in PowerPoint",
