@@ -91,8 +91,6 @@ class CDXMLSlideGenerator(object):
                 node.attrib['p'] = coords_xml
                 idx += 1
 
-            self.slide.find('page').append(fragment)
-
             # handle properties
             if self.number_of_properties > 0:
                 props = properties[index][:self.number_of_properties]
@@ -128,8 +126,15 @@ class CDXMLSlideGenerator(object):
                     text_length += len(s.text)
                     line_starts.append(str(text_length))
 
+                    # Add properties as annotations so that they are exported to sdf!
+                    annotation = ET.SubElement(fragment, 'annotation')
+                    annotation.attrib['Keyword'] = prop.name
+                    annotation.attrib['Content'] = str(prop.value)
+
                 txt.attrib['LineStarts'] = ' '.join(line_starts)
                 self.slide.find('page').append(txt)
+
+            self.slide.find('page').append(fragment)
 
         xml = ET.tostring(self.slide, encoding='unicode', method='xml')
         return self.styler.xml_header + xml
