@@ -29,6 +29,7 @@ class CDXMLSlideGenerator(object):
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
         self.colortable = {}
+        self.fonttable = {}
         self.slide = self._build_base_document(style)
         style_dict = self.extract_style_as_dict()
         self.styler = CDXMLStyler(style_dict=style_dict)
@@ -107,14 +108,16 @@ class CDXMLSlideGenerator(object):
                 txt.attrib['BoundingBox'] = "{} {} {} {}".format(x_left, y_top, x_right, y_bottom)
                 # TODO: proper position calculation
                 # with Arial font 10 the y-coord of p of a t element is 8.95 points higher than the bounding box top edge
-                # No logical explanation / formula available for this. Empirical observation
-                txt.attrib['p'] = "{} {}".format(x_left, y_top + 8.95)
+                # For Arial this "margin seems to be 89.5 % if the font size
+                # But it's different for other fonts
+                txt.attrib['p'] = "{} {}".format(x_left, y_top + 0.895 * self.font_size)
                 line_starts = []
                 text_length = 0
+                font_id = self.register_font(self.font)
 
                 for prop_index, prop in enumerate(props):
                     s = ET.SubElement(txt, 's')
-                    s.attrib['font'] = "3"  # Arial default for now
+                    s.attrib['font'] = str(font_id)
                     s.attrib['color'] = str(self.register_color(prop.color))
                     s.attrib['size'] = str(self.font_size)
 
@@ -181,6 +184,14 @@ class CDXMLSlideGenerator(object):
         root = tree.getroot()
         root.append(ET.fromstring(page))
 
+        # register fonts
+        fonttable_xml = root.find("fonttable")
+
+        for font in fonttable_xml.iter("font"):
+            font_name = font.attrib["name"]
+            font_id = font.attrib["id"]
+            self.fonttable[font_name] = int(font_id)
+
         return root
 
     def register_color(self, color):
@@ -208,6 +219,27 @@ class CDXMLSlideGenerator(object):
             return color_index
         else:
             return self.colortable[color.hex]
+
+    def register_font(self, font):
+        """
+
+        :param font: a Font name like Arial
+        :return: int, id of the font
+        """
+
+        if font not in self.fonttable:
+
+            font_id = max(self.fonttable.values()) + 1
+
+            fonttable_xml = self.slide.find('fonttable')
+            c = ET.SubElement(fonttable_xml, 'font')
+            c.attrib["id"] = str(font_id)
+            c.attrib["charset"] = "iso-8859-1"
+            c.attrib["name"] = font
+            self.fonttable[font] = font_id
+            return font_id
+        else:
+            return self.fonttable[font]
 
     def extract_style_as_dict(self):
 
