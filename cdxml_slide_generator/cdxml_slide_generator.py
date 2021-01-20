@@ -149,7 +149,9 @@ class CDXMLSlideGenerator(object):
         element.attrib['BoundingBox'] = "{} {} {} {}".format(final_bb[0], final_bb[1], final_bb[2], final_bb[3])
 
     def _shrink_to_fit(self, fragment):
-
+        """
+        :param fragment: fragment ET element from cdxml
+        """
         # scaling factor
         bb = fragment.attrib['BoundingBox']
         bounding_box = [float(x) for x in bb.split(" ")]
@@ -158,6 +160,9 @@ class CDXMLSlideGenerator(object):
         width_factor = self.molecule_width / width
         height_factor = self.molecule_height / height
         scaling_factor = min([width_factor, height_factor])
+
+        annotation = ET.SubElement(fragment, 'annotation')
+        annotation.attrib['Keyword'] = "Scaling Factor"
 
         if scaling_factor < 1:
             all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
@@ -173,6 +178,9 @@ class CDXMLSlideGenerator(object):
                         # scales Atom Labels
                         s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
                 idx += 1
+            annotation.attrib['Content'] = str(1/scaling_factor * 100)
+        else:
+            annotation.attrib['Content'] = "100"
 
     def _build_base_document(self, style):
 
