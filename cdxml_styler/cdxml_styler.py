@@ -127,10 +127,11 @@ class CDXMLStyler(object):
                     for unwanted_key in unwanted: del node.attrib[unwanted_key]
 
                     for t in node.iter('t'):
-                        #set new coordinates for lables (t elements)
-                        coords_label = str(final_labels[label_idx][0]) + " " + str(final_labels[label_idx][1])
-                        t.attrib['p'] = coords_label
-                        label_idx +=1
+                        if 'p' in t.attrib:
+                            #set new coordinates for lables (t elements)
+                            coords_label = str(final_labels[label_idx][0]) + " " + str(final_labels[label_idx][1])
+                            t.attrib['p'] = coords_label
+                            label_idx +=1
 
                         unwanted = set(t.attrib) - set(t_attributes)
                         for unwanted_key in unwanted: del t.attrib[unwanted_key]
@@ -185,10 +186,11 @@ class CDXMLStyler(object):
             all_coords.append(coords)
             node_id_mapping[int(node.attrib['id'])] = idx
             for t in node.iter('t'):
-                label_p= [float(x) for x in t.attrib['p'].split(" ")]
-                label_coords.append(label_p)
-                label_bb = [float(x) for x in t.attrib['BoundingBox'].split(" ")]
-                label_bbs.append(label_bb)
+                if 'p' in t.attrib:
+                    label_p= [float(x) for x in t.attrib['p'].split(" ")]
+                    label_coords.append(label_p)
+                    label_bb = [float(x) for x in t.attrib['BoundingBox'].split(" ")]
+                    label_bbs.append(label_bb)
             idx += 1
         for bond in fragment.iter('b'):
             bond_dict = {'start': int(bond.attrib['B']), 'end': int(bond.attrib['E'])}
