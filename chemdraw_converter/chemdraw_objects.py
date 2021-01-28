@@ -103,7 +103,7 @@ class ChemDrawObject(NodeMixin):
                     else:
                         raise err
 
-            prop = ChemDrawProperty(tag_id, prop_name, type_obj, length)
+            prop = ChemDrawProperty(tag_id, prop_name, type_obj)
             props.append(prop)
             # read next tag
             tag_id = int.from_bytes(cdx.read(2), "little")
@@ -126,7 +126,7 @@ class ChemDrawObject(NodeMixin):
         return props
 
     @staticmethod
-    def _read_attributes(element: ET.Element()) -> list:
+    def _read_attributes(element: ET.Element) -> list:
 
         props = []
 
@@ -139,12 +139,11 @@ class ChemDrawObject(NodeMixin):
                 klass = globals()[chemdraw_type]
 
                 type_obj = klass.from_string(value)
-                # create type then determine length by converting type to bytes (not efficient but "simple"
-                length = len(type_obj.to_bytes())
-                prop = ChemDrawProperty(tag_id, attribute, type_obj, length)
+
+                prop = ChemDrawProperty(tag_id, attribute, type_obj)
                 props.append(prop)
             except StopIteration as err:
-                logger.warning('Found unknown attribute {} with length {}. Ignoring this property.'.format(attribute, length))
+                logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attribute))
 
         return props
 
@@ -181,12 +180,11 @@ class ChemDrawObject(NodeMixin):
 
 class ChemDrawProperty(object):
 
-    def __init__(self, tag_id: int, name: str, type: CDXType, length: int):
+    def __init__(self, tag_id: int, name: str, type: CDXType):
 
         self.tag_id = tag_id
         self.name = name
         self.type = type
-        self.length = length
 
     def to_bytes(self) -> bytes:
         """
@@ -197,12 +195,14 @@ class ChemDrawProperty(object):
         logger.debug("Writing property {} with value '{}'.".format(self.name, self.get_value()))
         stream = io.BytesIO()
         stream.write(self.tag_id.to_bytes(2, byteorder='little'))
-        if self.length <= 65534:
-            stream.write(self.length.to_bytes(2, byteorder='little'))
+        prop_bytes = self.type.to_bytes()
+        length = len(prop_bytes)
+        if length <= 65534:
+            stream.write(length.to_bytes(2, byteorder='little'))
         else:
             stream.write(b'\xFF\xFF')
-            stream.write(self.length.to_bytes(4, byteorder='little'))
-        stream.write(self.type.to_bytes())
+            stream.write(length.to_bytes(4, byteorder='little'))
+        stream.write(prop_bytes)
         stream.seek(0)
         return stream.read()
 
