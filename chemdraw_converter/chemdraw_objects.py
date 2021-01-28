@@ -30,6 +30,8 @@ class ChemDrawObject(NodeMixin):
     cdx_properties_path = module_path / 'cdx_properties.yml'
     with open(cdx_properties_path, 'r') as stream:
         CDX_PROPERTIES = yaml.safe_load(stream)
+    # Use this sequence to set missing id in xml docs
+    OBJECT_ID_SEQUENCE = iter(range(5000,10000))
 
     def __init__(self, tag_id, type, element_name, id, properties=[],  parent=None, children=None):
 
@@ -58,6 +60,16 @@ class ChemDrawObject(NodeMixin):
         element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
         obj = ChemDrawObject(tag_id, type, element_name, object_id, properties=props, parent=parent)
         return obj
+
+    @staticmethod
+    def from_cdxml(element: ET.Element, tag_id: int, parent: 'ChemDrawObject') -> 'ChemDrawObject':
+
+        if "id" in element.attrib:
+            object_id = int(element.attrib["id"])
+        else:
+            object_id = next(ChemDrawObject.OBJECT_ID_SEQUENCE)
+        props = ChemDrawObject._read_attributes(element)
+
 
     @staticmethod
     def _read_properties(cdx:io.BytesIO) -> list:
@@ -111,6 +123,29 @@ class ChemDrawObject(NodeMixin):
         logger.debug('Successfully finished reading properties.')
         # move back 2 positions, finished reading attributes
         cdx.seek(cdx.tell() - 2)
+        return props
+
+    @staticmethod
+    def _read_attributes(element: ET.Element()) -> list:
+
+        props = []
+
+        for attribute, value in element.attrib.items():
+            try:
+                tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == attribute)
+                chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+
+                logger.debug('Reading attribute {} of type {}.'.format(attribute, chemdraw_type))
+                klass = globals()[chemdraw_type]
+
+                type_obj = klass.from_string(value)
+                # create type then determine length by converting type to bytes (not efficient but "simple"
+                length = len(type_obj.to_bytes())
+                prop = ChemDrawProperty(tag_id, attribute, type_obj, length)
+                props.append(prop)
+            except StopIteration as err:
+                logger.warning('Found unknown attribute {} with length {}. Ignoring this property.'.format(attribute, length))
+
         return props
 
     def add_as_element(self, parent: ET.Element):
@@ -214,7 +249,7 @@ class ChemDrawDocument(ChemDrawObject):
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd">
 """
     # According to spec if a "tag_ids" most significant bit (15th bit, 0-based index) is clear, then it's a property
-    # else it's an object. This leaves 15 bits resulting gin a max value for a property tag equal to 32767 due to
+    # else it's an object. This leaves 15 bits resulting in a max value for a property tag equal to 32767 due to
     # 2^15-1 (max value bits can represent is 2^n-1)
     MAX_PROPERTY_VALUE = 32767
 
@@ -272,6 +307,11 @@ class ChemDrawDocument(ChemDrawObject):
                     parent_stack.append(obj)
             except KeyError as err:
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+
+    @staticmethod
+    def from_cdxml(cdxml: str) -> 'ChemDrawDocument':
+
+        root = ET.fromstring(cdxml)
 
     def to_bytes(self) -> bytes:
 

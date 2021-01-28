@@ -20,6 +20,14 @@ class CDXType(object):
     def from_bytes(property_bytes:bytes) -> 'CDXType':
         raise NotImplementedError("Should have implemented this")
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXType':
+        raise NotImplementedError("Should have implemented this")
+
+    @staticmethod
+    def from_element(attribute: ET.Element) -> 'CDXType':
+        raise NotImplementedError("Should have implemented this")
+
     def to_bytes(self) -> bytes:
         raise NotImplementedError("Should have implemented this")
 
@@ -54,6 +62,27 @@ class CDXString(CDXType):
             font_styles.append(font_style)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         value = stream.read(text_length).decode(charset)        
+        logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
+        return CDXString(value, style_starts, font_styles, charset)
+
+    @staticmethod
+    def from_element(t: ET.Element, charset='iso-8859-1') -> 'CDXType':
+        """
+        create CDXString from a parent xml <t> element
+        :return:
+        """
+
+        style_starts = []
+        font_styles = []
+        value = ""
+        style_start = 0
+        for s in t.iter('s'):
+            style_starts.append(style_start)
+            value += s.text
+            style_start = len(value)
+            font_style = CDXFontStyle.from_element(s)
+            font_styles.append(font_style)
+
         logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
         return CDXString(value, style_starts, font_styles, charset)
 
@@ -97,6 +126,11 @@ class CDXString(CDXType):
 
 
 class CDXFontStyle(CDXType):
+    """
+    Note about font size:
+    Font size, measured in 20ths of a point in cdx. Note that this is an integral field, which implies that CDX files
+    cannot store font sizes any more accurately than the nearest 0.05 of a point.
+    """
 
     def __init__(self, font_id, font_type, font_size, font_color):
 
@@ -113,6 +147,19 @@ class CDXFontStyle(CDXType):
         font_type = int.from_bytes(stream.read(2), "little")
         font_size = int.from_bytes(stream.read(2), "little")
         font_color = int.from_bytes(stream.read(2), "little")
+        return CDXFontStyle(font_id, font_type, font_size, font_color)
+
+    @staticmethod
+    def from_element(s: ET.Element) -> 'CDXFontStyle':
+
+        font_id = int(s.attrib["font"])
+        # font face is not set in cdxml if plain
+        if "face" in s.attrib:
+            font_type = int(s.attrib["face"])
+        else:
+            font_type = 0
+        font_size = int(s.attrib["size"]) * 20
+        font_color = int(s.attrib["color"])
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     def font_size_points(self) -> float:
