@@ -1,16 +1,15 @@
 import io
 from .chemdraw_objects import *
-import yaml
-from pathlib import Path
+from base64 import b64decode
+
 
 class CDXReader(object):
 
-    def __init__(self, cdx_file):
+    def read(self, cdx_file):
         """
 
         :param cdx_file: a file-like object or path (str) to a cdx file
         """
-
         if isinstance(cdx_file, str):
             with open(cdx_file, mode='rb') as file:
                 cdx = file.read()
@@ -20,30 +19,38 @@ class CDXReader(object):
         else:
             # assume opened file-handle
             cdx = cdx_file.read()
-            self.cdx = io.BytesIO(cdx)
+            cdx = io.BytesIO(cdx)
 
-        if not self.cdx.read(8).decode("ascii") == 'VjCD0100':
-            raise ValueError('File is not a valid cdx file')
-
-        module_path = Path(__file__).parent
-        cdx_objects_path = module_path / 'cdx_objects.yml'
-        with open(cdx_objects_path, 'r') as stream:
-            self.cdx_objects = yaml.safe_load(stream)
+        document = ChemDrawDocument.from_bytes(cdx)
+        return document
 
 
-    def read(self):
+class B64CDXReader(object):
 
-        # check if valid file
-        header = self.cdx.read(22)
-        if header != ChemDrawDocument.HEADER:
-            raise ValueError('File is not a valid cdx file. Invalid header found.')
-        document_tag = self.cdx.read(2)
-        if document_tag != b'\x00\x80':
-            raise ValueError('File is not a valid cdx file. Document tag not found.')
+    def read(self, base64_cdx):
 
-        object_tag = int.from_bytes(self.cdx.read(2), "little")
-        class_name = self.cdx_objects[object_tag]
-        klass = globals()[class_name]
-        obj = klass.from_bytes(self.cdx)
+        cdx = io.BytesIO(b64decode(base64_cdx))
+        document = ChemDrawDocument.from_bytes(cdx)
 
-        return 0
+        return document
+
+
+class CDXMLReader(object):
+
+    def read(self, cdxml_file):
+        """
+
+        :param cdxml_file: a file object, a path (str) to a cdxml file or a string containing the xml
+        """
+        if isinstance(cdxml_file, str):
+            if cdxml_file.startswith("<?xml"):
+                cdxml = cdxml_file
+            else:
+                with open(cdxml_file, mode='r') as file:
+                    cdxml = file.read()
+        else:
+            # assume opened file-handle
+            cdxml = cdxml_file.read()
+
+        document = ChemDrawDocument.from_cdxml(cdxml)
+        return document
