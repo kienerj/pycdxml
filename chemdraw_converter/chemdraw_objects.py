@@ -62,14 +62,17 @@ class ChemDrawObject(NodeMixin):
         return obj
 
     @staticmethod
-    def from_cdxml(element: ET.Element, tag_id: int, parent: 'ChemDrawObject') -> 'ChemDrawObject':
+    def from_cdxml(element: ET.Element, parent: 'ChemDrawObject' = None) -> 'ChemDrawObject':
 
         if "id" in element.attrib:
             object_id = int(element.attrib["id"])
         else:
             object_id = next(ChemDrawObject.OBJECT_ID_SEQUENCE)
         props = ChemDrawObject._read_attributes(element)
-
+        tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
+        type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
+        obj = ChemDrawObject(tag_id, type, element.tag, object_id, properties=props, parent=parent)
+        return obj
 
     @staticmethod
     def _read_properties(cdx:io.BytesIO) -> list:
@@ -129,8 +132,18 @@ class ChemDrawObject(NodeMixin):
     def _read_attributes(element: ET.Element) -> list:
 
         props = []
+        has_label_style = False
+        has_caption_style = False
 
         for attribute, value in element.attrib.items():
+            if attribute in ["LabelFont", "LabelSize", "LabelFace"]:
+                has_label_style = True
+                continue
+            if attribute in ["CaptionFont", "CaptionSize", "CaptionFace"]:
+                has_caption_style = True
+                continue
+            if attribute == "id":
+                continue
             try:
                 tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == attribute)
                 chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
@@ -144,6 +157,63 @@ class ChemDrawObject(NodeMixin):
                 props.append(prop)
             except StopIteration as err:
                 logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attribute))
+
+        if element.tag == 't':
+            type_obj = CDXString.from_element(element)
+            txt = ChemDrawProperty(0x0700, "Text", type_obj)
+            props.append(txt)
+        elif element.tag == "fonttable":
+            type_obj = CDXFontTable.from_element(element)
+            fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
+            props.append(fonttable)
+        elif element.tag == "colortable":
+            type_obj = CDXColorTable.from_element(element)
+            colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
+            props.append(colortable)
+
+        if has_label_style:
+
+            if "LabelFont" in element.attrib:
+                font_id = int(element.attrib["LabelFont"])
+            else:
+                font_id = -1
+
+            if "LabelFace" in element.attrib:
+                font_type = int(element.attrib["LabelFace"])
+            else:
+                font_type = -1
+
+            if "LabelSize" in element.attrib:
+                font_size = int(float(element.attrib["LabelSize"]) * 20)
+            else:
+                font_size = -1
+
+            # color on labels is ignored according to spec
+            type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
+            label_style = ChemDrawProperty(0x080A, "LabelStyle", type_obj)
+            props.append(label_style)
+
+        if has_caption_style:
+
+            if "CaptionFont" in element.attrib:
+                font_id = int(element.attrib["CaptionFont"])
+            else:
+                font_id = -1
+
+            if "CaptionFace" in element.attrib:
+                font_type = int(element.attrib["CaptionFace"])
+            else:
+                font_type = -1
+
+            if "CaptionSize" in element.attrib:
+                font_size = int(float(element.attrib["CaptionSize"]) * 20)
+            else:
+                font_size = -1
+
+            # color on labels is ignored according to spec
+            type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
+            caption_style = ChemDrawProperty(0x080B, "CaptionStyle", type_obj)
+            props.append(caption_style)
 
         return props
 
@@ -248,6 +318,7 @@ class ChemDrawDocument(ChemDrawObject):
     CDXML_HEADER = """<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd">
 """
+    CDXML_DEFAULT_DOC_ID = 0
     # According to spec if a "tag_ids" most significant bit (15th bit, 0-based index) is clear, then it's a property
     # else it's an object. This leaves 15 bits resulting in a max value for a property tag equal to 32767 due to
     # 2^15-1 (max value bits can represent is 2^n-1)
@@ -309,9 +380,39 @@ class ChemDrawDocument(ChemDrawObject):
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
 
     @staticmethod
-    def from_cdxml(cdxml: str) -> 'ChemDrawDocument':
+    def from_cdxml(root: ET.Element) -> 'ChemDrawDocument':
 
-        root = ET.fromstring(cdxml)
+        if root.tag != "CDXML":
+            raise ValueError('File is not a valid cdxml file. Invalid root tag {} found.'.format(root.tag))
+        # Document Properties
+        props = ChemDrawObject._read_attributes(root)
+
+        chemdraw_document = ChemDrawDocument(ChemDrawDocument.CDXML_DEFAULT_DOC_ID, props)
+        parent_stack = [chemdraw_document]
+
+        for element in root.iterdescendants():
+            if element.tag in ['s', 'font', 'color']:
+                # s elements are always in t elements and hence already handeled by parent t element
+                # this is needed as there is a missmatch between cdx and cdxml
+                # same for fonts and colors in font/colortable
+                continue
+            try:
+                parent = parent_stack[-1]
+                obj = ChemDrawObject.from_cdxml(element, parent)
+                logger.debug('Created object of type {} with id: {}'.format(obj.type, obj.id))
+                parent_element = element.getparent()
+                idx = parent_element.index(element)
+                num_children = len(parent_element.getchildren())
+                if idx == num_children - 1:
+                    # last child of this element
+                    parent_stack.pop()
+                else:
+                    parent_stack.append(obj)
+
+            except KeyError as err:
+                logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+
+        return chemdraw_document
 
     def to_bytes(self) -> bytes:
 

@@ -1,7 +1,7 @@
 import io
 from .chemdraw_objects import *
 from base64 import b64decode
-
+from lxml import etree as ET
 
 class CDXReader(object):
 
@@ -44,13 +44,14 @@ class CDXMLReader(object):
         """
         if isinstance(cdxml_file, str):
             if cdxml_file.startswith("<?xml"):
-                cdxml = cdxml_file
+                cdxml = cdxml_file.encode('utf-8')
             else:
-                with open(cdxml_file, mode='r') as file:
+                with open(cdxml_file, mode='rb') as file:
                     cdxml = file.read()
         else:
             # assume opened file-handle
             cdxml = cdxml_file.read()
 
-        document = ChemDrawDocument.from_cdxml(cdxml)
+        root = ET.fromstring(cdxml)
+        document = ChemDrawDocument.from_cdxml(root)
         return document

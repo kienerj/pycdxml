@@ -66,6 +66,10 @@ class CDXString(CDXType):
         return CDXString(value, style_starts, font_styles, charset)
 
     @staticmethod
+    def from_string(value: str) -> 'CDXString':
+        return CDXString(value)
+
+    @staticmethod
     def from_element(t: ET.Element, charset='iso-8859-1') -> 'CDXType':
         """
         create CDXString from a parent xml <t> element
@@ -76,7 +80,7 @@ class CDXString(CDXType):
         font_styles = []
         value = ""
         style_start = 0
-        for s in t.iter('s'):
+        for s in t.iter(tag='s'):
             style_starts.append(style_start)
             value += s.text
             style_start = len(value)
@@ -157,9 +161,15 @@ class CDXFontStyle(CDXType):
         if "face" in s.attrib:
             font_type = int(s.attrib["face"])
         else:
-            font_type = 0
-        font_size = int(s.attrib["size"]) * 20
-        font_color = int(s.attrib["color"])
+            font_type = -1
+        if "size" in s.attrib:
+            font_size = int(float(s.attrib["size"]) * 20)
+        else:
+            font_size = -1
+        if "color" in s.attrib:
+            font_color = int(s.attrib["color"])
+        else:
+            font_color = -1
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     def font_size_points(self) -> float:
@@ -172,7 +182,7 @@ class CDXFontStyle(CDXType):
 
     def to_element(self) -> ET.Element:
         s = ET.Element('s')
-        s.attrib['font'] = str(self.font_id)
+        s.attrib['font'] = str(int(self.font_id))
         s.attrib['size'] = str(self.font_size_points())
         s.attrib['face'] = str(self.font_type)
         s.attrib['color'] = str(self.font_color)
@@ -217,6 +227,20 @@ class CDXFontTable(CDXType):
             font_name = stream.read(font_name_length).decode('ascii')
             fonts.append(Font(font_id, charset, font_name))
         return CDXFontTable(platform, fonts)
+
+    @staticmethod
+    def from_element(fonttable: ET.Element) -> 'CDXFontTable':
+
+        fonts = []
+
+        for font in fonttable.iter(tag="font"):
+            font_id = int(font.attrib["id"])
+            charset = Font.CHARSETS[font.attrib["charset"]]
+            font_name = font.attrib["name"]
+            fonts.append(Font(font_id, charset, font_name))
+
+        # set platform to windows / not defined in cdxml
+        return CDXFontTable(0x0001, fonts)
 
     def to_bytes(self) -> bytes:
 
@@ -274,6 +298,19 @@ class CDXColorTable(CDXType):
             colors.append(Color(r, g, b))
         return CDXColorTable(colors)
 
+    @staticmethod
+    def from_element(colortable: ET.Element) -> 'CDXColorTable':
+
+        colors = []
+
+        for color in colortable.iter(tag="color"):
+            r = int(float(color.attrib["r"]) * CDXColorTable.COLOR_MAX_VALUE)
+            g = int(float(color.attrib["g"]) * CDXColorTable.COLOR_MAX_VALUE)
+            b = int(float(color.attrib["b"]) * CDXColorTable.COLOR_MAX_VALUE)
+            colors.append(Color(r, g, b))
+
+        return CDXColorTable(colors)
+
     def to_bytes(self) -> bytes:
 
         stream = io.BytesIO()
@@ -326,6 +363,12 @@ class CDXCoordinate(CDXType):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXCoordinate(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXCoordinate':
+
+        units = int(float(value) * CDXCoordinate.CDXML_CONVERSION_FACTOR)
+        return CDXCoordinate(units)
+
     def to_bytes(self) -> bytes:
         return self.coordinate.to_bytes(4, byteorder='little', signed=True)
 
@@ -357,6 +400,15 @@ class CDXPoint2D(CDXType):
 
         y = CDXCoordinate.from_bytes(property_bytes[0:4])
         x = CDXCoordinate.from_bytes(property_bytes[4:8])
+
+        return CDXPoint2D(x, y)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPoint2D':
+
+        coords = value.split(sep=' ')
+        y = CDXCoordinate.from_string(coords[1])
+        x = CDXCoordinate.from_string(coords[0])
 
         return CDXPoint2D(x, y)
 
@@ -394,6 +446,15 @@ class CDXPoint3D(CDXType):
         z = CDXCoordinate.from_bytes(property_bytes[0:4])
         y = CDXCoordinate.from_bytes(property_bytes[4:8])
         x = CDXCoordinate.from_bytes(property_bytes[8:12])
+
+        return CDXPoint3D(x, y, z)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPoint3D':
+        coords = value.split(sep=' ')
+        z = CDXCoordinate.from_string(coords[2])
+        y = CDXCoordinate.from_string(coords[1])
+        x = CDXCoordinate.from_string(coords[0])
 
         return CDXPoint3D(x, y, z)
 
@@ -436,6 +497,16 @@ class CDXRectangle(CDXType):
 
         return CDXRectangle(top, left, bottom, right)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXRectangle':
+        coords = value.split(sep=' ')
+        top = CDXCoordinate.from_string(coords[1])
+        left = CDXCoordinate.from_string(coords[0])
+        bottom = CDXCoordinate.from_string(coords[3])
+        right = CDXCoordinate.from_string(coords[2])
+
+        return CDXRectangle(top, left, bottom, right)
+
     def to_bytes(self) -> bytes:
 
         return self.top.to_bytes() + self.left.to_bytes() + self.bottom.to_bytes() + self.right.to_bytes()
@@ -469,6 +540,16 @@ class CDXBoolean(CDXType):
             return CDXBoolean(False)
         else:
             return CDXBoolean(True)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXBoolean':
+
+        if value == "yes":
+            return CDXBoolean(True)
+        elif value == "no":
+            return CDXBoolean(False)
+        else:
+            raise ValueError("Found invalid value {} for boolean type. Allowed are 'yes' and 'no'.".format(value))
 
     def to_bytes(self) -> bytes:
         if self.bool_value:
@@ -507,6 +588,16 @@ class CDXBooleanImplied(CDXType):
             raise ValueError("A BooleanImplied should be 0-length.")
         return CDXBooleanImplied(True)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXBooleanImplied':
+
+        if value == "yes":
+            return CDXBooleanImplied(True)
+        elif value == "no":
+            return CDXBooleanImplied(False)
+        else:
+            raise ValueError("Found invalid value {} for boolean type. Allowed are 'yes' and 'no'.".format(value))
+
     def to_bytes(self) -> bytes:
         if not self.bool_value:
             raise ValueError("A BooleanImplied with value 'False' should not be written to cdx file.")
@@ -534,6 +625,12 @@ class CDXObjectIDArray(CDXType):
         for i in range(array_length):
             id = int.from_bytes(stream.read(4), "little", signed=False)
             ids.append(id)
+        return CDXObjectIDArray(ids)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXObjectIDArray':
+        ids = value.split(sep=' ')
+        ids = list(map(int, ids))
         return CDXObjectIDArray(ids)
 
     def to_bytes(self) -> bytes:
@@ -567,6 +664,10 @@ class CDXAminoAcidTermini(CDXType, Enum):
         value = int.from_bytes(property_bytes, "little", signed=False)
         return CDXAminoAcidTermini(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXAminoAcidTermini':
+        return CDXAminoAcidTermini[value]
+
     def to_bytes(self) -> bytes:
         return self.termini.to_bytes(1, byteorder='little', signed=False)
 
@@ -576,10 +677,7 @@ class CDXAminoAcidTermini(CDXType, Enum):
 
 
 class CDXAutonumberStyle(CDXType, Enum):
-    """
-    This type doesn't exist in spec. It's stored as 1 byte in cdx and in ChemDraw 18 there are 2 possible settings
-    which are shown as text in cdxml
-    """
+
     Roman = 0
     Arabic = 1
     Alphabetic = 2
@@ -595,6 +693,10 @@ class CDXAutonumberStyle(CDXType, Enum):
             raise ValueError("CDXAutonumberStyle should consist of exactly 1 byte.")
         value = int.from_bytes(property_bytes, "little", signed=False)
         return CDXAutonumberStyle(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXAutonumberStyle':
+        return CDXAutonumberStyle[value]
 
     def to_bytes(self) -> bytes:
         return self.autonumber_style.to_bytes(1, byteorder='little', signed=False)
@@ -618,11 +720,16 @@ class CDXBondSpacing(CDXType):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXBondSpacing(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXBondSpacing':
+
+        return CDXBondSpacing(int(value) * 10)
+
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        return str(self.value / 10)
+        return str(int(self.value / 10))
 
 
 class CDXDoubleBondPosition(CDXType, Enum):
@@ -645,6 +752,10 @@ class CDXDoubleBondPosition(CDXType, Enum):
             raise ValueError("CDXDoubleBondPosition should consist of exactly 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXDoubleBondPosition(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXDoubleBondPosition':
+        return CDXDoubleBondPosition[value]
 
     def to_bytes(self) -> bytes:
         return self.double_bond_position.to_bytes(2, byteorder='little', signed=True)
@@ -685,6 +796,10 @@ class CDXBondDisplay(CDXType, Enum):
             raise ValueError("CDXBondDisplay should consist of exactly 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXBondDisplay(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXBondDisplay':
+        return CDXBondDisplay[value]
 
     def to_bytes(self) -> bytes:
         return self.bond_display.to_bytes(2, byteorder='little', signed=True)
@@ -730,6 +845,10 @@ class CDXAtomStereo(CDXType, Enum):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXAtomStereo(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXAtomStereo':
+        return CDXAtomStereo[value]
+
     def to_bytes(self) -> bytes:
         return self.atom_stereo.to_bytes(1, byteorder='little', signed=True)
 
@@ -766,6 +885,10 @@ class CDXBondStereo(CDXType, Enum):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXBondStereo(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXBondStereo':
+        return CDXBondStereo[value]
+
     def to_bytes(self) -> bytes:
         return self.bond_stereo.to_bytes(1, byteorder='little', signed=True)
 
@@ -790,6 +913,10 @@ class INT8(CDXType):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return INT8(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'INT8':
+        return INT8(int(value))
+
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(1, byteorder='little', signed=True)
 
@@ -812,6 +939,10 @@ class UINT8(CDXType):
             raise ValueError("UINT8 should consist of exactly 1 byte.")
         value = int.from_bytes(property_bytes, "little", signed=False)
         return UINT8(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'UINT8':
+        return UINT8(int(value))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(1, byteorder='little', signed=False)
@@ -836,6 +967,10 @@ class INT16(CDXType):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return INT16(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'INT16':
+        return INT16(int(value))
+
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
 
@@ -858,6 +993,10 @@ class UINT16(CDXType):
             raise ValueError("UINT16 should consist of exactly 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=False)
         return UINT16(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'UINT16':
+        return UINT16(int(value))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=False)
@@ -882,6 +1021,10 @@ class INT32(CDXType):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return INT32(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'INT32':
+        return INT32(int(value))
+
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(4, byteorder='little', signed=True)
 
@@ -904,6 +1047,10 @@ class UINT32(CDXType):
             raise ValueError("INT32 should consist of exactly 4 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=False)
         return UINT32(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'UINT32':
+        return UINT32(int(value))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(4, byteorder='little', signed=False)
@@ -931,7 +1078,13 @@ class INT16ListWithCounts(CDXType):
             values.append(value)
         return INT16ListWithCounts(values)
 
-    def to_bytes(self) -> bytes:  
+    @staticmethod
+    def from_string(value: str) -> 'INT16ListWithCounts':
+        vals = value.split(sep=' ')
+        vals = list(map(int, vals))
+        return INT16ListWithCounts(vals)
+
+    def to_bytes(self) -> bytes:
         stream = io.BytesIO()
         length = len(self.values)
         stream.write(length.to_bytes(2, byteorder='little', signed=False))        
@@ -941,7 +1094,7 @@ class INT16ListWithCounts(CDXType):
         return stream.read()
         
     def to_property_value(self) -> str:
-        return str(self.values)
+        return ' '.join(map(str,self.values))
 
 
 class Unformatted(CDXType):
@@ -953,6 +1106,10 @@ class Unformatted(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'Unformatted':
         return Unformatted(property_bytes)
+
+    @staticmethod
+    def from_string(value: str) -> 'Unformatted':
+        return Unformatted(bytes.fromhex(value))
 
     def to_bytes(self) -> bytes:
         return self.value
@@ -981,6 +1138,10 @@ class CDXBracketUsage(CDXType):
         additional_bytes = property_bytes[1:]
         val = property_bytes[0]
         return CDXBracketUsage(val)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXBracketUsage':
+        return CDXBracketUsage.BracketUsage[value]
 
     def to_bytes(self) -> bytes:
         val = self.bracket_usage.to_bytes(1, byteorder='little', signed=True)
@@ -1033,6 +1194,10 @@ class CDXBracketType(CDXType, Enum):
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXBracketType(value)
 
+    @staticmethod
+    def from_string(value: str) -> 'CDXBracketType':
+        return CDXBracketType[value]
+
     def to_bytes(self) -> bytes:
         return self.bracket_type.to_bytes(2, byteorder='little', signed=True)
 
@@ -1063,6 +1228,10 @@ class CDXGraphicType(CDXType, Enum):
             raise ValueError("CDXGraphicType should consist of exactly 2 byte.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXGraphicType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXGraphicType':
+        return CDXGraphicType[value]
 
     def to_bytes(self) -> bytes:
         return self.graphic_type.to_bytes(2, byteorder='little', signed=True)
