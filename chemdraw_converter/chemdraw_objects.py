@@ -66,8 +66,6 @@ class ChemDrawObject(NodeMixin):
 
         if "id" in element.attrib:
             object_id = int(element.attrib["id"])
-        else:
-            object_id = next(ChemDrawObject.OBJECT_ID_SEQUENCE)
         props = ChemDrawObject._read_attributes(element)
         tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
         type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
@@ -162,14 +160,6 @@ class ChemDrawObject(NodeMixin):
             type_obj = CDXString.from_element(element)
             txt = ChemDrawProperty(0x0700, "Text", type_obj)
             props.append(txt)
-        elif element.tag == "fonttable":
-            type_obj = CDXFontTable.from_element(element)
-            fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
-            props.append(fonttable)
-        elif element.tag == "colortable":
-            type_obj = CDXColorTable.from_element(element)
-            colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
-            props.append(colortable)
 
         if has_label_style:
 
@@ -396,6 +386,16 @@ class ChemDrawDocument(ChemDrawObject):
                 # this is needed as there is a missmatch between cdx and cdxml
                 # same for fonts and colors in font/colortable
                 continue
+            elif element.tag == "fonttable":
+                type_obj = CDXFontTable.from_element(element)
+                fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
+                chemdraw_document.properties.append(fonttable)
+                continue
+            elif element.tag == "colortable":
+                type_obj = CDXColorTable.from_element(element)
+                colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
+                chemdraw_document.properties.append(colortable)
+                continue
             try:
                 parent = parent_stack[-1]
                 obj = ChemDrawObject.from_cdxml(element, parent)
@@ -403,11 +403,13 @@ class ChemDrawDocument(ChemDrawObject):
                 parent_element = element.getparent()
                 idx = parent_element.index(element)
                 num_children = len(parent_element.getchildren())
+                logger.debug('Element {} has index {} of {} children of parent {}'.format(element.tag, idx, num_children, parent_element.tag))
                 if idx == num_children - 1:
                     # last child of this element
                     parent_stack.pop()
-                else:
+                if len(element.getchildren()) > 0 and element.tag != 't':
                     parent_stack.append(obj)
+                    logger.debug('Appending object {} to stack.'.format(obj.element_name))
 
             except KeyError as err:
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))

@@ -234,8 +234,9 @@ class CDXFontTable(CDXType):
         fonts = []
 
         for font in fonttable.iter(tag="font"):
+            logger.debug("Reading font {}.".format(font.attrib))
             font_id = int(font.attrib["id"])
-            charset = Font.CHARSETS[font.attrib["charset"]]
+            charset = next(key for key, value in Font.CHARSETS.items() if value == font.attrib["charset"])
             font_name = font.attrib["name"]
             fonts.append(Font(font_id, charset, font_name))
 
