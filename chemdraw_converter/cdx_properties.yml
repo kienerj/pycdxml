@@ -531,7 +531,7 @@
   type: CDXCurvePoints3D
 0x0A2F:
   name: ArrowheadType
-  type: INT16
+  type: CDXArrowHeadType
 0x0A30:
   name: HeadCenterSize
   type: UINT16
@@ -549,13 +549,13 @@
   type: UINT16
 0x0A35:
   name: ArrowheadHead
-  type: INT16
+  type: CDXArrowHeadPosition
 0x0A36:
   name: ArrowheadTail
-  type: INT16
+  type: CDXArrowHeadPosition
 0x0A37:
   name: FillType
-  type: INT16
+  type: CDXFillType
 0x0A38:
   name: CurveSpacing
   type: UINT16

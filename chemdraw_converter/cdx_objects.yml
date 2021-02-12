@@ -70,9 +70,12 @@
 0x8020:
   type: Border
   element_name: border
+#0x8021:
+#  type: Geometry
+#  element_name: geometry
 0x8021:
-  type: Geometry
-  element_name: geometry
+  type: Arrow
+  element_name: arrow
 0x8022:
   type: Constraint
   element_name: constraint

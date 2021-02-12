@@ -1277,3 +1277,106 @@ class CDXArrowType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXArrowType(self.arrow_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXArrowHeadType(CDXType, Enum):
+
+    Unspecified = 0
+    Solid = 1
+    Hollow = 2
+    Angle = 3
+
+    def __init__(self, value: int):
+        if 0 > value > 3:
+            raise ValueError("Needs to be between 0-3")
+        self.arrow_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXArrowHeadType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXArrowheadType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXArrowHeadType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXArrowHeadType':
+        return CDXArrowHeadType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.arrow_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXArrowHeadType(self.arrow_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXArrowHeadPosition(CDXType, Enum):
+    # Does not exist in specification
+    # not used yet needs to be fully reverse engineered first
+    Unspecified = 0
+    Non = 1 # actual value is None but not possible here
+    Full = 2
+    HalfRight = 4
+    HalfLeft = 3
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0-4")
+        self.arrow_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXArrowHeadPosition':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXArrowHeadPosition should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXArrowHeadPosition(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXArrowHeadPosition':
+        return CDXArrowHeadPosition[value]
+
+    def to_bytes(self) -> bytes:
+        return self.arrow_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.arrow_type == 1:
+            return "None"
+        else:
+            val = str(CDXArrowHeadPosition(self.arrow_type))
+            return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXFillType(CDXType, Enum):
+
+    Unspecified = 0x0000
+    Non = 0x0001 # actual value is None but not possible here
+    Solid = 0x0002
+    Shaded = 0x0004
+    Gradient = 0x0008
+    Pattern = 0x0010
+
+    def __init__(self, value: int):
+        if 0 > value > 16:
+            raise ValueError("Needs to be between 0-16")
+        self.fill_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXFillType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXFillType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXFillType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXFillType':
+        return CDXFillType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.fill_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.fill_type == 1:
+            return "None"
+        else:
+            val = str(CDXFillType(self.fill_type))
+            return val.split('.')[1]  # only actually value without enum name
