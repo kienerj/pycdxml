@@ -464,8 +464,9 @@ class CDXPoint3D(CDXType):
         return self.z.to_bytes() + self.y.to_bytes() + self.x.to_bytes()
 
     def to_property_value(self) -> str:
-
-        return self.x.to_property_value() + " " + self.y.to_property_value() + " " + self.z.to_property_value()
+        # Spec says z y x for cdx and x y z for cdxml but by looking at cdxml generated from ChemDraw this is
+        # clearly wrong. Not sure but I actually think it's x y z for both cases. (hence x value is probably z and vice versa)
+        return self.z.to_property_value() + " " + self.y.to_property_value() + " " + self.x.to_property_value()
 
 
 class CDXRectangle(CDXType):
@@ -1226,7 +1227,7 @@ class CDXGraphicType(CDXType, Enum):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXGraphicType':
         if len(property_bytes) != 2:
-            raise ValueError("CDXGraphicType should consist of exactly 2 byte.")
+            raise ValueError("CDXGraphicType should consist of exactly 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXGraphicType(value)
 
@@ -1239,4 +1240,40 @@ class CDXGraphicType(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXGraphicType(self.graphic_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXArrowType(CDXType, Enum):
+
+    NoHead = 0
+    HalfHead = 1
+    FullHead = 2
+    Resonance = 4
+    Equilibrium = 8
+    Hollow = 16
+    RetroSynthetic = 32
+    NoGo = 64
+    Dipole = 128
+
+    def __init__(self, value: int):
+        if 0 > value > 128:
+            raise ValueError("Needs to be between 0-128")
+        self.arrow_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXArrowType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXArrowType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXArrowType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXArrowType':
+        return CDXArrowType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.arrow_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXArrowType(self.arrow_type))
         return val.split('.')[1]  # only actually value without enum name

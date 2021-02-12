@@ -465,7 +465,7 @@
   type: INT16
 0x0A02:
   name: ArrowType
-  type: INT16
+  type: CDXArrowType
 0x0A03:
   name: RectangleType
   type: INT16
@@ -530,7 +530,7 @@
   name: CurvePoints3D
   type: CDXCurvePoints3D
 0x0A2F:
-  name: ArrowHeadType
+  name: ArrowheadType
   type: INT16
 0x0A30:
   name: HeadCenterSize
@@ -548,10 +548,10 @@
   name: ArrowEquilibriumRatio
   type: UINT16
 0x0A35:
-  name: ArrowHeadHead
+  name: ArrowheadHead
   type: INT16
 0x0A36:
-  name: ArrowHeadTail
+  name: ArrowheadTail
   type: INT16
 0x0A37:
   name: FillType
