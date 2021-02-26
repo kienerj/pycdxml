@@ -252,7 +252,7 @@
   type: CDXObjectIDArray
 0x0600:
   name: Order
-  type: INT16
+  type: CDXBondOrder
 0x0601:
   name: Display
   type: CDXBondDisplay
@@ -366,7 +366,7 @@
   type: CDXFontStyle
 0x080C:
   name: CaptionJustification
-  type: INT8
+  type: CDXJustification
 0x080D:
   name: FractionalWidths
   type: CDXBoolean
@@ -435,7 +435,7 @@
   type: CDXCoordinate
 0x0823:
   name: LabelJustification
-  type: INT8
+  type: CDXJustification
 0x0824:
   name: FixInPlaceExtent
   type: CDXPoint2D

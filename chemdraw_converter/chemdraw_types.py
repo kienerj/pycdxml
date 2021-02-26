@@ -1380,3 +1380,136 @@ class CDXFillType(CDXType, Enum):
         else:
             val = str(CDXFillType(self.fill_type))
             return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXJustification(CDXType, Enum):
+
+    Right = -1
+    Left = 0
+    Center = 1
+    Full = 2
+    Above = 3
+    Below = 4
+    Auto = 5
+    Best = 6
+
+    def __init__(self, value: int):
+        if -1 > value > 6:
+            raise ValueError("Needs to be between -1 and 6")
+        self.label_justification = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXJustification':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXLabelJustification should consist of exactly 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXJustification(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXJustification':
+        return CDXJustification[value]
+
+    def to_bytes(self) -> bytes:
+        return self.label_justification.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXJustification(self.label_justification))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXBondOrder(CDXType, Enum):
+
+    Unspecified = 0xFFFF
+    Single = 0x0001
+    Double = 0x0002
+    Triple = 0x0004
+    Quadruple = 0x0008
+    Quintuple = 0x0010
+    Hextuple = 0x0020
+    OneHalf = 0x0040
+    OneAndAHalf = 0x0080 # Aromatic
+    TwoAndAHalf = 0x0100
+    ThreeAndAHalf = 0x0200
+    FourAndAHalf = 0x0400
+    FiveAndAHalf = 0x0800
+    dative = 0x1000
+    ionic = 0x2000
+    hydrogen= 0x4000
+    threecenter = 0x8000
+
+    def __init__(self, value: int):
+        self.order = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBondOrder':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXBondOrder should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXBondOrder(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXBondOrder':
+        try:
+            v = float(value)
+            if v == 1:
+                return CDXBondOrder["Single"]
+            elif v == 2:
+                return CDXBondOrder["Double"]
+            elif v == 3:
+                return CDXBondOrder["Triple"]
+            elif v == 1.5:
+                return CDXBondOrder["OneAndAHalf"]
+            elif v == 4:
+                return CDXBondOrder["Quadruple"]
+            elif v == 5:
+                return CDXBondOrder["Quintuple"]
+            elif v == 6:
+                return CDXBondOrder["Hextuple"]
+            elif v == 0.5:
+                return CDXBondOrder["OneHalf"]
+            elif v == 2.5:
+                return CDXBondOrder["TwoAndAHalf"]
+            elif v == 3.5:
+                return CDXBondOrder["ThreeAndAHalf"]
+            elif v == 4.5:
+                return CDXBondOrder["FourAndAHalf"]
+            elif v == 5.5:
+                return CDXBondOrder["FiveAndAHalf"]
+            elif v == 0xFFFF:
+                return CDXBondOrder["Unspecified"]
+        except ValueError:
+            # use enum name
+            return CDXBondOrder[value]
+
+    def to_bytes(self) -> bytes:
+        return self.order.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+
+        if self.order >= 0x1000:
+            val = str(CDXJustification(self.order))
+            return val.split('.')[1]  # only actually value without enum name
+        elif self.order == 0x0001:
+            return "1"
+        elif self.order == 0x0002:
+            return "2"
+        elif self.order == 0x0004:
+            return "3"
+        elif self.order == 0x0008:
+            return "4"
+        elif self.order == 0x0010:
+            return "5"
+        elif self.order == 0x0020:
+            return "6"
+        elif self.order == 0x0040:
+            return "0.5"
+        elif self.order == 0x0080:
+            return "1.5"
+        elif self.order == 0x0100:
+            return "2.5"
+        elif self.order == 0x0200:
+            return "3.5"
+        elif self.order == 0x0400:
+            return "4.5"
+        elif self.order == 0x0800:
+            return "5.5"
