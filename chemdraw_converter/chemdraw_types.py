@@ -173,7 +173,7 @@ class CDXFontStyle(CDXType):
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     def font_size_points(self) -> float:
-        return self.font_size / 20
+        return self.font_size / 20.0
 
     def to_bytes(self) -> bytes:
 

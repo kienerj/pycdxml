@@ -40,7 +40,7 @@ def mol_to_document(mol: rdchem.Mol, style: dict = None, conformer_id: int = -1,
                           parent=document, children=[])
 
     # For proper detection and setting of Wedge Bonds
-    mol = Chem.Draw.rdMolDraw2D.PrepareMolForDrawing(mol, kekulize = False, addChiralHs = True, wedgeBonds = True)
+    mol = Chem.Draw.rdMolDraw2D.PrepareMolForDrawing(mol, kekulize = True, addChiralHs = True, wedgeBonds = True)
 
     conformer = mol.GetConformer(conformer_id)
 
@@ -83,7 +83,7 @@ def mol_to_document(mol: rdchem.Mol, style: dict = None, conformer_id: int = -1,
             cdx_style = CDXFontStyle(int(style.get('LabelFont', DEFAULT_ATOM_LABEL_FONT_ID)),
                                      int(style.get('LabelFace', DEFAULT_ATOM_LABEL_FONT_FACE)),
                                      # Font Size in cdx is 1/20ths of a point
-                                     int(style.get('LabelSize', DEFAULT_ATOM_LABEL_FONT_SIZE) * 20),
+                                     int(float(style.get('LabelSize', DEFAULT_ATOM_LABEL_FONT_SIZE)) * 20),
                                      DEFAULT_ATOM_LABEL_FONT_COLOR)
 
             cdx_string = CDXString(lbl, style_starts=[0], styles=[cdx_style])
