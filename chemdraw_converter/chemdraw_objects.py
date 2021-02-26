@@ -314,7 +314,7 @@ class ChemDrawDocument(ChemDrawObject):
     # 2^15-1 (max value bits can represent is 2^n-1)
     MAX_PROPERTY_VALUE = 32767
 
-    def __init__(self, id, properties=[], children=None):
+    def __init__(self, id=0, properties=[], children=None):
 
         super().__init__(0x8000, 'Document', 'CDXML', id, properties=properties, children=children)
 
