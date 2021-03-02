@@ -70,15 +70,32 @@ def mol_to_document(mol: rdchem.Mol, style: dict = None, conformer_id: int = -1,
         else:
             props["AS"] = 'N'
 
+        if atom.GetFormalCharge() != 0:
+            props["Charge"] = str(atom.GetFormalCharge())
+
         atom_obj = ChemDrawObject(0x8004, "Node", "n", object_id, properties=_dict_to_properties(props),
                              parent=frg_obj)
 
-        if atom.GetAtomicNum() != 6:
+        # text label for Heteroatoms or charged carbons
+        if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
             lbl = atom.GetSymbol()
-            if atom.GetNumImplicitHs() > 0:
+            if atom.GetTotalNumHs() > 0:
                 lbl += "H"
-                if atom.GetNumImplicitHs() > 1:
-                    lbl += str(atom.GetNumImplicitHs())
+                if atom.GetTotalNumHs() > 1:
+                    lbl += str(atom.GetTotalNumHs())
+
+            if atom.GetFormalCharge() > 0:
+                if atom.GetFormalCharge() == 1:
+                    lbl += "+"
+                else:
+                    lbl += "+" + str(atom.GetFormalCharge())
+            elif atom.GetFormalCharge() < 0:
+                if atom.GetFormalCharge() == -1:
+                    lbl += "-"
+                else:
+                    # charge already contains minus symbol no need to add
+                    lbl += str(atom.GetFormalCharge())
+
 
             cdx_style = CDXFontStyle(int(style.get('LabelFont', DEFAULT_ATOM_LABEL_FONT_ID)),
                                      int(style.get('LabelFace', DEFAULT_ATOM_LABEL_FONT_FACE)),
@@ -272,7 +289,9 @@ def _get_coordinates(mol: rdchem.Mol, conformer: rdchem.Conformer, bond_length: 
     max_coords = np.amax(coords, axis=0)
     if max_coords[2] > 0:
         # 3D coords. convert to 2D
-        AllChem.Compute2DCoords(mol)
+        AllChem.Compute2DCoords(mol, bondLength=1.5)
+        mol.UpdatePropertyCache()
+        conformer = mol.GetConformer()
 
     bonds = mol.GetBonds()
 
