@@ -1,2 +1,2 @@
-include cdxml_slide_generator/*.cdxml
-include chemdraw_converter/*.yml
+include chemdraw_tools/cdxml_slide_generator/*.cdxml
+include chemdraw_tools/chemdraw_converter/*.yml
