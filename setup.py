@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="chemdraw-converter",
-    version="0.0.1",    
+    name="chemdraw-tools",
+    version="0.1.0",    
     author="Joos Kiener",
     author_email="joos.kiener@gmail.com",
-    description="Convert between ChemDraw Formats",
+    description="Work with and convert between ChemDraw Formats",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/kienerj/chemdraw-converter",
+    url="https://github.com/kienerj/chemdraw-tools",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
