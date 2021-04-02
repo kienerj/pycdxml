@@ -37,11 +37,11 @@ A much bigger issue are inconsistent data types. By creating trivial test files 
 
 cdx format internal is a tree-structure just like xml is. However some objects are implemented differently. For example font- and colortables are properties in cdx file they are separate objects in cdxml. For text the text style is a property in cdx but in cdxml each style is a separate object. The point being that there is no simple 1:1 mapping possible. This leads to ugly "hacks" and conditionals needed at the right places.
 
-Another such example is the bond order which in cdx is an INT16 (Enum) but the values it takes are not very logical outside of single (=1) and double bonds (=2). Triple bonds are then 4, Quadruple 8 and so forth. In CDXML the actual value is used, eg. 3 for triple bonds or 5.5 for FiveAndAHalf bonds. However in a python enum 5.5 or "5.5" are invalid as value name. Hence writng out the cdxml value requires a large if-block.
+Another such example is the bond order which in cdx is an INT16 (Enum) but the values it takes are not very logical outside of single (=1) and double bonds (=2). Triple bonds are then 4, Quadruple 8 and so forth. In CDXML the actual value is used, eg. 3 for triple bonds or 5.5 for FiveAndAHalf bonds. However in a python enum 5.5 or "5.5" are invalid as value name. Hence writing out the cdxml value requires a large if-block.
 
 ## Architecture / Code
 
-Let's just say it's a big mess also driven by the format isses and there is a lot of room for improvement. I started the project by being able to import cdx and then write it out as 100% equal on byte level again. Hence the internal representation is based on the cdx specifications and not the cdxml one. Therefor when reading cdxml, a conversion to internal format must happen and same when writing cdxml.
+Let's just say it's a big mess also driven by the format issues and there is a lot of room for improvement. I started the project by being able to import cdx and then write it out as 100% equal on byte level again. Hence the internal representation is based on the cdx specifications and not the cdxml one. Therefor when reading cdxml, a conversion to internal format must happen and same when writing cdxml.
 
 #### High-level
 
@@ -61,4 +61,4 @@ The property then determines it's type and the type object then reads in the dat
 
 The issues with this basic read/write mechanism is, that the reading and writing can all work without error but the resulting file might still not be readable by ChemDraw either due to a error in the code or an unknown object or property. Currently unknown elements simply get ignored (and logged).
 
-It also means that every type has an `CDXType` implemention even INT8, INT16 etc which is a bit ugly really but it "unifies" the design. Again there is room for improvement and simplification.
+It also means that every type has an `CDXType` implementation even INT8, INT16 etc. which is a bit ugly really but it "unifies" the design. Again there is room for improvement and simplification.
