@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import math
 from pathlib import Path
-from cdxml_styler import CDXMLStyler
+from ..cdxml_styler import CDXMLStyler
 
 
 class CDXMLSlideGenerator(object):
