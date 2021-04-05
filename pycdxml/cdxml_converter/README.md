@@ -1,8 +1,8 @@
-# ChemDraw Converter
+# CDXML Converter
 
 ## Scope
 
-ChemDraw converter **converts between cdx** (binary) **and cdxml**(text/xml) files containing **small molecules**. **Conversion from/to [RDKit](https://github.com/rdkit/rdkit) molecules is also planned**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform.
+CDXML converter **converts between cdx** (binary) **and cdxml**(text/xml) files containing **small molecules**. **Conversion from/to [RDKit](https://github.com/rdkit/rdkit) molecules is also planned**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform.
 
 Biologics are out of scope especially because these are rather new and missing from specification. Out-of-scope are also many other drawing-related things one can to in ChemDraw. The core issue is that ChemDraw is essentially a drawing canvas and hence cdx and cdxml are drawing formats and not chemical structure exchange formats.
 
