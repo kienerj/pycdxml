@@ -315,7 +315,7 @@
   type: INT16ListWithCounts
 0x0705:
   name: LabelAlignment
-  type: INT8
+  type: CDXLabelAlignment
 0x0706:
   name: LabelLineHeight
   type: INT16

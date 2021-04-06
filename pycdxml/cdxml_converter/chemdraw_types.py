@@ -1513,3 +1513,37 @@ class CDXBondOrder(CDXType, Enum):
             return "4.5"
         elif self.order == 0x0800:
             return "5.5"
+
+
+class CDXLabelAlignment(CDXType, Enum):
+
+    Auto = 0
+    Left = 1
+    Center = 2
+    Right = 3
+    Above = 4
+    Below = 5
+    Best = 6
+
+    def __init__(self, value: int):
+        if -1 > value > 6:
+            raise ValueError("Needs to be between -1 and 6")
+        self.label_alignment = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXLabelAlignment':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXLabelJustification should consist of exactly 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXLabelAlignment(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXLabelAlignment':
+        return CDXLabelAlignment[value]
+
+    def to_bytes(self) -> bytes:
+        return self.label_alignment.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXLabelAlignment(self.label_alignment))
+        return val.split('.')[1]  # only actually value without enum name
