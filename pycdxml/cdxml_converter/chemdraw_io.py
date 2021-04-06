@@ -1,5 +1,5 @@
-import io
 from .chemdraw_objects import *
+import io
 import base64
 from lxml import etree as ET
 

@@ -4,14 +4,8 @@ from lxml import etree as ET
 from pathlib import Path
 from enum import Enum
 import logging
-import logging.config
 
-module_path = Path(__file__).parent
-log_config_path = module_path / 'logging.yml'
-with open(log_config_path, 'r') as stream:
-    log_config = yaml.safe_load(stream)
-logging.config.dictConfig(log_config)
-logger = logging.getLogger('chemdraw_types')
+logger = logging.getLogger('pycdxml.chemdraw_types')
 
 
 class CDXType(object):
