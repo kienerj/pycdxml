@@ -380,14 +380,18 @@ class CDXCoordinate(CDXType):
 
         units = int(float(value) * CDXCoordinate.CDXML_CONVERSION_FACTOR)
         if units > CDXCoordinate.CDX_MAX_VALUE or units < CDXCoordinate.CDX_MIN_VALUE:
-            logger.warning("Coordinate value '{}' exceeds maximum value for cdx files.".format(units))
+            logger.warning("Coordinate value '{}' exceeds maximum or minimum value for cdx files.".format(units))
         return CDXCoordinate(units)
 
     def to_bytes(self) -> bytes:
-        if self.coordinate > CDXCoordinate.CDX_MAX_VALUE or self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
+        if self.coordinate > CDXCoordinate.CDX_MAX_VALUE:
             logger.warning("Coordinate value '{}' exceeds maximum value for cdx files. "
                            "Reducing value to maximum allowed value.".format(self.coordinate))
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
+        elif self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
+            logger.warning("Coordinate value '{}' exceeds minimum value for cdx files. "
+                           "Reducing value to minimum allowed value.".format(self.coordinate))
+            return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
         else:
             return self.coordinate.to_bytes(4, byteorder='little', signed=True)
 
