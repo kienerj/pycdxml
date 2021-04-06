@@ -66,6 +66,8 @@ class ChemDrawObject(NodeMixin):
 
         if "id" in element.attrib:
             object_id = int(element.attrib["id"])
+        else:
+            object_id = None
         props = ChemDrawObject._read_attributes(element)
         tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
         type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
@@ -166,17 +168,19 @@ class ChemDrawObject(NodeMixin):
             if "LabelFont" in element.attrib:
                 font_id = int(element.attrib["LabelFont"])
             else:
-                font_id = -1
+                logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 exists.")
+                font_id = 1 #
 
             if "LabelFace" in element.attrib:
                 font_type = int(element.attrib["LabelFace"])
             else:
-                font_type = -1
+                font_type = 0 # plain
 
             if "LabelSize" in element.attrib:
                 font_size = int(float(element.attrib["LabelSize"]) * 20)
             else:
-                font_size = -1
+                # assume 12 points as default font size. Factor 20 in conversion to cdx units.
+                font_size = 12 * 20
 
             # color on labels is ignored according to spec
             type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
@@ -188,17 +192,20 @@ class ChemDrawObject(NodeMixin):
             if "CaptionFont" in element.attrib:
                 font_id = int(element.attrib["CaptionFont"])
             else:
-                font_id = -1
+                logger.warning(
+                    "Setting default caption font id to 1. This might cause an issue if no font with id 1 exists.")
+                font_id = 1
 
             if "CaptionFace" in element.attrib:
                 font_type = int(element.attrib["CaptionFace"])
             else:
-                font_type = -1
+                font_type = 0 # plain
 
             if "CaptionSize" in element.attrib:
                 font_size = int(float(element.attrib["CaptionSize"]) * 20)
             else:
-                font_size = -1
+                # assume 12 points as default font size. Factor 20 in conversion to cdx units.
+                font_size = 12 * 20
 
             # color on labels is ignored according to spec
             type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
@@ -213,7 +220,9 @@ class ChemDrawObject(NodeMixin):
         :return:
         """
         e = ET.SubElement(parent, self.element_name)
-        e.attrib['id'] = str(self.id)
+        if self.id is not None:
+            #id is optional in cdxml, only add if present in input
+            e.attrib['id'] = str(self.id)
         for prop in self.properties:
             prop.add_as_attribute(e)
 
@@ -222,13 +231,17 @@ class ChemDrawObject(NodeMixin):
     def to_bytes(self) -> bytes:
         """
         Generates and returns the bytes of this object for adding to a cdx binary file
-        The end tag \x00\x00 is not written and must be hnadeled by the Document object which is aware of the
+        The end tag \x00\x00 is not written and must be handled by the Document object which is aware of the
         full tree structure.
         :return:
         """
         stream = io.BytesIO()
         stream.write(self.tag_id.to_bytes(2, "little"))
-        stream.write(self.id.to_bytes(4, "little"))
+        if self.id is not None:
+            stream.write(self.id.to_bytes(4, "little"))
+        else:
+            # Object Read from cdxml with no ID assigend, give it a default one
+            stream.write(next(ChemDrawObject.OBJECT_ID_SEQUENCE).to_bytes(4, "little"))
         for prop in self.properties:
             stream.write(prop.to_bytes())
         stream.seek(0)

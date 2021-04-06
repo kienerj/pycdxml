@@ -136,6 +136,8 @@ class CDXFontStyle(CDXType):
     cannot store font sizes any more accurately than the nearest 0.05 of a point.
     """
 
+    DEFAULT_FONT_SIZE = 12 * 20
+
     def __init__(self, font_id, font_type, font_size, font_color):
 
         self.font_id = font_id
@@ -161,15 +163,15 @@ class CDXFontStyle(CDXType):
         if "face" in s.attrib:
             font_type = int(s.attrib["face"])
         else:
-            font_type = -1
+            font_type = 0 # plain
         if "size" in s.attrib:
             font_size = int(float(s.attrib["size"]) * 20)
         else:
-            font_size = -1
+            font_size = CDXFontStyle.DEFAULT_FONT_SIZE
         if "color" in s.attrib:
             font_color = int(s.attrib["color"])
         else:
-            font_color = -1
+            font_color = 0 # black
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     def font_size_points(self) -> float:
@@ -352,8 +354,14 @@ class CDXCoordinate(CDXType):
     Example: 1 inch (72 points):
     CDX:	00 00 48 00
     CDXML:	"72"
+
+    Note that ChemDraw itself saves cdxml files that contain values that exceed the INT32 limit of cdx files in the
+    WindowPosition property. I suspect this is an issue with multi-display setups and it's also not clear  what this
+    property is used for. When writing back to cdx, this will get automatically "trimmed" to max allowed value.
     """
     CDXML_CONVERSION_FACTOR = 65536
+    CDX_MAX_VALUE = 2147483647
+    CDX_MIN_VALUE = -2147483648
 
     def __init__(self, value: int):
         self.coordinate = value
@@ -368,10 +376,17 @@ class CDXCoordinate(CDXType):
     def from_string(value: str) -> 'CDXCoordinate':
 
         units = int(float(value) * CDXCoordinate.CDXML_CONVERSION_FACTOR)
+        if units > CDXCoordinate.CDX_MAX_VALUE or units < CDXCoordinate.CDX_MIN_VALUE:
+            logger.warning("Coordinate value '{}' exceeds maximum value for cdx files.".format(units))
         return CDXCoordinate(units)
 
     def to_bytes(self) -> bytes:
-        return self.coordinate.to_bytes(4, byteorder='little', signed=True)
+        if self.coordinate > CDXCoordinate.CDX_MAX_VALUE  or self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
+            logger.warning("Coordinate value '{}' exceeds maximum value for cdx files. "
+                           "Reducing value to maximum allowed value.".format(self.coordinate))
+            return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
+        else:
+            return self.coordinate.to_bytes(4, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
 
