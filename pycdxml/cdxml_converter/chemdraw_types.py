@@ -11,7 +11,7 @@ logger = logging.getLogger('pycdxml.chemdraw_types')
 class CDXType(object):
 
     @staticmethod
-    def from_bytes(property_bytes:bytes) -> 'CDXType':
+    def from_bytes(property_bytes: bytes) -> 'CDXType':
         raise NotImplementedError("Should have implemented this")
 
     @staticmethod
@@ -36,14 +36,18 @@ class CDXString(CDXType):
     # TODO: implement different charsets from fonttable
     BYTES_PER_STYLE = 10
 
-    def __init__(self, value: str, style_starts=[], styles=[], charset='iso-8859-1'):
+    def __init__(self, value: str, style_starts=None, styles=None, charset='iso-8859-1'):
+        if styles is None:
+            styles = []
+        if style_starts is None:
+            style_starts = []
         self.str_value = value
         self.style_starts = style_starts
         self.styles = styles
         self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes:bytes, charset='iso-8859-1') -> 'CDXString':
+    def from_bytes(property_bytes: bytes, charset='iso-8859-1') -> 'CDXString':
 
         stream = io.BytesIO(property_bytes)
         style_runs = int.from_bytes(stream.read(2), "little")
@@ -104,7 +108,8 @@ class CDXString(CDXType):
         :return: the passed in element with the style elements added
         """
         if len(self.style_starts) == 0:
-            raise TypeError('Call of to_element on CDXString is invalid if no styles are present. If CDXString is part of a property there are no styles.')        
+            raise TypeError('Call of to_element on CDXString is invalid if no styles are present. '
+                            'If CDXString is part of a property there are no styles.')
         for idx, style in enumerate(self.styles):
             s = style.to_element()
             text_start_index = self.style_starts[idx]
@@ -205,9 +210,11 @@ class Font(object):
 
 class CDXFontTable(CDXType):
 
-    def __init__(self, platfrom:int, fonts=[]):
+    def __init__(self, platform: int, fonts=None):
 
-        self.platform = platfrom
+        if fonts is None:
+            fonts = []
+        self.platform = platform
         self.fonts = fonts
 
     @staticmethod
@@ -279,8 +286,10 @@ class CDXColorTable(CDXType):
 
     COLOR_MAX_VALUE = 65535
 
-    def __init__(self, colors=[]):
+    def __init__(self, colors=None):
 
+        if colors is None:
+            colors = []
         self.colors = colors
 
     @staticmethod
@@ -323,7 +332,7 @@ class CDXColorTable(CDXType):
     def to_element(self) -> ET.Element:
         ct = ET.Element('colortable')
         for color in self.colors:
-            c = ET.SubElement(ct,'color')
+            c = ET.SubElement(ct, 'color')
             # scale colors as represented as float from 0 to 1 in cdxml
             c.attrib['r'] = str(color.r / CDXColorTable.COLOR_MAX_VALUE)
             c.attrib['g'] = str(color.g / CDXColorTable.COLOR_MAX_VALUE)
@@ -375,7 +384,7 @@ class CDXCoordinate(CDXType):
         return CDXCoordinate(units)
 
     def to_bytes(self) -> bytes:
-        if self.coordinate > CDXCoordinate.CDX_MAX_VALUE  or self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
+        if self.coordinate > CDXCoordinate.CDX_MAX_VALUE or self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
             logger.warning("Coordinate value '{}' exceeds maximum value for cdx files. "
                            "Reducing value to maximum allowed value.".format(self.coordinate))
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
@@ -444,7 +453,7 @@ class CDXPoint3D(CDXType):
     CDXML:	"72 144 216"
     """
 
-    def __init__(self, x: CDXCoordinate, y: CDXCoordinate, z:CDXCoordinate):
+    def __init__(self, x: CDXCoordinate, y: CDXCoordinate, z: CDXCoordinate):
 
         self.x = x
         self.y = y
@@ -474,7 +483,8 @@ class CDXPoint3D(CDXType):
 
     def to_property_value(self) -> str:
         # Spec says z y x for cdx and x y z for cdxml but by looking at cdxml generated from ChemDraw this is
-        # clearly wrong. Not sure but I actually think it's x y z for both cases. (hence x value is probably z and vice versa)
+        # clearly wrong. Not sure but I actually think it's x y z for both cases.
+        # (hence x value is probably z and vice versa)
         return self.z.to_property_value() + " " + self.y.to_property_value() + " " + self.x.to_property_value()
 
 
@@ -612,7 +622,8 @@ class CDXBooleanImplied(CDXType):
     def to_bytes(self) -> bytes:
         if not self.bool_value:
             raise ValueError("A BooleanImplied with value 'False' should not be written to cdx file.")
-        return b'' # empty bytes, see doc comment -> presence marks True value, absence false
+        # empty bytes, see doc comment -> presence marks True value, absence false
+        return b''
 
     def to_property_value(self) -> str:
         if self.bool_value:
@@ -773,8 +784,8 @@ class CDXDoubleBondPosition(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXDoubleBondPosition(self.double_bond_position))
-        val = val.split('.')[1] # only actually value without enum name
-        val = val.replace("_m", "") # cdxml only has 3 values, hence remove the trailing _m
+        val = val.split('.')[1]  # only actually value without enum name
+        val = val.replace("_m", "")  # cdxml only has 3 values, hence remove the trailing _m
         return val
 
 
@@ -822,8 +833,8 @@ class CDXBondDisplay(CDXType, Enum):
 
 class CDXAtomStereo(CDXType, Enum):
     """
-    This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
-    This is an enumerated property. Acceptible values are shown in the following list:
+    This type doesn't exist in spec. It's an enum and making is a separate type makes top level parsing consistent.
+    This is an enumerated property. Acceptable values are shown in the following list:
     Value	CDXML Name	Description
     0	U	Undetermined
     1	N	Determined to be symmetric
@@ -870,9 +881,9 @@ class CDXAtomStereo(CDXType, Enum):
 
 class CDXBondStereo(CDXType, Enum):
     """
-    This type doesn't exist in spec. It's an enum and making is a sperate type makes top level parasing consistent.
+    This type doesn't exist in spec. It's an enum and making is a separate type makes top level parsing consistent.
 
-    This is an enumerated property. Acceptible values are shown in the following list:
+    This is an enumerated property. Acceptable values are shown in the following list:
     Value	CDXML Name	Description
     0	U	Undetermined
     1	N	Determined to be symmetric
@@ -1145,7 +1156,8 @@ class CDXBracketUsage(CDXType):
     def from_bytes(property_bytes: bytes) -> 'CDXBracketUsage':
         length = len(property_bytes)
         if length > 1:
-            logger.warning("Passed bytes value of length {} to CDXBracketUsage which is an INT8 enum and should be only 1-byte.".format(length))
+            logger.warning("Passed bytes value of length {} to CDXBracketUsage which is an INT8 enum and should be "
+                           "only 1-byte.".format(length))
         additional_bytes = property_bytes[1:]
         val = property_bytes[0]
         return CDXBracketUsage(val)
@@ -1160,7 +1172,7 @@ class CDXBracketUsage(CDXType):
 
     def to_property_value(self) -> str:
         val = str(CDXBracketUsage.BracketUsage(self.bracket_usage))
-        return val.split('.')[1] # only actually value without enum name
+        return val.split('.')[1]  # only actually value without enum name
 
     class BracketUsage(Enum):
         Unspecified = 0
@@ -1323,7 +1335,7 @@ class CDXArrowHeadPosition(CDXType, Enum):
     # Does not exist in specification
     # not used yet needs to be fully reverse engineered first
     Unspecified = 0
-    Non = 1 # actual value is None but not possible here
+    Non = 1  # actual value is None but not possible here
     Full = 2
     HalfRight = 4
     HalfLeft = 3
@@ -1358,7 +1370,7 @@ class CDXArrowHeadPosition(CDXType, Enum):
 class CDXFillType(CDXType, Enum):
 
     Unspecified = 0x0000
-    Non = 0x0001 # actual value is None but not possible here
+    Non = 0x0001  # actual value is None but not possible here
     Solid = 0x0002
     Shaded = 0x0004
     Gradient = 0x0008
@@ -1436,14 +1448,14 @@ class CDXBondOrder(CDXType, Enum):
     Quintuple = 0x0010
     Hextuple = 0x0020
     OneHalf = 0x0040
-    OneAndAHalf = 0x0080 # Aromatic
+    OneAndAHalf = 0x0080  # Aromatic
     TwoAndAHalf = 0x0100
     ThreeAndAHalf = 0x0200
     FourAndAHalf = 0x0400
     FiveAndAHalf = 0x0800
     dative = 0x1000
     ionic = 0x2000
-    hydrogen= 0x4000
+    hydrogen = 0x4000
     threecenter = 0x8000
 
     def __init__(self, value: int):
@@ -1560,7 +1572,7 @@ class CDXLabelAlignment(CDXType, Enum):
 
 class CDXLineHeight(CDXType):
     """
-    3 Propeties use LineHeight: LineHeight (legacy), CaptionLineHeight and LabelLineHeight.
+    3 Properties use LineHeight: LineHeight (legacy), CaptionLineHeight and LabelLineHeight.
     LineHeight is UINT16 while the other 2 are INT16.
     Assumption: since line height is in point, no value in LineHeight will overflow...
     Values 0 and 1 have special meaning and in CDXML take a string value: 0 -> variable and 1 -> auto
