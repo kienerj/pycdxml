@@ -1527,13 +1527,13 @@ class CDXLabelAlignment(CDXType, Enum):
 
     def __init__(self, value: int):
         if -1 > value > 6:
-            raise ValueError("Needs to be between -1 and 6")
+            raise ValueError("Needs to be between 0 and 6")
         self.label_alignment = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXLabelAlignment':
         if len(property_bytes) != 1:
-            raise ValueError("CDXLabelJustification should consist of exactly 1 byte.")
+            raise ValueError("CDXLabelAlignment should consist of exactly 1 byte.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXLabelAlignment(value)
 
@@ -1547,3 +1547,43 @@ class CDXLabelAlignment(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXLabelAlignment(self.label_alignment))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXLineHeight(CDXType):
+    """
+    3 Propeties use LineHeight: LineHeight (legacy), CaptionLineHeight and LabelLineHeight.
+    LineHeight is UINT16 while the other 2 are INT16.
+    Assumption: since line height is in point, no value in LineHeight will overflow...
+    Values 0 and 1 have special meaning and in CDXML take a string value: 0 -> variable and 1 -> auto
+    """
+    def __init__(self, value: int):
+        if -32768 > value > 32767:
+            raise ValueError("Needs to be a 16-bit int in range -32768 to 32767.")
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXLineHeight':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXLineHeight should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXLineHeight(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXLineHeight':
+        if value == 'auto':
+            return CDXLineHeight(1)
+        elif value == 'variable':
+            return CDXLineHeight(0)
+        else:
+            return CDXLineHeight(int(value))
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.value == 0:
+            return 'variable'
+        elif self.value == 1:
+            return 'auto'
+        else:
+            return str(self.value)

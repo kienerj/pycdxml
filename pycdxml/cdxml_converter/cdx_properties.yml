@@ -303,10 +303,10 @@
   type: CDXString
 0x0701:
   name: Justification
-  type: INT8
+  type: CDXJustification
 0x0702:
   name: LineHeight
-  type: UINT16
+  type: CDXLineHeight
 0x0703:
   name: WordWrapWidth
   type: INT16
@@ -318,10 +318,10 @@
   type: CDXLabelAlignment
 0x0706:
   name: LabelLineHeight
-  type: INT16
+  type: CDXLineHeight
 0x0707:
   name: CaptionLineHeight
-  type: INT16
+  type: CDXLineHeight
 0x0708:
   name: InterpretChemically
   type: CDXBoolean
