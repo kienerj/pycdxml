@@ -94,6 +94,10 @@ class CDXMLStyler(object):
         root.attrib["LabelFace"] = self.style["LabelFace"]
         root.attrib["LabelFont"] = self.style["LabelFont"]
 
+        implicit_h_source = root.attrib["HideImplicitHydrogens"]
+        root.attrib["HideImplicitHydrogens"] = self.style["HideImplicitHydrogens"]
+        implict_h_changed = implicit_h_source != self.style["HideImplicitHydrogens"]
+
         bond_length = float(self.style["BondLength"])
 
         # Get all nodes (atoms) and bonds
@@ -164,6 +168,28 @@ class CDXMLStyler(object):
                             s.attrib["size"] = self.style["LabelSize"]
                             s.attrib["face"] = self.style["LabelFace"]
                             s.attrib["font"] = self.style["LabelFont"]
+
+                            # Change implicit hydrogen display if needed
+                            if implict_h_changed \
+                                    and "NumHydrogens" in node.attrib and int(node.attrib["NumHydrogens"]) > 0:
+                                if self.style["HideImplicitHydrogens"] == "no":
+                                    # add implicit Hs to text
+                                    txt = s.text
+                                    if int(node.attrib["NumHydrogens"]) == 1:
+                                        txt += "H"
+                                    else:
+                                        txt += "H" + str(node.attrib["NumHydrogens"])
+                                    s.text = txt
+                                else:
+                                    # remove Hs from text
+                                    txt = s.text
+                                    if txt[1] == "H":
+                                        # One letter atom Symbol
+                                        txt = txt[0]
+                                    else:
+                                        # Two letter atom Symbol
+                                        txt = txt[:2]
+                                    s.text = txt
                     idx += 1
 
             return root
@@ -340,6 +366,7 @@ class CDXMLStyler(object):
         style["LabelSize"] = root.attrib["LabelSize"]
         style["LabelFace"] = root.attrib["LabelFace"]
         style["LabelFont"] = root.attrib["LabelFont"]
+        style["HideImplicitHydrogens"] = root.attrib["HideImplicitHydrogens"]
 
         return style
 
@@ -360,6 +387,7 @@ class CDXMLStyler(object):
             style["LabelSize"] = "10"
             style["LabelFont"] = "3"
             style["LabelFace"] = "96"
+            style["HideImplicitHydrogens"] = "no"
 
         elif style_name == "Wiley":
 
@@ -373,6 +401,7 @@ class CDXMLStyler(object):
             style["LabelSize"] = "12"
             style["LabelFont"] = "3"
             style["LabelFace"] = "96"
+            style["HideImplicitHydrogens"] = "no"
 
         else:
             logger.exception("Trying to apply unknown named style {}.".format(style_name))
