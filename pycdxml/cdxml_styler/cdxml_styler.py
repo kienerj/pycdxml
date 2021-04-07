@@ -51,6 +51,7 @@ class CDXMLStyler(object):
         logger.debug("Style applied. Preparing for output.")
         xml = ET.tostring(result, encoding='unicode', method='xml')
         if outpath is None:
+            logger.info("Output path is None, overwriting input file.")
             outpath = cdxml_path
         with open(outpath, "w", encoding='UTF-8') as xf:
             file = f"{self.xml_header}{xml}"
@@ -144,6 +145,7 @@ class CDXMLStyler(object):
 
                     unwanted = set(node.attrib) - set(node_attributes)
                     for unwanted_key in unwanted:
+                        logger.info("Deleting unneeded attribute {} from node element.".format(unwanted_key))
                         del node.attrib[unwanted_key]
 
                     for t in node.iter('t'):
@@ -155,6 +157,7 @@ class CDXMLStyler(object):
 
                         unwanted = set(t.attrib) - set(t_attributes)
                         for unwanted_key in unwanted:
+                            logger.info("Deleting unneeded attribute {} from text element.".format(unwanted_key))
                             del t.attrib[unwanted_key]
 
                         for s in t.iter('s'):
@@ -219,6 +222,7 @@ class CDXMLStyler(object):
             # Removing them will use the document level settings
             unwanted = set(bond.attrib) - set(bond_attributes)
             for unwanted_key in unwanted:
+                logger.info("Deleting unneeded attribute {} from bond element.".format(unwanted_key))
                 del bond.attrib[unwanted_key]
 
         all_coords = np.asarray(all_coords)
@@ -371,6 +375,7 @@ class CDXMLStyler(object):
             style["LabelFace"] = "96"
 
         else:
+            logger.exception("Trying to apply unknown named style {}.".format(style_name))
             raise ValueError('{} is not a valid style.'.format(style_name))
 
         return style
