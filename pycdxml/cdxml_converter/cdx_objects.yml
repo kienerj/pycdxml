@@ -67,12 +67,9 @@
 0x8014:
   type: CrossReference
   element_name: crossreference
-0x8020:
+0x801A:
   type: Border
   element_name: border
-#0x8021:
-#  type: Geometry
-#  element_name: geometry
 0x8021:
   type: Arrow
   element_name: arrow
@@ -91,12 +88,15 @@
 0x8015:
   type: Splitter
   element_name: splitter
-0x8026:
+0x8020:
   type: ChemicalProperty
   element_name: chemicalproperty
+0x8026:
+  type: PlasmidMap
+  element_name: plasmidmap
 0x8027:
-  type: Arrow
-  element_name: arrow
+  type: PlasmidMarker
+  element_name: plasmidmarker
 0x0100:
   type: FontTable 
   element_name: fonttable
