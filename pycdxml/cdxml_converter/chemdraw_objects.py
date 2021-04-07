@@ -25,21 +25,23 @@ class ChemDrawObject(NodeMixin):
     with open(cdx_properties_path, 'r') as stream:
         CDX_PROPERTIES = yaml.safe_load(stream)
     # Use this sequence to set missing id in xml docs
-    OBJECT_ID_SEQUENCE = iter(range(5000,10000))
+    OBJECT_ID_SEQUENCE = iter(range(5000, 10000))
 
-    def __init__(self, tag_id, type, element_name, id, properties=[],  parent=None, children=None):
+    def __init__(self, tag_id, object_type, element_name, object_id, properties=None, parent=None, children=None):
 
+        if properties is None:
+            properties = []
         self.tag_id = tag_id
-        self.type = type
+        self.type = object_type
         self.element_name = element_name
-        self.id = id
+        self.id = object_id
         self.properties = properties
         self.parent = parent
         if children:
             self.children = children
 
     @staticmethod
-    def from_bytes(cdx:io.BytesIO, tag_id: int, parent:'ChemDrawObject') -> 'ChemDrawObject':
+    def from_bytes(cdx: io.BytesIO, tag_id: int, parent: 'ChemDrawObject') -> 'ChemDrawObject':
         """
         cdx must be a BytesIO instance at the begining of the ID positon. Eg. the tag_id has been read and the next 4
         bytes are the objects id inside the document.
@@ -50,9 +52,9 @@ class ChemDrawObject(NodeMixin):
         """
         object_id = int.from_bytes(cdx.read(4), "little")
         props = ChemDrawObject._read_properties(cdx)
-        type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
+        object_type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
         element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
-        obj = ChemDrawObject(tag_id, type, element_name, object_id, properties=props, parent=parent)
+        obj = ChemDrawObject(tag_id, object_type, element_name, object_id, properties=props, parent=parent)
         return obj
 
     @staticmethod
@@ -64,12 +66,12 @@ class ChemDrawObject(NodeMixin):
             object_id = None
         props = ChemDrawObject._read_attributes(element)
         tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
-        type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
-        obj = ChemDrawObject(tag_id, type, element.tag, object_id, properties=props, parent=parent)
+        object_type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
+        obj = ChemDrawObject(tag_id, object_type, element.tag, object_id, properties=props, parent=parent)
         return obj
 
     @staticmethod
-    def _read_properties(cdx:io.BytesIO) -> list:
+    def _read_properties(cdx: io.BytesIO) -> list:
 
         props = []
         tag_id = int.from_bytes(cdx.read(2), "little")
@@ -77,7 +79,7 @@ class ChemDrawObject(NodeMixin):
         while tag_id in ChemDrawObject.CDX_PROPERTIES:
             prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']            
             length = int.from_bytes(cdx.read(2), "little")
-            if length == 0xFFFF: #special meaning: property bigger than 65534 bytes
+            if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
                 length = int.from_bytes(cdx.read(4), "little")
 
             prop_bytes = cdx.read(length)
@@ -91,12 +93,12 @@ class ChemDrawObject(NodeMixin):
                     type_obj = klass.from_bytes(prop_bytes)
                 except ValueError as err:
                     if prop_name == 'color' and length == 4:
-                        # A simple test while had a color property instance of length 4
+                        # A simple test file had a color property instance of length 4
                         # but it's an uint16 and should only be 2 bytes. first 2 bytes contained correct value
                         type_obj = klass.from_bytes(prop_bytes[:2])
                         length = 2
-                        logger.warning("Property color of type UINT16 found with length {} instead of required length 2."
-                                       "Fixed by taking only first 2 bytes into account.".format(length))
+                        logger.warning("Property color of type UINT16 found with length {} instead of required "
+                                       "length 2. Fixed by taking only first 2 bytes into account.".format(length))
                     else:
                         raise err
 
@@ -110,9 +112,9 @@ class ChemDrawObject(NodeMixin):
             # 0 is end of object hence ignore here
             while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
                 length = int.from_bytes(cdx.read(2), "little")
-                prop_bytes = cdx.read(length)
-                logger.warning(
-                    'Found unknown property {} with length {}. Ignoring this property.'.format(tag_id.to_bytes(2, "little"), length))
+                cdx.read(length)
+                logger.warning('Found unknown property {} with length {}. Ignoring this property.'
+                               .format(tag_id.to_bytes(2, "little"), length))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 bit15 = tag_id >> 15 & 1
@@ -149,7 +151,7 @@ class ChemDrawObject(NodeMixin):
 
                 prop = ChemDrawProperty(tag_id, attribute, type_obj)
                 props.append(prop)
-            except StopIteration as err:
+            except StopIteration:
                 logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attribute))
 
         if element.tag == 't':
@@ -162,13 +164,14 @@ class ChemDrawObject(NodeMixin):
             if "LabelFont" in element.attrib:
                 font_id = int(element.attrib["LabelFont"])
             else:
-                logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 exists.")
-                font_id = 1 #
+                logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 "
+                               "exists.")
+                font_id = 1
 
             if "LabelFace" in element.attrib:
                 font_type = int(element.attrib["LabelFace"])
             else:
-                font_type = 0 # plain
+                font_type = 0  # plain
 
             if "LabelSize" in element.attrib:
                 font_size = int(float(element.attrib["LabelSize"]) * 20)
@@ -193,7 +196,7 @@ class ChemDrawObject(NodeMixin):
             if "CaptionFace" in element.attrib:
                 font_type = int(element.attrib["CaptionFace"])
             else:
-                font_type = 0 # plain
+                font_type = 0  # plain
 
             if "CaptionSize" in element.attrib:
                 font_size = int(float(element.attrib["CaptionSize"]) * 20)
@@ -215,7 +218,7 @@ class ChemDrawObject(NodeMixin):
         """
         e = ET.SubElement(parent, self.element_name)
         if self.id is not None:
-            #id is optional in cdxml, only add if present in input
+            # id is optional in cdxml, only add if present in input
             e.attrib['id'] = str(self.id)
         for prop in self.properties:
             prop.add_as_attribute(e)
@@ -239,7 +242,7 @@ class ChemDrawObject(NodeMixin):
         for prop in self.properties:
             stream.write(prop.to_bytes())
         stream.seek(0)
-        return  stream.read()
+        return stream.read()
 
     def __repr__(self):
         return '{}: {}'.format(self.element_name, self.id)
@@ -247,11 +250,11 @@ class ChemDrawObject(NodeMixin):
 
 class ChemDrawProperty(object):
 
-    def __init__(self, tag_id: int, name: str, type: CDXType):
+    def __init__(self, tag_id: int, name: str, property_type: CDXType):
 
         self.tag_id = tag_id
         self.name = name
-        self.type = type
+        self.type = property_type
 
     def to_bytes(self) -> bytes:
         """
@@ -321,9 +324,10 @@ class ChemDrawDocument(ChemDrawObject):
     # 2^15-1 (max value bits can represent is 2^n-1)
     MAX_PROPERTY_VALUE = 32767
 
-    def __init__(self, id=0, properties=[], children=None):
-
-        super().__init__(0x8000, 'Document', 'CDXML', id, properties=properties, children=children)
+    def __init__(self, object_id=0, properties=None, children=None):
+        if properties is None:
+            properties = []
+        super().__init__(0x8000, 'Document', 'CDXML', object_id, properties=properties, children=children)
 
 
     @staticmethod
@@ -410,7 +414,8 @@ class ChemDrawDocument(ChemDrawObject):
                 parent_element = element.getparent()
                 idx = parent_element.index(element)
                 num_children = len(parent_element.getchildren())
-                logger.debug('Element {} has index {} of {} children of parent {}'.format(element.tag, idx, num_children, parent_element.tag))
+                logger.debug('Element {} has index {} of {} children of parent {}'
+                             .format(element.tag, idx, num_children, parent_element.tag))
                 if idx == num_children - 1:
                     # last child of this element
                     parent_stack.pop()
@@ -436,11 +441,11 @@ class ChemDrawDocument(ChemDrawObject):
         for child in self.children:
             ChemDrawDocument._traverse_cdx(child, stream)
 
-        stream.write(b'\x00\x00\x00\x00') # end of document and end of file
+        stream.write(b'\x00\x00\x00\x00')  # end of document and end of file
         stream.seek(0)
         return stream.read()
 
-    def to_cdxml(self) ->str:
+    def to_cdxml(self) -> str:
 
         cdxml = ET.Element('CDXML')
         for prop in self.properties:
@@ -453,7 +458,7 @@ class ChemDrawDocument(ChemDrawObject):
         return ChemDrawDocument.CDXML_HEADER + xml
 
     @staticmethod
-    def _traverse_cdx(node: ChemDrawObject, stream:io.BytesIO):
+    def _traverse_cdx(node: ChemDrawObject, stream: io.BytesIO):
         stream.write(node.to_bytes())
         for child in node.children:
             ChemDrawDocument._traverse_cdx(child, stream)

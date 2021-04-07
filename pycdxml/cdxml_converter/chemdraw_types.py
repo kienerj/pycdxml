@@ -14,18 +14,7 @@ class CDXType(object):
     def from_bytes(property_bytes: bytes) -> 'CDXType':
         raise NotImplementedError("Should have implemented this")
 
-    @staticmethod
-    def from_string(value: str) -> 'CDXType':
-        raise NotImplementedError("Should have implemented this")
-
-    @staticmethod
-    def from_element(attribute: ET.Element) -> 'CDXType':
-        raise NotImplementedError("Should have implemented this")
-
     def to_bytes(self) -> bytes:
-        raise NotImplementedError("Should have implemented this")
-
-    def to_element(self) -> ET.Element:
         raise NotImplementedError("Should have implemented this")
 
     def to_property_value(self) -> str:
@@ -145,7 +134,7 @@ class CDXFontStyle(CDXType):
         self.font_color = font_color
 
     @staticmethod
-    def from_bytes(property_bytes:bytes) -> 'CDXFontStyle':
+    def from_bytes(property_bytes: bytes) -> 'CDXFontStyle':
 
         stream = io.BytesIO(property_bytes)
         font_id = int.from_bytes(stream.read(2), "little")
@@ -162,7 +151,7 @@ class CDXFontStyle(CDXType):
         if "face" in s.attrib:
             font_type = int(s.attrib["face"])
         else:
-            font_type = 0 # plain
+            font_type = 0  # plain
         if "size" in s.attrib:
             font_size = int(float(s.attrib["size"]) * 20)
         else:
@@ -170,7 +159,7 @@ class CDXFontStyle(CDXType):
         if "color" in s.attrib:
             font_color = int(s.attrib["color"])
         else:
-            font_color = 0 # black
+            font_color = 0  # black
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     def font_size_points(self) -> float:
@@ -179,7 +168,7 @@ class CDXFontStyle(CDXType):
     def to_bytes(self) -> bytes:
 
         return self.font_id.to_bytes(2, byteorder='little') + self.font_type.to_bytes(2, byteorder='little') \
-        + self.font_size.to_bytes(2, byteorder='little') + self.font_color.to_bytes(2, byteorder='little')
+            + self.font_size.to_bytes(2, byteorder='little') + self.font_color.to_bytes(2, byteorder='little')
 
     def to_element(self) -> ET.Element:
         s = ET.Element('s')
@@ -191,7 +180,8 @@ class CDXFontStyle(CDXType):
         return s
 
     def to_property_value(self) -> str:
-        return 'font="{}" size="{}" face="{}" color="{}"'.format(self.font_id, self.font_size_points(), self.font_type, self.font_color)
+        return 'font="{}" size="{}" face="{}" color="{}"'.format(self.font_id, self.font_size_points(), self.font_type,
+                                                                 self.font_color)
 
 
 class Font(object):
@@ -201,9 +191,9 @@ class Font(object):
     with open(charsets_path, 'r') as stream:
         CHARSETS = yaml.safe_load(stream)
 
-    def __init__(self, id:int, charset: int, font_name: str):
+    def __init__(self, font_id: int, charset: int, font_name: str):
 
-        self.id = id
+        self.id = font_id
         self.charset = charset
         self.font_name = font_name
 
@@ -263,7 +253,7 @@ class CDXFontTable(CDXType):
     def to_element(self) -> ET.Element:
         ft = ET.Element('fonttable')
         for font in self.fonts:
-            f = ET.SubElement(ft,'font')
+            f = ET.SubElement(ft, 'font')
             f.attrib['id'] = str(font.id)
             f.attrib['charset'] = Font.CHARSETS[font.charset]
             f.attrib['name'] = font.font_name
@@ -275,7 +265,7 @@ class CDXFontTable(CDXType):
 
 class Color(object):
 
-    def __init__(self,r:int, g:int, b:int):
+    def __init__(self, r: int, g: int, b: int):
 
         self.r = r
         self.g = g
@@ -1098,7 +1088,7 @@ class INT16ListWithCounts(CDXType):
     def from_bytes(property_bytes: bytes) -> 'INT16ListWithCounts':
         stream = io.BytesIO(property_bytes)
         length = int.from_bytes(stream.read(2), "little", signed=False)
-        values=[]
+        values = []
         for i in range(length):
             value = int.from_bytes(stream.read(2), "little", signed=False)
             values.append(value)
@@ -1120,7 +1110,7 @@ class INT16ListWithCounts(CDXType):
         return stream.read()
         
     def to_property_value(self) -> str:
-        return ' '.join(map(str,self.values))
+        return ' '.join(map(str, self.values))
 
 
 class Unformatted(CDXType):
@@ -1149,8 +1139,8 @@ class CDXBracketUsage(CDXType):
     BracketUsage property is a INT8 enum according to spec. However an example files contained this property as a
     2-byte value where additional byte was 0. So the hacky code in here works around this problem.
 
-    Python doesn't seem to allow having to extend enums when init methods gets more than 1 argument? Hence the inner class
-    enum.
+    Python doesn't seem to allow having to extend enums when init methods gets more than 1 argument?
+    Hence the inner class enum.
     """
     def __init__(self, bracket_usage: int, additional_bytes: bytes = b''):
         self.bracket_usage = bracket_usage
@@ -1164,7 +1154,7 @@ class CDXBracketUsage(CDXType):
                            "only 1-byte.".format(length))
         additional_bytes = property_bytes[1:]
         val = property_bytes[0]
-        return CDXBracketUsage(val)
+        return CDXBracketUsage(val, additional_bytes)
 
     @staticmethod
     def from_string(value: str) -> 'CDXBracketUsage':

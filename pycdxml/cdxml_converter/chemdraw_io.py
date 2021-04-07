@@ -63,7 +63,7 @@ def write_cdx_file(document: ChemDrawDocument, file):
 
 
 def to_b64_cdx(document) -> str:
-    return base64.b64encode(document.to_bytes())
+    return base64.b64encode(document.to_bytes()).decode('ASCII')
 
 
 def b64_cdx_to_cdxml(b64_cdx: str) -> str:
