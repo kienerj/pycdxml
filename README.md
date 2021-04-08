@@ -32,8 +32,13 @@ If you have `cdx`files, convert them to `cdxml`with the `cdxml_converter`module,
 
 `cdxml_slide_generator` module does a similar thing as my [`molecule-slide-generator`](https://github.com/kienerj/molecule-slide-generator)package but with a `cdxml`file as output. In essence the passed-in molecules and their properties are put into a single `cdxml`file nicely aligned with the properties as text below them. Properties can be anything of your choice like an activity value or simply a name or compound id. Internally `cdxml_slide_generator` makes use of `cdxml_Styler` module to convert input molecules to the same style.
 
-As additional note ChemDraw calls properties "Annotations".  The text below the molecules is just text and has no further meaning to ChemDraw. If you work inside ChemDraw and want properties to be exported into an sd-file, you need to annotate each molecule with the according values. However `cdxml_slide_generator` has you covered with this as well. All molecules are already annotaed. If you save the `cdxml` file inside chemdraw as sd-file, all the visible properties will also appear in the sd-file.
+As additional note ChemDraw calls properties "Annotations".  The text below the molecules is just text and has no further meaning to ChemDraw. If you work inside ChemDraw and want properties to be exported into an sd-file, you need to annotate each molecule with the according values. However `cdxml_slide_generator` has you covered with this as well. All molecules are already annotated. If you save the `cdxml` file inside ChemDraw as sd-file, all the visible properties will also appear in the sd-file.
 
 ## Contribute
 
-Please absolutely do. Just reporting issues will already help and in that case ideally include the affected file(s).
+Please absolutely do. Just reporting issues will already help and in that case please include the affected file(s). 
+
+### Add Tests
+
+An important help would also be adding more and better tests. Ultimately the different modules generate new files which must somehow be validated. Currently I'm just comparing to a reference file which itself was created by these modules but visually inspected to be correct. Issues is small changes can lead to test failures and the need to regenerate and inspect the reference files. The hence testing is not very automatic at all.
+
