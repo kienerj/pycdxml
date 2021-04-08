@@ -17,6 +17,12 @@ class CdxmlStylerTest(unittest.TestCase):
         self.assertTrue(filecmp.cmp('files/reference_style.cdxml', self.out_file, shallow=False),
                         "Generated cdxml file does not match expected outcome.")
 
+    def test_apply_from_file(self):
+        styler = cdxml_styler.CDXMLStyler(style_source="files/ACS 1996.cdxml")
+        styler.apply_style_to_file(self.test_file, outpath=self.out_file)
+        self.assertTrue(filecmp.cmp('files/reference_style.cdxml', self.out_file, shallow=False),
+                        "Generated cdxml file does not match expected outcome.")
+
     def setUp(self):
         self.test_file = 'files/styler_test_input.cdxml'
         self.out_file = 'files/styler_test_out.cdxml'
