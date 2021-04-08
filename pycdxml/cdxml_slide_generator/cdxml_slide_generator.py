@@ -267,6 +267,7 @@ class CDXMLSlideGenerator(object):
         style["LabelSize"] = self.slide.attrib["LabelSize"]
         style["LabelFace"] = self.slide.attrib["LabelFace"]
         style["LabelFont"] = self.slide.attrib["LabelFont"]
+        style["HideImplicitHydrogens"] = self.slide.attrib["HideImplicitHydrogens"]
 
         return style
 
