@@ -42,9 +42,10 @@ The required style options for using a `dict`input are:
 - `LabelSize`
 - `LabelFace`
 - `LabelFont`
+- `HideImplicitHydrogens`
 
-Note that `LabelFont`is an index (integer) to the according font in the font table. So the actual font used will depend on the input documents font table<sup>1</sup>. 
+Note that `LabelFont`is an index (integer) to the according font in the font table. So the actual font used will depend on the input documents font table<sup>1</sup>. `HideImplicitHydrogens`is relevant because some styles have it set to `yes` meaning that say an alcohol is displayed as `O` and not `OH`.  Therefore when this setting changes from old to new style, the atom label needs to be adjusted accordingly.
 
 
 
-<sup>1</sup>Actually this should be improved so that a font name can be used and if not present it's added to the font table. Currently if style source is a `cdxml`file the `LabelFont` index is taken and applied to the source document. If the source has a different font at that index in the font table, then the output is wrong.
+<sup>1</sup>Actually this should probably be improved so that a font name can be used and if not present it's added to the font table. Currently if style source is a `cdxml`file the `LabelFont` index is taken and applied to the source document. If the source has a different font at that index in the font table, then the output is wrong.
