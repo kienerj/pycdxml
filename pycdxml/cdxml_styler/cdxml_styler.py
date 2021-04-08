@@ -138,7 +138,7 @@ class CDXMLStyler(object):
 
                 logger.debug("Applying new coordinates and label styles.")
 
-                node_attributes = ['id', 'p', 'Z', 'AS', 'Element', 'NumHydrogens', 'Geometry']
+                node_attributes = ['id', 'p', 'Z', 'AS', 'Element', 'NumHydrogens', 'Geometry', 'NeedsClean']
                 t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment']
 
                 idx = 0
@@ -378,11 +378,11 @@ class CDXMLStyler(object):
         if style_name == "ACS 1996":
 
             style["BondSpacing"] = "18"
-            style["BondLength"] = "14.4"
+            style["BondLength"] = "14.40"
             style["BoldWidth"] = "2"
-            style["LineWidth"] = "0.6"
-            style["MarginWidth"] = "1.6"
-            style["HashSpacing"] = "2.5"
+            style["LineWidth"] = "0.60"
+            style["MarginWidth"] = "1.60"
+            style["HashSpacing"] = "2.50"
             style["CaptionSize"] = "10"
             style["LabelSize"] = "10"
             style["LabelFont"] = "3"
