@@ -42,3 +42,6 @@ Please absolutely do. Just reporting issues will already help and in that case p
 
 An important help would also be adding more and better tests. Ultimately the different modules generate new files which must somehow be validated. Currently I'm just comparing to a reference file which itself was created by these modules but visually inspected to be correct. Issues is small changes can lead to test failures and the need to regenerate and inspect the reference files. The hence testing is not very automatic at all.
 
+## License
+
+I've used the GPLv3 because this project should be a pre-competitive community effort to make certain internal workflows easier to handle. The GPLv3 entirely permits you to create an internal or personal tool without needing to share your source code. What you can't do is add it you your commercial software, sell it and not share the full source code.
