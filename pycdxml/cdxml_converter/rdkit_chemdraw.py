@@ -1,5 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem import *
 from .chemdraw_objects import *
 from .chemdraw_io import *
@@ -28,7 +29,7 @@ def mol_to_document(mol: rdchem.Mol, style: dict = None, conformer_id: int = -1,
     """
 
     if style is None:
-        m_path = Path(__file__).parent
+        m_path = Path(__file__).parent.parent / "cdxml_slide_generator"
         template_path = m_path / "ACS 1996.cdxml"
         style, document_properties = get_style_from_template(template_path)
     else:
