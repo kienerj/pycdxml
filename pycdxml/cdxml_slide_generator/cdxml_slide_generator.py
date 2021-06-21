@@ -3,6 +3,7 @@ import numpy as np
 import math
 from pathlib import Path
 from ..cdxml_styler import CDXMLStyler
+from ..utils import cdxml_io
 
 
 class CDXMLSlideGenerator(object):
@@ -137,7 +138,7 @@ class CDXMLSlideGenerator(object):
             self.slide.find('page').append(fragment)
 
         xml = ET.tostring(self.slide, encoding='unicode', method='xml')
-        return self.styler.xml_header + xml
+        return cdxml_io.CDXML_HEADER + xml
 
     @staticmethod
     def _translate_bounding_box(element, x_translate, y_translate):

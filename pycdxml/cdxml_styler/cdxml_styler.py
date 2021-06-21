@@ -1,4 +1,5 @@
 from ..utils import style
+from ..utils import cdxml_io
 import xml.etree.ElementTree as ET
 import numpy as np
 import logging
@@ -7,10 +8,6 @@ logger = logging.getLogger('pycdxml.cdxml_styler')
 
 
 class CDXMLStyler(object):
-
-    xml_header = """<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-"""
 
     def __init__(self, style_name: str = "ACS 1996", style_source=None, style_dict: dict = None):
         """
@@ -55,7 +52,7 @@ class CDXMLStyler(object):
             logger.info("Output path is None, overwriting input file.")
             outpath = cdxml_path
         with open(outpath, "w", encoding='UTF-8') as xf:
-            file = f"{self.xml_header}{xml}"
+            file = f"{cdxml_io.CDXML_HEADER}{xml}"
             xf.write(file)
         logger.debug("Style successfully applied and written output to file {}.".format(outpath))
 
@@ -71,7 +68,7 @@ class CDXMLStyler(object):
         result = self._apply_style(root)
         xml = ET.tostring(result, encoding='unicode', method='xml')
         logger.debug("Style applied. Returning result cdxml string.")
-        return self.xml_header + xml
+        return cdxml_io.CDXML_HEADER + xml
 
     def _apply_style(self, root: ET.Element) -> ET.Element:
 
