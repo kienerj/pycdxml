@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import numpy as np
 import math
 from pathlib import Path
@@ -55,7 +55,7 @@ class CDXMLSlideGenerator(object):
 
         for index, cdxml in enumerate(cdxml_documents):
             cdxml = self.styler.apply_style_to_string(cdxml)
-            root = ET.fromstring(cdxml)
+            root = ET.fromstring(bytes(cdxml, encoding='utf8'))
             # Only first structure in document is put into slide
             # fragment can also be in a group inside page so just find inside page doesn't work
             fragment = root.findall('.//fragment')[0]
@@ -193,7 +193,7 @@ class CDXMLSlideGenerator(object):
         template_name = style + '.cdxml'
         module_path = Path(__file__).parent
         template_path = module_path / template_name
-        tree = ET.parse(template_path)
+        tree = ET.parse(template_path.__str__())
         root = tree.getroot()
         root.append(ET.fromstring(page))
 

@@ -21,7 +21,6 @@ class CdxmlSlideGeneratorTest(unittest.TestCase):
         with open('files/test_slide_out.cdxml', 'w', encoding='utf8') as f:
             f.write(slide)
 
-
     def setUp(self):
         self.test_structures = []
         self.properties = []
