@@ -31,7 +31,7 @@ class CDXMLSlideGenerator(object):
         self.colortable = {}
         self.fonttable = {}
         self.slide = self._build_base_document(style)
-        style_dict = self.extract_style_as_dict()
+        style_dict = self.slide.attrib
         self.styler = CDXMLStyler(style_dict=style_dict)
 
     def generate_slide(self, cdxml_documents, properties):
@@ -253,23 +253,6 @@ class CDXMLSlideGenerator(object):
             return font_id
         else:
             return self.fonttable[font]
-
-    def extract_style_as_dict(self):
-
-        style = {}
-        style["BondSpacing"] = self.slide.attrib["BondSpacing"]
-        style["BondLength"] = self.slide.attrib["BondLength"]
-        style["BoldWidth"] = self.slide.attrib["BoldWidth"]
-        style["LineWidth"] = self.slide.attrib["LineWidth"]
-        style["MarginWidth"] = self.slide.attrib["MarginWidth"]
-        style["HashSpacing"] = self.slide.attrib["HashSpacing"]
-        style["CaptionSize"] = self.slide.attrib["CaptionSize"]
-        style["LabelSize"] = self.slide.attrib["LabelSize"]
-        style["LabelFace"] = self.slide.attrib["LabelFace"]
-        style["LabelFont"] = self.slide.attrib["LabelFont"]
-        style["HideImplicitHydrogens"] = self.slide.attrib["HideImplicitHydrogens"]
-
-        return style
 
 
 class TextProperty(object):

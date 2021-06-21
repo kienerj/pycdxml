@@ -18,6 +18,9 @@ class CdxmlSlideGeneratorTest(unittest.TestCase):
 
         sg = CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2)
         slide = sg.generate_slide(self.test_structures, self.properties)
+        with open('files/test_slide_out.cdxml', 'w', encoding='utf8') as f:
+            f.write(slide)
+
 
     def setUp(self):
         self.test_structures = []

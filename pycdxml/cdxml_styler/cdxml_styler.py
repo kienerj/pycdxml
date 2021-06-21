@@ -1,3 +1,4 @@
+from ..utils import style
 import xml.etree.ElementTree as ET
 import numpy as np
 import logging
@@ -30,7 +31,7 @@ class CDXMLStyler(object):
         :param style_dict: dict containg the required style settings
         """
         if style_source is not None:
-            self.style = self.get_style_from_cdxml(style_source)
+            self.style = style.get_style_from_template(style_source)
         elif style_dict is not None:
             self.style = style_dict
         else:
@@ -348,63 +349,40 @@ class CDXMLStyler(object):
         return final_coords
 
     @staticmethod
-    def get_style_from_cdxml(style_source):
-
-        logger.debug("Reading style from file {}.".format(style_source))
-        tree = ET.parse(style_source)
-        root = tree.getroot()
-
-        # Set style from document
-        style = {}
-        style["BondSpacing"] = root.attrib["BondSpacing"]
-        style["BondLength"] = root.attrib["BondLength"]
-        style["BoldWidth"] = root.attrib["BoldWidth"]
-        style["LineWidth"] = root.attrib["LineWidth"]
-        style["MarginWidth"] = root.attrib["MarginWidth"]
-        style["HashSpacing"] = root.attrib["HashSpacing"]
-        style["CaptionSize"] = root.attrib["CaptionSize"]
-        style["LabelSize"] = root.attrib["LabelSize"]
-        style["LabelFace"] = root.attrib["LabelFace"]
-        style["LabelFont"] = root.attrib["LabelFont"]
-        style["HideImplicitHydrogens"] = root.attrib["HideImplicitHydrogens"]
-
-        return style
-
-    @staticmethod
     def get_style(style_name):
 
-        style = {}
+        chemdraw_style = {}
 
         if style_name == "ACS 1996":
 
-            style["BondSpacing"] = "18"
-            style["BondLength"] = "14.40"
-            style["BoldWidth"] = "2"
-            style["LineWidth"] = "0.60"
-            style["MarginWidth"] = "1.60"
-            style["HashSpacing"] = "2.50"
-            style["CaptionSize"] = "10"
-            style["LabelSize"] = "10"
-            style["LabelFont"] = "3"
-            style["LabelFace"] = "96"
-            style["HideImplicitHydrogens"] = "no"
+            chemdraw_style["BondSpacing"] = "18"
+            chemdraw_style["BondLength"] = "14.40"
+            chemdraw_style["BoldWidth"] = "2"
+            chemdraw_style["LineWidth"] = "0.60"
+            chemdraw_style["MarginWidth"] = "1.60"
+            chemdraw_style["HashSpacing"] = "2.50"
+            chemdraw_style["CaptionSize"] = "10"
+            chemdraw_style["LabelSize"] = "10"
+            chemdraw_style["LabelFont"] = "3"
+            chemdraw_style["LabelFace"] = "96"
+            chemdraw_style["HideImplicitHydrogens"] = "no"
 
         elif style_name == "Wiley":
 
-            style["BondSpacing"] = "18"
-            style["BondLength"] = "17"
-            style["BoldWidth"] = "2.6"
-            style["LineWidth"] = "0.75"
-            style["MarginWidth"] = "2"
-            style["HashSpacing"] = "2.6"
-            style["CaptionSize"] = "12"
-            style["LabelSize"] = "12"
-            style["LabelFont"] = "3"
-            style["LabelFace"] = "96"
-            style["HideImplicitHydrogens"] = "no"
+            chemdraw_style["BondSpacing"] = "18"
+            chemdraw_style["BondLength"] = "17"
+            chemdraw_style["BoldWidth"] = "2.6"
+            chemdraw_style["LineWidth"] = "0.75"
+            chemdraw_style["MarginWidth"] = "2"
+            chemdraw_style["HashSpacing"] = "2.6"
+            chemdraw_style["CaptionSize"] = "12"
+            chemdraw_style["LabelSize"] = "12"
+            chemdraw_style["LabelFont"] = "3"
+            chemdraw_style["LabelFace"] = "96"
+            chemdraw_style["HideImplicitHydrogens"] = "no"
 
         else:
             logger.exception("Trying to apply unknown named style {}.".format(style_name))
             raise ValueError('{} is not a valid style.'.format(style_name))
 
-        return style
+        return chemdraw_style
