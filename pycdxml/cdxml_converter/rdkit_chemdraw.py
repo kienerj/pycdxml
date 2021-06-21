@@ -186,7 +186,7 @@ def mol_to_document(mol: rdchem.Mol, style: dict = None, conformer_id: int = -1,
 
 def _set_end_wedge_display_style(bonds: dict, wedge_bond: rdchem.Bond, display: str):
     """
-    RDKit only defines start od wedge bond. In ChemDraw if the end of the wegde is connected to another bond said other
+    RDKit only defines start of wedge bond. In ChemDraw if the end of the wedge is connected to another bond said other
     bond needs to have a WedgeEnd display type or else no Wedge is shown. Hence we need to find the bonds connected to
     the end atom
 

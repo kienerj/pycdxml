@@ -5,7 +5,6 @@ from pathlib import Path
 import logging
 
 
-
 logger = logging.getLogger('pycdxml.cdxml_slide_generator')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
@@ -27,7 +26,8 @@ class CdxmlSlideGeneratorTest(unittest.TestCase):
             with open(f, 'r') as file:
                 cdxml = file.read()
                 self.test_structures.append(cdxml)
-                props = [TextProperty('ID', idx, color='#3f6eba'), TextProperty('Name', "Molecule " + str(idx), show_name=True)]
+                props = [TextProperty('ID', idx, color='#3f6eba'),
+                         TextProperty('Name', "Molecule " + str(idx), show_name=True)]
                 self.properties.append(props)
 
     def tearDown(self):

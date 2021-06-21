@@ -354,7 +354,7 @@ class CDXMLStyler(object):
         tree = ET.parse(style_source)
         root = tree.getroot()
 
-        # Set stlye from document
+        # Set style from document
         style = {}
         style["BondSpacing"] = root.attrib["BondSpacing"]
         style["BondLength"] = root.attrib["BondLength"]
