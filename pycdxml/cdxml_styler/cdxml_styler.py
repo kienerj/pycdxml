@@ -1,6 +1,6 @@
 from ..utils import style
 from ..utils import cdxml_io
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import numpy as np
 import logging
 
