@@ -137,8 +137,7 @@ class CDXMLSlideGenerator(object):
 
             self.slide.find('page').append(fragment)
 
-        xml = ET.tostring(self.slide, encoding='unicode', method='xml')
-        return cdxml_io.CDXML_HEADER + xml
+        return cdxml_io.etree_to_cdxml(self.slide)
 
     @staticmethod
     def _translate_bounding_box(element, x_translate, y_translate):

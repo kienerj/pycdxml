@@ -47,13 +47,12 @@ class CDXMLStyler(object):
         root = tree.getroot()
         result = self._apply_style(root)
         logger.debug("Style applied. Preparing for output.")
-        xml = ET.tostring(result, encoding='unicode', method='xml')
+        xml = cdxml_io.etree_to_cdxml(result)
         if outpath is None:
             logger.info("Output path is None, overwriting input file.")
             outpath = cdxml_path
         with open(outpath, "w", encoding='UTF-8') as xf:
-            file = f"{cdxml_io.CDXML_HEADER}{xml}"
-            xf.write(file)
+            xf.write(xml)
         logger.debug("Style successfully applied and written output to file {}.".format(outpath))
 
     def apply_style_to_string(self, cdxml: str) -> str:
@@ -66,9 +65,8 @@ class CDXMLStyler(object):
         logger.debug("Applying style {} to a cdxml string.".format(self.style))
         root = ET.fromstring(cdxml)
         result = self._apply_style(root)
-        xml = ET.tostring(result, encoding='unicode', method='xml')
         logger.debug("Style applied. Returning result cdxml string.")
-        return cdxml_io.CDXML_HEADER + xml
+        return cdxml_io.etree_to_cdxml(result)
 
     def _apply_style(self, root: ET.Element) -> ET.Element:
 
