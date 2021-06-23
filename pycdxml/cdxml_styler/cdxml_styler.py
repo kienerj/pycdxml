@@ -63,7 +63,7 @@ class CDXMLStyler(object):
         :return: string containing cdxml with the desired style applied
         """
         logger.debug("Applying style {} to a cdxml string.".format(self.style))
-        root = ET.fromstring(cdxml)
+        root = ET.fromstring(bytes(cdxml, encoding='utf8'))
         result = self._apply_style(root)
         logger.debug("Style applied. Returning result cdxml string.")
         return cdxml_io.etree_to_cdxml(result)
