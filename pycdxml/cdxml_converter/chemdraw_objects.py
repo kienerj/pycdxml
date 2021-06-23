@@ -311,6 +311,23 @@ class ChemDrawProperty(object):
     def __repr__(self):
         return '{}: {}'.format(self.name, self.get_value())
 
+    @staticmethod
+    def dict_to_properties(properties: dict):
+        props = []
+
+        for prop_name, prop_value in properties.items():
+            tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
+            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+            # logger.debug('Creating property {} of type {}.'.format(prop_name, chemdraw_type))
+            klass = globals()[chemdraw_type]
+
+            type_obj = klass.from_string(prop_value)
+
+            prop = ChemDrawProperty(tag_id, prop_name, type_obj)
+            props.append(prop)
+
+        return props
+
 
 class ChemDrawDocument(ChemDrawObject):
 

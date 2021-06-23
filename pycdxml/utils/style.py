@@ -1,7 +1,6 @@
 from pathlib import Path
 from lxml import etree as ET
-from pycdxml.cdxml_converter import read_cdx, ChemDrawObject, ChemDrawProperty
-from pycdxml.cdxml_converter.chemdraw_types import *
+from pycdxml.cdxml_converter import read_cdx
 import logging
 
 logger = logging.getLogger('pycdxml.utils.style')
@@ -41,20 +40,3 @@ def cdxml_str_to_style_dict(cdxml: str):
     cdxml = cdxml.encode('utf-8')
     tree = ET.fromstring(cdxml)
     return tree.attrib
-
-
-def dict_to_properties(properties: dict):
-    props = []
-
-    for prop_name, prop_value in properties.items():
-        tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
-        chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
-        #logger.debug('Creating property {} of type {}.'.format(prop_name, chemdraw_type))
-        klass = globals()[chemdraw_type]
-
-        type_obj = klass.from_string(prop_value)
-
-        prop = ChemDrawProperty(tag_id, prop_name, type_obj)
-        props.append(prop)
-
-    return props

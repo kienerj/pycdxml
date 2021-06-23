@@ -37,9 +37,9 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
         m_path = Path(__file__).parent.parent / "cdxml_slide_generator"
         template_path = m_path / "ACS 1996.cdxml"
         chemdraw_style = style.get_style_from_template(template_path)
-        document_properties = style.dict_to_properties(chemdraw_style)
+        document_properties = ChemDrawProperty.dict_to_properties(chemdraw_style)
     else:
-        document_properties = style.dict_to_properties(chemdraw_style)
+        document_properties = ChemDrawProperty.dict_to_properties(chemdraw_style)
     document = ChemDrawDocument(properties=document_properties)  # or build cdxml doc?
 
     object_id_sequence = iter(range(1, 10000))
@@ -58,7 +58,7 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
     props = {"BoundingBox": bb, "Z": 20}
 
     frg_obj = ChemDrawObject(0x8003, "Fragment", "fragment", next(object_id_sequence),
-                             properties=style.dict_to_properties(props), parent=page)
+                             properties=ChemDrawProperty.dict_to_properties(props), parent=page)
 
     atom_idx_id = {}
     for idx, atom in enumerate(mol.GetAtoms()):
@@ -80,7 +80,7 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
         if atom.GetFormalCharge() != 0:
             props["Charge"] = str(atom.GetFormalCharge())
 
-        atom_obj = ChemDrawObject(0x8004, "Node", "n", object_id, properties=style.dict_to_properties(props),
+        atom_obj = ChemDrawObject(0x8004, "Node", "n", object_id, properties=ChemDrawProperty.dict_to_properties(props),
                                   parent=frg_obj)
 
         # text label for Heteroatoms or charged carbons
@@ -183,7 +183,7 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
         if bond.HasProp("_CDXDisplay"):
             props["Display"] = bond.GetProp("_CDXDisplay")
 
-        bond_obj = ChemDrawObject(0x8005, "Bond", "b", object_id, properties=style.dict_to_properties(props), parent=frg_obj)
+        bond_obj = ChemDrawObject(0x8005, "Bond", "b", object_id, properties=ChemDrawProperty.dict_to_properties(props), parent=frg_obj)
         bonds[bond.GetIdx()] = bond_obj
 
     return document
@@ -207,7 +207,7 @@ def _set_end_wedge_display_style(bonds: dict, wedge_bond: rdchem.Bond, display: 
                 props = {}
                 bond_obj = bonds[b.GetIdx()]
                 props["Display"] = display
-                bond_obj.properties.extend(style.dict_to_properties(props))
+                bond_obj.properties.extend(ChemDrawProperty.dict_to_properties(props))
             else:
                 b.SetProp("_CDXDisplay", display)
 
@@ -220,7 +220,7 @@ def _get_default_page_properties():
              "HeightPages": 1,
              "WidthPages": 1
              }
-    return style.dict_to_properties(props)
+    return ChemDrawProperty.dict_to_properties(props)
 
 
 def _get_coordinates(mol: rdchem.Mol, conformer: rdchem.Conformer, bond_length: float, margin: float):
