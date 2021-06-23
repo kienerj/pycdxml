@@ -370,7 +370,7 @@ class CDXCoordinate(CDXType):
 
         units = int(float(value) * CDXCoordinate.CDXML_CONVERSION_FACTOR)
         if units > CDXCoordinate.CDX_MAX_VALUE or units < CDXCoordinate.CDX_MIN_VALUE:
-            logger.warning("Coordinate value '{}' exceeds maximum or minimum value for cdx files.".format(units))
+            logger.info("Coordinate value '{}' exceeds maximum or minimum value for cdx files.".format(units))
         return CDXCoordinate(units)
 
     def to_bytes(self) -> bytes:
