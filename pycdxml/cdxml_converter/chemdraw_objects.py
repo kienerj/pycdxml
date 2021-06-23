@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger('pycdxml.chemdraw_objects')
 
 
+
 class ChemDrawObject(NodeMixin):
     """
     Abstract Base class for any ChemDraw object as defined by cdx format specification on:
@@ -18,14 +19,19 @@ class ChemDrawObject(NodeMixin):
     """
 
     module_path = Path(__file__).parent
+
     cdx_objects_path = module_path / 'cdx_objects.yml'
     with open(cdx_objects_path, 'r') as stream:
         CDX_OBJECTS = yaml.safe_load(stream)
+    ELEMENT_NAME_TO_OBJECT_TAG = {value["element_name"]:key for key,value in CDX_OBJECTS.items()}
+
     cdx_properties_path = module_path / 'cdx_properties.yml'
     with open(cdx_properties_path, 'r') as stream:
         CDX_PROPERTIES = yaml.safe_load(stream)
+    PROPERTY_NAME_TO_TAG = {value["name"]:key for key,value in CDX_PROPERTIES.items()}
+
     # Use this sequence to set missing id in xml docs
-    OBJECT_ID_SEQUENCE = iter(range(5000, 10000))
+    OBJECT_ID_SEQUENCE = iter(range(5000, 100000))
 
     def __init__(self, tag_id, object_type, element_name, object_id, properties=None, parent=None, children=None):
 
@@ -65,7 +71,8 @@ class ChemDrawObject(NodeMixin):
         else:
             object_id = None
         props = ChemDrawObject._read_attributes(element)
-        tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
+        tag_id = ChemDrawObject.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
+        #tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
         object_type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
         obj = ChemDrawObject(tag_id, object_type, element.tag, object_id, properties=props, parent=parent)
         return obj
@@ -316,7 +323,8 @@ class ChemDrawProperty(object):
         props = []
 
         for prop_name, prop_value in properties.items():
-            tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
+            tag_id = ChemDrawObject.PROPERTY_NAME_TO_TAG[prop_name]
+            #tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
             chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
             # logger.debug('Creating property {} of type {}.'.format(prop_name, chemdraw_type))
             klass = globals()[chemdraw_type]
