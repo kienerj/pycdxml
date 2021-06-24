@@ -16,6 +16,8 @@ Named Style:
 styler = CDXMLStyler(style_name="ACS 1996")
 cdxml_normalized = self.styler.apply_style_to_string(cdxml)
 ```
+Currently only ACS 1996 and Wiley styles are supported.
+
 From `cdxml` template:
 
 ```python

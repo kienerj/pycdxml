@@ -1,4 +1,4 @@
-## CDXML Slide Generator
+## CDXMLSlideGenerator
 
 `cdxml_slide_generator` module does a similar thing as my [`molecule-slide-generator`](https://github.com/kienerj/molecule-slide-generator)package but with a `cdxml`file as output. In essence the passed-in molecules and their properties are put into a single `cdxml`file nicely aligned with the properties as text below them. Properties can be anything of your choice like an activity value or simply a name or compound id. Internally `cdxml_slide_generator` makes use of `cdxml_Styler` module to convert input molecules to the same style.
 
@@ -19,4 +19,10 @@ props = [props1]
 sg = CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2)
 slide = sg.generate_slide(docs, props)
 ```
+
+## Known Issues
+
+A big caveat currently is, that this doesn't work with salts or any other "multi-fragment" chemical structure. A molecule inside ChemDraw is represented as a `fragment` object. So in a salt, there are at least 2 such `fragments`. If they are drawn by hand and not grouped, there is no way to know which fragments belong to each other. If you create a salt by Name2Structure, then it is grouped correctly. Note: Grouping is currently also not taken into account.
+
+Currently `CDXMLSlideGenerator` just takes the first fragment in the file and adds that to the slide. Another option could be to take all fragments and if there are too many you will simply get a very tiny view of these molecules.
 
