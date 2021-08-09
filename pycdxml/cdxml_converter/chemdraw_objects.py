@@ -6,6 +6,8 @@ from pathlib import Path
 from lxml import etree as ET
 import logging
 
+from ..utils.cdxml_io import etree_to_cdxml
+
 logger = logging.getLogger('pycdxml.chemdraw_objects')
 
 
@@ -324,7 +326,7 @@ class ChemDrawProperty(object):
 
         for prop_name, prop_value in properties.items():
             tag_id = ChemDrawObject.PROPERTY_NAME_TO_TAG[prop_name]
-            #tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
+            # tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
             chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
             # logger.debug('Creating property {} of type {}.'.format(prop_name, chemdraw_type))
             klass = globals()[chemdraw_type]
@@ -340,9 +342,7 @@ class ChemDrawProperty(object):
 class ChemDrawDocument(ChemDrawObject):
 
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    CDXML_HEADER = """<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd">
-"""
+
     CDXML_DEFAULT_DOC_ID = 0
     # According to spec if a "tag_ids" most significant bit (15th bit, 0-based index) is clear, then it's a property
     # else it's an object. This leaves 15 bits resulting in a max value for a property tag equal to 32767 due to
@@ -354,11 +354,9 @@ class ChemDrawDocument(ChemDrawObject):
             properties = []
         super().__init__(0x8000, 'Document', 'CDXML', object_id, properties=properties, children=children)
 
-
     @staticmethod
     def from_bytes(cdx:io.BytesIO) -> 'ChemDrawDocument':
         """
-
         :param cdx: a BytesIO object
         :return:
         """
@@ -479,8 +477,7 @@ class ChemDrawDocument(ChemDrawObject):
         for child in self.children:
             ChemDrawDocument._traverse_xml(child, cdxml)
 
-        xml = ET.tostring(cdxml, encoding='unicode', method='xml')
-        return ChemDrawDocument.CDXML_HEADER + xml
+        return etree_to_cdxml(cdxml)
 
     @staticmethod
     def _traverse_cdx(node: ChemDrawObject, stream: io.BytesIO):
