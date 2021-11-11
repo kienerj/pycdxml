@@ -11,7 +11,6 @@ from ..utils.cdxml_io import etree_to_cdxml
 logger = logging.getLogger('pycdxml.chemdraw_objects')
 
 
-
 class ChemDrawObject(NodeMixin):
     """
     Abstract Base class for any ChemDraw object as defined by cdx format specification on:
@@ -364,10 +363,23 @@ class ChemDrawDocument(ChemDrawObject):
         if header != ChemDrawDocument.HEADER:
             raise ValueError('File is not a valid cdx file. Invalid header found.')
         document_tag = cdx.read(2)
+        legacy_doc = False
         if document_tag != b'\x00\x80':
-            raise ValueError('File is not a valid cdx file. Document tag not found.')
+            # legacy files in registration start like below
+            # VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03
+            # instead of
+            # VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00\x00\x03
+            # No document tag and one additional byte. read and ignore said additional byte
+            logger.warning('Document tag not found. File seems to be a legacy cdx file.')
+            cdx.read(1)
+            legacy_doc = True
+
         object_id = int.from_bytes(cdx.read(4), "little")
         logger.debug('Reading document with id: {}'.format(object_id))
+        if legacy_doc:
+            # legacy document has additional 23 bytes with unknown meaning, ignore
+            # then first property usually is creation program
+            cdx.read(23)
         # Document Properties
         props = ChemDrawObject._read_properties(cdx)
 
