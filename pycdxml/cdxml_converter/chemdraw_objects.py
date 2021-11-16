@@ -348,6 +348,21 @@ class ChemDrawDocument(object):
     # 2^15-1 (max value bits can represent is 2^n-1)
     MAX_PROPERTY_VALUE = 32767
 
+    module_path = Path(__file__).parent
+
+    cdx_objects_path = module_path / 'cdx_objects.yml'
+    with open(cdx_objects_path, 'r') as stream:
+        CDX_OBJECTS = yaml.safe_load(stream)
+    ELEMENT_NAME_TO_OBJECT_TAG = {value["element_name"]: key for key, value in CDX_OBJECTS.items()}
+
+    cdx_properties_path = module_path / 'cdx_properties.yml'
+    with open(cdx_properties_path, 'r') as stream:
+        CDX_PROPERTIES = yaml.safe_load(stream)
+    PROPERTY_NAME_TO_TAG = {value["name"]: key for key, value in CDX_PROPERTIES.items()}
+
+    # Use this sequence to set missing id in xml docs
+    OBJECT_ID_SEQUENCE = iter(range(5000, 100000))
+
     def __init__(self, cdxml: ET):
         self.cdxml = cdxml
 
@@ -386,7 +401,7 @@ class ChemDrawDocument(object):
         parent_stack = [root]
         tag_id = int.from_bytes(cdx.read(2), "little")
 
-        while tag_id in ChemDrawObject.CDX_OBJECTS:
+        while tag_id in ChemDrawDocument.CDX_OBJECTS:
             try:
                 el = ChemDrawDocument._element_from_bytes(cdx, tag_id, parent_stack[-1])
                 logger.debug('Created element of type {} with id: {}'.format(el.tag, el.attrib["id"]))
@@ -505,25 +520,133 @@ class ChemDrawDocument(object):
         return ChemDrawDocument(ET.fromstring(root.encode('utf-8')))
 
     def to_bytes(self) -> bytes:
+        """
+        Generates a cdx file as bytes in memory
+        """
 
         stream = io.BytesIO()
         stream.write(ChemDrawDocument.HEADER)
-        stream.write(self.tag_id.to_bytes(2, byteorder='little'))  # object tag
-        stream.write(self.id.to_bytes(4, byteorder='little'))  # object id
 
-        for prop in self.properties:
-            stream.write(prop.to_bytes())
+        for element in self.cdxml.iterdescendants():
+            if element.tag in ['s', 'font', 'color']:
+                # s elements are always in t elements and hence already handled by parent t element
+                # this is needed as there is a mismatch between cdx and cdxml
+                # same for fonts and colors in font/colortable
+                continue
+            elif element.tag == "fonttable":
+                type_obj = CDXFontTable.from_element(element)
+                fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
+                stream.write(fonttable.to_bytes())
+            elif element.tag == "colortable":
+                type_obj = CDXColorTable.from_element(element)
+                colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
+                stream.write(colortable.to_bytes())
+            else:
+                self._element_to_stream(element, stream)
 
-        for child in self.children:
-            ChemDrawDocument._traverse_cdx(child, stream)
-
-        stream.write(b'\x00\x00\x00\x00')  # end of document and end of file
-        stream.seek(0)
-        return stream.read()
+        # end of document and end of file 
+        stream.write(b'\x00\x00\x00\x00')
+        return stream.getvalue()
 
     def to_cdxml(self) -> str:
 
         return etree_to_cdxml(self.cdxml)
+
+    @staticmethod
+    def _element_to_stream(element: ET.Element(), stream: io.BytesIO):
+        try:
+            tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
+            stream.write(tag_id.to_bytes(2, "little"))
+            if 'id' in element.attrib:
+                stream.write(int(element.attrib['id']).to_bytes(4, "little"))
+            else:
+                # Object Read from cdxml with no ID assigend, give it a default one
+                stream.write(next(ChemDrawDocument.OBJECT_ID_SEQUENCE).to_bytes(4, "little"))
+
+            has_label_style = False
+            has_caption_style = False
+            for attrib, value in element.attrib.items():
+                if attrib in ["LabelFont", "LabelSize", "LabelFace"]:
+                    has_label_style = True
+                    continue
+                if attrib in ["CaptionFont", "CaptionSize", "CaptionFace"]:
+                    has_caption_style = True
+                    continue
+                if attrib == "id":
+                    continue
+                ChemDrawDocument._attribute_to_stream(attrib, value, stream)
+
+            if element.tag == 't':
+                type_obj = CDXString.from_element(element)
+                txt = ChemDrawProperty(0x0700, "Text", type_obj)
+                stream.write(txt.to_bytes())
+
+            if has_label_style:
+                if "LabelFont" in element.attrib:
+                    font_id = int(element.attrib["LabelFont"])
+                else:
+                    logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 "
+                                   "exists.")
+                    font_id = 1
+                if "LabelFace" in element.attrib:
+                    font_type = int(element.attrib["LabelFace"])
+                else:
+                    font_type = 0  # plain
+                if "LabelSize" in element.attrib:
+                    font_size = int(float(element.attrib["LabelSize"]) * 20)
+                else:
+                    # assume 12 points as default font size. Factor 20 in conversion to cdx units.
+                    font_size = 12 * 20
+
+                # color on labels is ignored according to spec
+                type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
+                label_style = ChemDrawProperty(0x080A, "LabelStyle", type_obj)
+                stream.write(label_style.to_bytes())
+
+            if has_caption_style:
+                if "CaptionFont" in element.attrib:
+                    font_id = int(element.attrib["CaptionFont"])
+                else:
+                    logger.warning(
+                        "Setting default caption font id to 1. This might cause an issue if no font with id 1 exists.")
+                    font_id = 1
+                if "CaptionFace" in element.attrib:
+                    font_type = int(element.attrib["CaptionFace"])
+                else:
+                    font_type = 0  # plain
+                if "CaptionSize" in element.attrib:
+                    font_size = int(float(element.attrib["CaptionSize"]) * 20)
+                else:
+                    # assume 12 points as default font size. Factor 20 in conversion to cdx units.
+                    font_size = 12 * 20
+
+                # color on labels is ignored according to spec
+                type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
+                caption_style = ChemDrawProperty(0x080B, "CaptionStyle", type_obj)
+                stream.write(caption_style.to_bytes())
+        except KeyError:
+            logger.error('Missing implementation for element: {}. Ignoring element.'.format(element.tag))
+
+    @staticmethod
+    def _attribute_to_stream(attrib: str, value:str, stream: io.BytesIO):
+        try:
+            tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG[attrib]
+            stream.write(tag_id.to_bytes(2, byteorder='little'))
+
+            chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
+            klass = globals()[chemdraw_type]
+            type_obj = klass.from_string(value)
+            prop_bytes = type_obj.to_bytes()
+            length = len(prop_bytes)
+            if length <= 65534:
+                stream.write(length.to_bytes(2, byteorder='little'))
+            else:
+                stream.write(b'\xFF\xFF')
+                stream.write(length.to_bytes(4, byteorder='little'))
+            stream.write(prop_bytes)
+            logger.debug("Writing attribute {} with value '{}'.".format(attrib, value))
+        except KeyError:
+            logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attrib))
 
     @staticmethod
     def _traverse_cdx(node: ChemDrawObject, stream: io.BytesIO):
