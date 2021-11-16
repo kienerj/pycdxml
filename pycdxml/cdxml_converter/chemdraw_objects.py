@@ -1,7 +1,6 @@
 from .chemdraw_types import *
 import io
 import yaml
-from anytree import NodeMixin
 from pathlib import Path
 from lxml import etree as ET
 import logging
@@ -9,333 +8,6 @@ import logging
 from ..utils.cdxml_io import etree_to_cdxml
 
 logger = logging.getLogger('pycdxml.chemdraw_objects')
-
-
-class ChemDrawObject(NodeMixin):
-    """
-    Abstract Base class for any ChemDraw object as defined by cdx format specification on:
-    https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/
-
-    Objects have properties (or in cdxml attributes) which themselves can be objects
-    """
-
-    module_path = Path(__file__).parent
-
-    cdx_objects_path = module_path / 'cdx_objects.yml'
-    with open(cdx_objects_path, 'r') as stream:
-        CDX_OBJECTS = yaml.safe_load(stream)
-    ELEMENT_NAME_TO_OBJECT_TAG = {value["element_name"]:key for key,value in CDX_OBJECTS.items()}
-
-    cdx_properties_path = module_path / 'cdx_properties.yml'
-    with open(cdx_properties_path, 'r') as stream:
-        CDX_PROPERTIES = yaml.safe_load(stream)
-    PROPERTY_NAME_TO_TAG = {value["name"]:key for key,value in CDX_PROPERTIES.items()}
-
-    # Use this sequence to set missing id in xml docs
-    OBJECT_ID_SEQUENCE = iter(range(5000, 100000))
-
-    def __init__(self, tag_id, object_type, element_name, object_id, properties=None, parent=None, children=None):
-
-        if properties is None:
-            properties = []
-        self.tag_id = tag_id
-        self.type = object_type
-        self.element_name = element_name
-        self.id = object_id
-        self.properties = properties
-        self.parent = parent
-        if children:
-            self.children = children
-
-    @staticmethod
-    def from_bytes(cdx: io.BytesIO, tag_id: int, parent: 'ChemDrawObject') -> 'ChemDrawObject':
-        """
-        cdx must be a BytesIO instance at the begining of the ID positon. Eg. the tag_id has been read and the next 4
-        bytes are the objects id inside the document.
-        :param cdx: BytesIO stream at position right before object ID
-        :param tag_id: objects tag identifier
-        :param parent: container of this new object
-        :return: a new ChemDrawObject
-        """
-        object_id = int.from_bytes(cdx.read(4), "little")
-        props = ChemDrawObject._read_properties(cdx)
-        object_type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
-        element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
-        obj = ChemDrawObject(tag_id, object_type, element_name, object_id, properties=props, parent=parent)
-        return obj
-
-    @staticmethod
-    def from_cdxml(element: ET.Element, parent: 'ChemDrawObject' = None) -> 'ChemDrawObject':
-
-        if "id" in element.attrib:
-            object_id = int(element.attrib["id"])
-        else:
-            object_id = None
-        props = ChemDrawObject._read_attributes(element)
-        tag_id = ChemDrawObject.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
-        #tag_id = next(key for key, value in ChemDrawObject.CDX_OBJECTS.items() if value['element_name'] == element.tag)
-        object_type = ChemDrawObject.CDX_OBJECTS[tag_id]['type']
-        obj = ChemDrawObject(tag_id, object_type, element.tag, object_id, properties=props, parent=parent)
-        return obj
-
-    @staticmethod
-    def _read_properties(cdx: io.BytesIO) -> list:
-
-        props = []
-        tag_id = int.from_bytes(cdx.read(2), "little")
-
-        while tag_id in ChemDrawObject.CDX_PROPERTIES:
-            prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']            
-            length = int.from_bytes(cdx.read(2), "little")
-            if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
-                length = int.from_bytes(cdx.read(4), "little")
-
-            prop_bytes = cdx.read(length)
-            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
-            logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
-            klass = globals()[chemdraw_type]
-            if prop_name == 'UTF8Text':
-                type_obj = klass.from_bytes(prop_bytes, 'utf8')
-            else:
-                try:
-                    type_obj = klass.from_bytes(prop_bytes)
-                except ValueError as err:
-                    if prop_name == 'color' and length == 4:
-                        # A simple test file had a color property instance of length 4
-                        # but it's an uint16 and should only be 2 bytes. first 2 bytes contained correct value
-                        type_obj = klass.from_bytes(prop_bytes[:2])
-                        length = 2
-                        logger.warning("Property color of type UINT16 found with length {} instead of required "
-                                       "length 2. Fixed by taking only first 2 bytes into account.".format(length))
-                    else:
-                        raise err
-
-            prop = ChemDrawProperty(tag_id, prop_name, type_obj)
-            props.append(prop)
-            # read next tag
-            tag_id = int.from_bytes(cdx.read(2), "little")
-            bit15 = tag_id >> 15 & 1
-            # Determine if this is a unknown property. Properties have the most significant bit clear (=0).
-            # If property is unknown, log it and read next property until a known one is found.
-            # 0 is end of object hence ignore here
-            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
-                length = int.from_bytes(cdx.read(2), "little")
-                cdx.read(length)
-                logger.warning('Found unknown property {} with length {}. Ignoring this property.'
-                               .format(tag_id.to_bytes(2, "little"), length))
-                # read next tag
-                tag_id = int.from_bytes(cdx.read(2), "little")
-                bit15 = tag_id >> 15 & 1
-
-        logger.debug('Successfully finished reading properties.')
-        # move back 2 positions, finished reading attributes
-        cdx.seek(cdx.tell() - 2)
-        return props
-
-    @staticmethod
-    def _read_attributes(element: ET.Element) -> list:
-
-        props = []
-        has_label_style = False
-        has_caption_style = False
-
-        for attribute, value in element.attrib.items():
-            if attribute in ["LabelFont", "LabelSize", "LabelFace"]:
-                has_label_style = True
-                continue
-            if attribute in ["CaptionFont", "CaptionSize", "CaptionFace"]:
-                has_caption_style = True
-                continue
-            if attribute == "id":
-                continue
-            try:
-                tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == attribute)
-                chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
-
-                logger.debug('Reading attribute {} of type {}.'.format(attribute, chemdraw_type))
-                klass = globals()[chemdraw_type]
-
-                type_obj = klass.from_string(value)
-
-                prop = ChemDrawProperty(tag_id, attribute, type_obj)
-                props.append(prop)
-            except StopIteration:
-                logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attribute))
-
-        if element.tag == 't':
-            type_obj = CDXString.from_element(element)
-            txt = ChemDrawProperty(0x0700, "Text", type_obj)
-            props.append(txt)
-
-        if has_label_style:
-
-            if "LabelFont" in element.attrib:
-                font_id = int(element.attrib["LabelFont"])
-            else:
-                logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 "
-                               "exists.")
-                font_id = 1
-
-            if "LabelFace" in element.attrib:
-                font_type = int(element.attrib["LabelFace"])
-            else:
-                font_type = 0  # plain
-
-            if "LabelSize" in element.attrib:
-                font_size = int(float(element.attrib["LabelSize"]) * 20)
-            else:
-                # assume 12 points as default font size. Factor 20 in conversion to cdx units.
-                font_size = 12 * 20
-
-            # color on labels is ignored according to spec
-            type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
-            label_style = ChemDrawProperty(0x080A, "LabelStyle", type_obj)
-            props.append(label_style)
-
-        if has_caption_style:
-
-            if "CaptionFont" in element.attrib:
-                font_id = int(element.attrib["CaptionFont"])
-            else:
-                logger.warning(
-                    "Setting default caption font id to 1. This might cause an issue if no font with id 1 exists.")
-                font_id = 1
-
-            if "CaptionFace" in element.attrib:
-                font_type = int(element.attrib["CaptionFace"])
-            else:
-                font_type = 0  # plain
-
-            if "CaptionSize" in element.attrib:
-                font_size = int(float(element.attrib["CaptionSize"]) * 20)
-            else:
-                # assume 12 points as default font size. Factor 20 in conversion to cdx units.
-                font_size = 12 * 20
-
-            # color on labels is ignored according to spec
-            type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
-            caption_style = ChemDrawProperty(0x080B, "CaptionStyle", type_obj)
-            props.append(caption_style)
-
-        return props
-
-    def add_as_element(self, parent: ET.Element):
-        """
-        Build and return the cdxml element for this object
-        :return:
-        """
-        e = ET.SubElement(parent, self.element_name)
-        if self.id is not None:
-            # id is optional in cdxml, only add if present in input
-            e.attrib['id'] = str(self.id)
-        for prop in self.properties:
-            prop.add_as_attribute(e)
-
-        return e
-
-    def to_bytes(self) -> bytes:
-        """
-        Generates and returns the bytes of this object for adding to a cdx binary file
-        The end tag \x00\x00 is not written and must be handled by the Document object which is aware of the
-        full tree structure.
-        :return:
-        """
-        stream = io.BytesIO()
-        stream.write(self.tag_id.to_bytes(2, "little"))
-        if self.id is not None:
-            stream.write(self.id.to_bytes(4, "little"))
-        else:
-            # Object Read from cdxml with no ID assigend, give it a default one
-            stream.write(next(ChemDrawObject.OBJECT_ID_SEQUENCE).to_bytes(4, "little"))
-        for prop in self.properties:
-            stream.write(prop.to_bytes())
-        stream.seek(0)
-        return stream.read()
-
-    def __repr__(self):
-        return '{}: {}'.format(self.element_name, self.id)
-
-
-class ChemDrawProperty(object):
-
-    def __init__(self, tag_id: int, name: str, property_type: CDXType):
-
-        self.tag_id = tag_id
-        self.name = name
-        self.type = property_type
-
-    def to_bytes(self) -> bytes:
-        """
-        Gets the bytes value representing this property in a cdx document
-
-        :return: bytes representing this property
-        """
-        logger.debug("Writing property {} with value '{}'.".format(self.name, self.get_value()))
-        stream = io.BytesIO()
-        stream.write(self.tag_id.to_bytes(2, byteorder='little'))
-        prop_bytes = self.type.to_bytes()
-        length = len(prop_bytes)
-        if length <= 65534:
-            stream.write(length.to_bytes(2, byteorder='little'))
-        else:
-            stream.write(b'\xFF\xFF')
-            stream.write(length.to_bytes(4, byteorder='little'))
-        stream.write(prop_bytes)
-        stream.seek(0)
-        return stream.read()
-
-    def add_as_attribute(self, element: ET.Element):
-        """
-        Adds this property as attribute to the passed in Element
-
-        :param element: an ElementTree element instance
-        """
-        logger.debug("Adding attribute '{}' to element.".format(self.name))
-        if self.name == "LabelStyle":
-            element.attrib['LabelFont'] = str(self.type.font_id)
-            element.attrib['LabelSize'] = str(self.type.font_size_points())
-            element.attrib['LabelFace'] = str(self.type.font_type)
-        elif self.name == "CaptionStyle":
-            element.attrib['CaptionFont'] = str(self.type.font_id)
-            element.attrib['CaptionSize'] = str(self.type.font_size_points())
-            element.attrib['CaptionFace'] = str(self.type.font_type)
-        elif self.name == 'fonttable' or self.name == 'colortable':
-            tbl = self.type.to_element()
-            element.append(tbl)
-        elif self.name == 'Text':
-            # adds style tags <s></s> to this t element containing styled text
-            self.type.to_element(element)            
-            logger.debug("Added {} styles to text object.".format(len(self.type.styles)))
-        elif self.name == 'UTF8Text':
-            # Do nothing. This is a new property no in official spec and represents the 
-            # value of a text objext in UTF-8 inside a cdx file.
-            pass
-        else:
-            element.attrib[self.name] = self.type.to_property_value()
-
-    def get_value(self):
-        return self.type.to_property_value()
-
-    def __repr__(self):
-        return '{}: {}'.format(self.name, self.get_value())
-
-    @staticmethod
-    def dict_to_properties(properties: dict):
-        props = []
-
-        for prop_name, prop_value in properties.items():
-            tag_id = ChemDrawObject.PROPERTY_NAME_TO_TAG[prop_name]
-            # tag_id = next(key for key, value in ChemDrawObject.CDX_PROPERTIES.items() if value['name'] == prop_name)
-            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
-            # logger.debug('Creating property {} of type {}.'.format(prop_name, chemdraw_type))
-            klass = globals()[chemdraw_type]
-
-            type_obj = klass.from_string(prop_value)
-
-            prop = ChemDrawProperty(tag_id, prop_name, type_obj)
-            props.append(prop)
-
-        return props
 
 
 class ChemDrawDocument(object):
@@ -367,7 +39,7 @@ class ChemDrawDocument(object):
         self.cdxml = cdxml
 
     @staticmethod
-    def from_bytes(cdx:io.BytesIO) -> 'ChemDrawDocument':
+    def from_bytes(cdx: io.BytesIO) -> 'ChemDrawDocument':
         """
         :param cdx: a BytesIO object
         :return:
@@ -437,7 +109,7 @@ class ChemDrawDocument(object):
         :return: a new ChemDrawObject
         """
         object_id = int.from_bytes(cdx.read(4), "little")
-        element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
+        element_name = ChemDrawDocument.CDX_OBJECTS[tag_id]['element_name']
         el = ET.SubElement(parent, element_name)
         el.attrib["id"] = object_id
         ChemDrawDocument._read_attributes(cdx, el)
@@ -446,16 +118,15 @@ class ChemDrawDocument(object):
     @staticmethod
     def _read_attributes(cdx: io.BytesIO, element: ET.Element):
 
-        props = []
         tag_id = int.from_bytes(cdx.read(2), "little")
 
-        while tag_id in ChemDrawObject.CDX_PROPERTIES:
-            prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']
+        while tag_id in ChemDrawDocument.CDX_PROPERTIES:
+            prop_name = ChemDrawDocument.CDX_PROPERTIES[tag_id]['name']
             length = int.from_bytes(cdx.read(2), "little")
             if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
                 length = int.from_bytes(cdx.read(4), "little")
             prop_bytes = cdx.read(length)
-            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+            chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]["type"]
             logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
             klass = globals()[chemdraw_type]
             if prop_name == 'UTF8Text':
@@ -494,7 +165,7 @@ class ChemDrawDocument(object):
                 # value of a text objext in UTF-8 inside a cdx file.
                 pass
             else:
-                element.attrib[prop_name]=type_obj.to_property_value()
+                element.attrib[prop_name] = type_obj.to_property_value()
 
             # read next tag
             tag_id = int.from_bytes(cdx.read(2), "little")
@@ -502,7 +173,7 @@ class ChemDrawDocument(object):
             # Determine if this is a unknown property. Properties have the most significant bit clear (=0).
             # If property is unknown, log it and read next property until a known one is found.
             # 0 is end of object hence ignore here
-            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
+            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
                 length = int.from_bytes(cdx.read(2), "little")
                 cdx.read(length)
                 logger.warning('Found unknown property {} with length {}. Ignoring this property.'
@@ -535,16 +206,18 @@ class ChemDrawDocument(object):
                 continue
             elif element.tag == "fonttable":
                 type_obj = CDXFontTable.from_element(element)
-                fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
-                stream.write(fonttable.to_bytes())
+                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['fonttable']
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                self._type_to_stream(type_obj, stream)
             elif element.tag == "colortable":
                 type_obj = CDXColorTable.from_element(element)
-                colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
-                stream.write(colortable.to_bytes())
+                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['colortable']
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                self._type_to_stream(type_obj, stream)
             else:
                 self._element_to_stream(element, stream)
 
-        # end of document and end of file 
+        # end of document and end of file
         stream.write(b'\x00\x00\x00\x00')
         return stream.getvalue()
 
@@ -553,7 +226,7 @@ class ChemDrawDocument(object):
         return etree_to_cdxml(self.cdxml)
 
     @staticmethod
-    def _element_to_stream(element: ET.Element(), stream: io.BytesIO):
+    def _element_to_stream(element: ET.Element, stream: io.BytesIO):
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
             stream.write(tag_id.to_bytes(2, "little"))
@@ -578,8 +251,9 @@ class ChemDrawDocument(object):
 
             if element.tag == 't':
                 type_obj = CDXString.from_element(element)
-                txt = ChemDrawProperty(0x0700, "Text", type_obj)
-                stream.write(txt.to_bytes())
+                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['Text']
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                ChemDrawDocument._type_to_stream(type_obj, stream)
 
             if has_label_style:
                 if "LabelFont" in element.attrib:
@@ -600,8 +274,9 @@ class ChemDrawDocument(object):
 
                 # color on labels is ignored according to spec
                 type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
-                label_style = ChemDrawProperty(0x080A, "LabelStyle", type_obj)
-                stream.write(label_style.to_bytes())
+                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['LabelStyle']
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                ChemDrawDocument._type_to_stream(type_obj, stream)
 
             if has_caption_style:
                 if "CaptionFont" in element.attrib:
@@ -622,41 +297,32 @@ class ChemDrawDocument(object):
 
                 # color on labels is ignored according to spec
                 type_obj = CDXFontStyle(font_id, font_type, font_size, 0)
-                caption_style = ChemDrawProperty(0x080B, "CaptionStyle", type_obj)
-                stream.write(caption_style.to_bytes())
+                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['CaptionStyle']
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
             logger.error('Missing implementation for element: {}. Ignoring element.'.format(element.tag))
 
     @staticmethod
-    def _attribute_to_stream(attrib: str, value:str, stream: io.BytesIO):
+    def _attribute_to_stream(attrib: str, value: str, stream: io.BytesIO):
         try:
             tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG[attrib]
             stream.write(tag_id.to_bytes(2, byteorder='little'))
-
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
             klass = globals()[chemdraw_type]
             type_obj = klass.from_string(value)
-            prop_bytes = type_obj.to_bytes()
-            length = len(prop_bytes)
-            if length <= 65534:
-                stream.write(length.to_bytes(2, byteorder='little'))
-            else:
-                stream.write(b'\xFF\xFF')
-                stream.write(length.to_bytes(4, byteorder='little'))
-            stream.write(prop_bytes)
+            ChemDrawDocument._type_to_stream(type_obj, stream)
             logger.debug("Writing attribute {} with value '{}'.".format(attrib, value))
         except KeyError:
             logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attrib))
 
     @staticmethod
-    def _traverse_cdx(node: ChemDrawObject, stream: io.BytesIO):
-        stream.write(node.to_bytes())
-        for child in node.children:
-            ChemDrawDocument._traverse_cdx(child, stream)
-        stream.write(b'\x00\x00')
-
-    @staticmethod
-    def _traverse_xml(node: ChemDrawObject, parent: ET.Element):
-        elm = node.add_as_element(parent)
-        for child in node.children:
-            ChemDrawDocument._traverse_xml(child, elm)
+    def _type_to_stream(type_obj: CDXType, stream: io.BytesIO):
+        prop_bytes = type_obj.to_bytes()
+        length = len(prop_bytes)
+        if length <= 65534:
+            stream.write(length.to_bytes(2, byteorder='little'))
+        else:
+            stream.write(b'\xFF\xFF')
+            stream.write(length.to_bytes(4, byteorder='little'))
+        stream.write(prop_bytes)
