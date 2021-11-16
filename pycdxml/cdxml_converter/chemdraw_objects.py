@@ -68,7 +68,7 @@ class ChemDrawDocument(object):
             # then first property usually is creation program
             cdx.read(23)
         # Document Attributes
-        ChemDrawDocument._read_attributes(cdx, cdxml)
+        ChemDrawDocument._read_attributes(cdx, root)
 
         parent_stack = [root]
         tag_id = int.from_bytes(cdx.read(2), "little")
@@ -111,7 +111,7 @@ class ChemDrawDocument(object):
         object_id = int.from_bytes(cdx.read(4), "little")
         element_name = ChemDrawDocument.CDX_OBJECTS[tag_id]['element_name']
         el = ET.SubElement(parent, element_name)
-        el.attrib["id"] = object_id
+        el.attrib["id"] = str(object_id)
         ChemDrawDocument._read_attributes(cdx, el)
         return el
 
@@ -198,7 +198,7 @@ class ChemDrawDocument(object):
         stream = io.BytesIO()
         stream.write(ChemDrawDocument.HEADER)
 
-        for element in self.cdxml.iterdescendants():
+        for element in self.cdxml.getroot().iterdescendants():
             if element.tag in ['s', 'font', 'color']:
                 # s elements are always in t elements and hence already handled by parent t element
                 # this is needed as there is a mismatch between cdx and cdxml
