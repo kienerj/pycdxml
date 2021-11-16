@@ -338,7 +338,7 @@ class ChemDrawProperty(object):
         return props
 
 
-class ChemDrawDocument(ChemDrawObject):
+class ChemDrawDocument(object):
 
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
@@ -348,10 +348,8 @@ class ChemDrawDocument(ChemDrawObject):
     # 2^15-1 (max value bits can represent is 2^n-1)
     MAX_PROPERTY_VALUE = 32767
 
-    def __init__(self, object_id=0, properties=None, children=None):
-        if properties is None:
-            properties = []
-        super().__init__(0x8000, 'Document', 'CDXML', object_id, properties=properties, children=children)
+    def __init__(self, cdxml: ET):
+        self.cdxml = cdxml
 
     @staticmethod
     def from_bytes(cdx:io.BytesIO) -> 'ChemDrawDocument':
@@ -376,24 +374,22 @@ class ChemDrawDocument(ChemDrawObject):
 
         object_id = int.from_bytes(cdx.read(4), "little")
         logger.debug('Reading document with id: {}'.format(object_id))
+        root = ET.Element('CDXML')
+        cdxml = ET.ElementTree(root)
         if legacy_doc:
             # legacy document has additional 23 bytes with unknown meaning, ignore
             # then first property usually is creation program
             cdx.read(23)
-        # Document Properties
-        props = ChemDrawObject._read_properties(cdx)
+        # Document Attributes
+        ChemDrawDocument._read_attributes(cdx, cdxml)
 
-        chemdraw_document = ChemDrawDocument(object_id, props)
-        parent_stack = [chemdraw_document]
+        parent_stack = [root]
         tag_id = int.from_bytes(cdx.read(2), "little")
 
         while tag_id in ChemDrawObject.CDX_OBJECTS:
             try:
-                # class_name = ChemDrawObject.CDX_OBJECTS[tag_id]
-                # klass = globals()[class_name]
-                # obj = klass.from_bytes(cdx, parent_stack[-1])
-                obj = ChemDrawObject.from_bytes(cdx, tag_id, parent_stack[-1])
-                logger.debug('Created object of type {} with id: {}'.format(obj.type, obj.id))
+                el = ChemDrawDocument._element_from_bytes(cdx, tag_id, parent_stack[-1])
+                logger.debug('Created element of type {} with id: {}'.format(el.tag, el.attrib["id"]))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 if tag_id == 0:
@@ -408,60 +404,105 @@ class ChemDrawDocument(ChemDrawObject):
                             tag_id = int.from_bytes(cdx.read(2), "little")
                         else:
                             logger.info('Finished reading document.')
-                            return chemdraw_document
+                            return ChemDrawDocument(cdxml)
                 else:
                     # no object end found, hence we move deeper inside the object tree
-                    parent_stack.append(obj)
+                    parent_stack.append(el)
             except KeyError as err:
                 logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
 
     @staticmethod
-    def from_cdxml(root: ET.Element) -> 'ChemDrawDocument':
+    def _element_from_bytes(cdx: io.BytesIO, tag_id: int, parent: ET.Element):
+        """
+        cdx must be a BytesIO instance at the beginning of the ID position. Eg. the tag_id has been read and the next 4
+        bytes are the objects id inside the document.
 
-        if root.tag != "CDXML":
-            raise ValueError('File is not a valid cdxml file. Invalid root tag {} found.'.format(root.tag))
-        # Document Properties
-        props = ChemDrawObject._read_attributes(root)
+        :param cdx: BytesIO stream at position right before object ID
+        :param tag_id: objects tag identifier
+        :return: a new ChemDrawObject
+        """
+        object_id = int.from_bytes(cdx.read(4), "little")
+        element_name = ChemDrawObject.CDX_OBJECTS[tag_id]['element_name']
+        el = ET.SubElement(parent, element_name)
+        el.attrib["id"] = object_id
+        ChemDrawDocument._read_attributes(cdx, el)
+        return el
 
-        chemdraw_document = ChemDrawDocument(ChemDrawDocument.CDXML_DEFAULT_DOC_ID, props)
-        parent_stack = [chemdraw_document]
+    @staticmethod
+    def _read_attributes(cdx: io.BytesIO, element: ET.Element):
 
-        for element in root.iterdescendants():
-            if element.tag in ['s', 'font', 'color']:
-                # s elements are always in t elements and hence already handeled by parent t element
-                # this is needed as there is a missmatch between cdx and cdxml
-                # same for fonts and colors in font/colortable
-                continue
-            elif element.tag == "fonttable":
-                type_obj = CDXFontTable.from_element(element)
-                fonttable = ChemDrawProperty(0x0100, "fonttable", type_obj)
-                chemdraw_document.properties.append(fonttable)
-                continue
-            elif element.tag == "colortable":
-                type_obj = CDXColorTable.from_element(element)
-                colortable = ChemDrawProperty(0x0300, "colortable", type_obj)
-                chemdraw_document.properties.append(colortable)
-                continue
-            try:
-                parent = parent_stack[-1]
-                obj = ChemDrawObject.from_cdxml(element, parent)
-                logger.debug('Created object of type {} with id: {}'.format(obj.type, obj.id))
-                parent_element = element.getparent()
-                idx = parent_element.index(element)
-                num_children = len(parent_element.getchildren())
-                logger.debug('Element {} has index {} of {} children of parent {}'
-                             .format(element.tag, idx, num_children, parent_element.tag))
-                if idx == num_children - 1:
-                    # last child of this element
-                    parent_stack.pop()
-                if len(element.getchildren()) > 0 and element.tag != 't':
-                    parent_stack.append(obj)
-                    logger.debug('Appending object {} to stack.'.format(obj.element_name))
+        props = []
+        tag_id = int.from_bytes(cdx.read(2), "little")
 
-            except KeyError as err:
-                logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+        while tag_id in ChemDrawObject.CDX_PROPERTIES:
+            prop_name = ChemDrawObject.CDX_PROPERTIES[tag_id]['name']
+            length = int.from_bytes(cdx.read(2), "little")
+            if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
+                length = int.from_bytes(cdx.read(4), "little")
+            prop_bytes = cdx.read(length)
+            chemdraw_type = ChemDrawObject.CDX_PROPERTIES[tag_id]["type"]
+            logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
+            klass = globals()[chemdraw_type]
+            if prop_name == 'UTF8Text':
+                type_obj = klass.from_bytes(prop_bytes, 'utf8')
+            else:
+                try:
+                    type_obj = klass.from_bytes(prop_bytes)
+                except ValueError as err:
+                    if prop_name == 'color' and length == 4:
+                        # A simple test file had a color property instance of length 4
+                        # but it's an uint16 and should only be 2 bytes. first 2 bytes contained correct value
+                        type_obj = klass.from_bytes(prop_bytes[:2])
+                        length = 2
+                        logger.warning("Property color of type UINT16 found with length {} instead of required "
+                                       "length 2. Fixed by taking only first 2 bytes into account.".format(length))
+                    else:
+                        raise err
 
-        return chemdraw_document
+            if prop_name == 'LabelStyle':
+                element.attrib['LabelFont'] = str(type_obj.font_id)
+                element.attrib['LabelSize'] = str(type_obj.font_size_points())
+                element.attrib['LabelFace'] = str(type_obj.font_type)
+            elif prop_name == 'CaptionStyle':
+                element.attrib['CaptionFont'] = str(type_obj.font_id)
+                element.attrib['CaptionSize'] = str(type_obj.font_size_points())
+                element.attrib['CaptionFace'] = str(type_obj.font_type)
+            elif prop_name == 'fonttable' or prop_name == 'colortable':
+                tbl = type_obj.to_element()
+                element.append(tbl)
+            elif prop_name == 'Text':
+                # adds style tags <s></s> to this t element containing styled text
+                type_obj.to_element(element)
+                logger.debug("Added {} styles to text object.".format(len(type_obj.styles)))
+            elif prop_name == 'UTF8Text':
+                # Do nothing. This is a new property no in official spec and represents the
+                # value of a text objext in UTF-8 inside a cdx file.
+                pass
+            else:
+                element.attrib[prop_name]=type_obj.to_property_value()
+
+            # read next tag
+            tag_id = int.from_bytes(cdx.read(2), "little")
+            bit15 = tag_id >> 15 & 1
+            # Determine if this is a unknown property. Properties have the most significant bit clear (=0).
+            # If property is unknown, log it and read next property until a known one is found.
+            # 0 is end of object hence ignore here
+            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawObject.CDX_PROPERTIES:
+                length = int.from_bytes(cdx.read(2), "little")
+                cdx.read(length)
+                logger.warning('Found unknown property {} with length {}. Ignoring this property.'
+                               .format(tag_id.to_bytes(2, "little"), length))
+                # read next tag
+                tag_id = int.from_bytes(cdx.read(2), "little")
+                bit15 = tag_id >> 15 & 1
+
+        logger.debug('Successfully finished reading attributes.')
+        # move back 2 positions, finished reading attributes
+        cdx.seek(cdx.tell() - 2)
+
+    @staticmethod
+    def from_cdxml(root: str) -> 'ChemDrawDocument':
+        return ChemDrawDocument(ET.fromstring(root.encode('utf-8')))
 
     def to_bytes(self) -> bytes:
 
@@ -482,14 +523,7 @@ class ChemDrawDocument(ChemDrawObject):
 
     def to_cdxml(self) -> str:
 
-        cdxml = ET.Element('CDXML')
-        for prop in self.properties:
-            prop.add_as_attribute(cdxml)
-
-        for child in self.children:
-            ChemDrawDocument._traverse_xml(child, cdxml)
-
-        return etree_to_cdxml(cdxml)
+        return etree_to_cdxml(self.cdxml)
 
     @staticmethod
     def _traverse_cdx(node: ChemDrawObject, stream: io.BytesIO):
