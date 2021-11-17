@@ -196,26 +196,25 @@ class ChemDrawDocument(object):
         """
 
         stream = io.BytesIO()
+        # Write document to bytes. needs special handling due to font and color tables.
         stream.write(ChemDrawDocument.HEADER)
+        root = self.cdxml.getroot()
+        self._element_to_stream(root, stream)
+        colortable = root.find("colortable")
+        fonttable = root.find("fonttable")
+        if colortable is not None:
+            type_obj = CDXColorTable.from_element(colortable)
+            tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['colortable']
+            stream.write(tag_id.to_bytes(2, byteorder='little'))
+            self._type_to_stream(type_obj, stream)
+        if fonttable is not None:
+            type_obj = CDXFontTable.from_element(fonttable)
+            tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['fonttable']
+            stream.write(tag_id.to_bytes(2, byteorder='little'))
+            self._type_to_stream(type_obj, stream)
 
-        for element in self.cdxml.getroot().iterdescendants():
-            if element.tag in ['s', 'font', 'color']:
-                # s elements are always in t elements and hence already handled by parent t element
-                # this is needed as there is a mismatch between cdx and cdxml
-                # same for fonts and colors in font/colortable
-                continue
-            elif element.tag == "fonttable":
-                type_obj = CDXFontTable.from_element(element)
-                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['fonttable']
-                stream.write(tag_id.to_bytes(2, byteorder='little'))
-                self._type_to_stream(type_obj, stream)
-            elif element.tag == "colortable":
-                type_obj = CDXColorTable.from_element(element)
-                tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['colortable']
-                stream.write(tag_id.to_bytes(2, byteorder='little'))
-                self._type_to_stream(type_obj, stream)
-            else:
-                self._element_to_stream(element, stream)
+        for child in root:
+            ChemDrawDocument._traverse_tree(child, stream)
 
         # end of document and end of file
         stream.write(b'\x00\x00\x00\x00')
@@ -224,6 +223,17 @@ class ChemDrawDocument(object):
     def to_cdxml(self) -> str:
 
         return etree_to_cdxml(self.cdxml)
+
+    @staticmethod
+    def _traverse_tree(node: ET.Element, stream: io.BytesIO):
+        if not node.tag in ['s', 'font', 'color', 'fonttable', 'colortable']:
+            # s elements are always in t elements and hence already handled by parent t element
+            # this is needed as there is a mismatch between cdx and cdxml
+            # same for fonts and colors and font and colortable
+            ChemDrawDocument._element_to_stream(node, stream)
+            for child in node:
+                ChemDrawDocument._traverse_tree(child, stream)
+            stream.write(b'\x00\x00')
 
     @staticmethod
     def _element_to_stream(element: ET.Element, stream: io.BytesIO):
@@ -300,6 +310,7 @@ class ChemDrawDocument(object):
                 tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['CaptionStyle']
                 stream.write(tag_id.to_bytes(2, byteorder='little'))
                 ChemDrawDocument._type_to_stream(type_obj, stream)
+
         except KeyError:
             logger.error('Missing implementation for element: {}. Ignoring element.'.format(element.tag))
 
