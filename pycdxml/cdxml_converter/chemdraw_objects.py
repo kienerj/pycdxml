@@ -226,7 +226,7 @@ class ChemDrawDocument(object):
 
     @staticmethod
     def _traverse_tree(node: ET.Element, stream: io.BytesIO):
-        if not node.tag in ['s', 'font', 'color', 'fonttable', 'colortable']:
+        if node.tag not in ['s', 'font', 'color', 'fonttable', 'colortable']:
             # s elements are always in t elements and hence already handled by parent t element
             # this is needed as there is a mismatch between cdx and cdxml
             # same for fonts and colors and font and colortable
@@ -243,7 +243,7 @@ class ChemDrawDocument(object):
             if 'id' in element.attrib:
                 stream.write(int(element.attrib['id']).to_bytes(4, "little"))
             else:
-                # Object Read from cdxml with no ID assigend, give it a default one
+                # Object Read from cdxml with no ID assigned, give it a default one
                 stream.write(next(ChemDrawDocument.OBJECT_ID_SEQUENCE).to_bytes(4, "little"))
 
             has_label_style = False
