@@ -20,7 +20,7 @@ DEFAULT_ATOM_LABEL_FONT_SIZE = 10
 DEFAULT_ATOM_LABEL_FONT_COLOR = 0
 
 
-def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1):
+def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1):
     """
     Converts an rdkit molecule into an internal document representation.
 
@@ -33,39 +33,43 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
     :return:
     """
 
-    if chemdraw_style is None:
-        m_path = Path(__file__).parent.parent / "cdxml_slide_generator"
-        template_path = m_path / "ACS 1996.cdxml"
-        chemdraw_style = style.get_style_from_template(template_path)
-        document_properties = ChemDrawProperty.dict_to_properties(chemdraw_style)
-    else:
-        document_properties = ChemDrawProperty.dict_to_properties(chemdraw_style)
-    document = ChemDrawDocument(properties=document_properties)  # or build cdxml doc?
+    # Use ACS 1996 as default style to build cdxml document
+    m_path = Path('C:/Users/kienerj/PycharmProjects/PyCDXML/pycdxml/cdxml_slide_generator')
+    template_path = m_path / "ACS 1996.cdxml"
+    cdxml = ET.parse(str(template_path))
+    root = cdxml.getroot()
+
+    if chemdraw_style is not None:
+        # if style is passed in, overwrite the attributes
+        for key, value in chemdraw_style.items():
+            root.attrib[key] = str(value)
 
     object_id_sequence = iter(range(1, 10000))
-    page = ChemDrawObject(0x8001, "Page", "page", next(object_id_sequence), properties=_get_default_page_properties(),
-                          parent=document, children=[])
+    page = ET.SubElement(root, "page")
+    page.attrib['id'] = str(next(object_id_sequence))
+    page.attrib.update(_get_default_page_properties())
 
     # For proper detection and setting of Wedge Bonds
     mol = Chem.Draw.rdMolDraw2D.PrepareMolForDrawing(mol, kekulize=True, addChiralHs=True, wedgeBonds=True)
 
     conformer = mol.GetConformer(conformer_id)
 
-    atom_coords = _get_coordinates(mol, conformer, float(chemdraw_style["BondLength"]), margin)
+    atom_coords = _get_coordinates(mol, conformer, float(root.attrib["BondLength"]), margin)
     min_coords = np.amin(atom_coords, axis=0)
     max_coords = np.amax(atom_coords, axis=0)
     bb = str(min_coords[0]) + " " + str(min_coords[1]) + " " + str(max_coords[0]) + " " + str(max_coords[1])
-    props = {"BoundingBox": bb, "Z": 20}
+    props = {"BoundingBox": bb, "Z": "20"}
 
-    frg_obj = ChemDrawObject(0x8003, "Fragment", "fragment", next(object_id_sequence),
-                             properties=ChemDrawProperty.dict_to_properties(props), parent=page)
+    fragment = ET.SubElement(page, "fragment")
+    fragment.attrib['id'] = str(next(object_id_sequence))
+    fragment.attrib.update(props)
 
     atom_idx_id = {}
     for idx, atom in enumerate(mol.GetAtoms()):
         object_id = next(object_id_sequence)
         atom_idx_id[idx] = object_id
         p = str(atom_coords[idx][0]) + " " + str(atom_coords[idx][1])
-        props = {"p": p, "Z": 20 + object_id, "Element": str(atom.GetAtomicNum())}
+        props = {"p": p, "Z": str(20 + object_id), "Element": str(atom.GetAtomicNum())}
         if atom.GetAtomicNum() != 6:
             props["NumHydrogens"] = str(atom.GetNumImplicitHs())
         if atom.HasProp('_CIPCode'):
@@ -80,8 +84,9 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
         if atom.GetFormalCharge() != 0:
             props["Charge"] = str(atom.GetFormalCharge())
 
-        atom_obj = ChemDrawObject(0x8004, "Node", "n", object_id, properties=ChemDrawProperty.dict_to_properties(props),
-                                  parent=frg_obj)
+        atom_obj = ET.SubElement(fragment, "n")
+        atom_obj.attrib['id'] = str(object_id)
+        atom_obj.attrib.update(props)
 
         # text label for Heteroatoms or charged carbons
         if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
@@ -103,22 +108,25 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
                     # charge already contains minus symbol no need to add
                     lbl += str(atom.GetFormalCharge())
 
-            cdx_style = CDXFontStyle(int(chemdraw_style.get('LabelFont', DEFAULT_ATOM_LABEL_FONT_ID)),
-                                     int(chemdraw_style.get('LabelFace', DEFAULT_ATOM_LABEL_FONT_FACE)),
+            cdx_style = CDXFontStyle(int(root.attrib.get('LabelFont', DEFAULT_ATOM_LABEL_FONT_ID)),
+                                     int(root.attrib.get('LabelFace', DEFAULT_ATOM_LABEL_FONT_FACE)),
                                      # Font Size in cdx is 1/20ths of a point
-                                     int(float(chemdraw_style.get('LabelSize', DEFAULT_ATOM_LABEL_FONT_SIZE)) * 20),
+                                     int(float(root.attrib.get('LabelSize', DEFAULT_ATOM_LABEL_FONT_SIZE)) * 20),
                                      DEFAULT_ATOM_LABEL_FONT_COLOR)
 
             cdx_string = CDXString(lbl, style_starts=[0], styles=[cdx_style])
-            txt_prop = ChemDrawProperty(0x0700, "Text", cdx_string)
-            ChemDrawObject(0x8006, "Text", "t", object_id, properties=[txt_prop], parent=atom_obj)
+
+            atm_lbl = ET.SubElement(atom_obj, "t")
+            atm_lbl.attrib['id'] = str(next(object_id_sequence))
+            atm_lbl = cdx_string.to_element(atm_lbl)
+            atom_obj.append(atm_lbl)
 
     bonds = {}
     for bond in mol.GetBonds():
         object_id = next(object_id_sequence)
         begin_atom_id = atom_idx_id[bond.GetBeginAtomIdx()]
         end_atom_id = atom_idx_id[bond.GetEndAtomIdx()]
-        props = {"Z": 20 + object_id, "B": str(begin_atom_id), "E": str(end_atom_id)}
+        props = {"Z": str(20 + object_id), "B": str(begin_atom_id), "E": str(end_atom_id)}
 
         bond_type = bond.GetBondType()
         bond_stereo = bond.GetStereo()
@@ -183,10 +191,12 @@ def mol_to_document(mol: rdchem.Mol, chemdraw_style: dict = None, conformer_id: 
         if bond.HasProp("_CDXDisplay"):
             props["Display"] = bond.GetProp("_CDXDisplay")
 
-        bond_obj = ChemDrawObject(0x8005, "Bond", "b", object_id, properties=ChemDrawProperty.dict_to_properties(props), parent=frg_obj)
+        bond_obj = ET.SubElement(fragment, "b")
+        bond_obj.attrib['id'] = str(object_id)
+        bond_obj.attrib.update(props)
         bonds[bond.GetIdx()] = bond_obj
 
-    return document
+    return ChemDrawDocument(cdxml)
 
 
 def _set_end_wedge_display_style(bonds: dict, wedge_bond: rdchem.Bond, display: str):
@@ -204,10 +214,8 @@ def _set_end_wedge_display_style(bonds: dict, wedge_bond: rdchem.Bond, display: 
         # Avoid self match
         if b.GetIdx() != wedge_bond.GetIdx():
             if b.GetIdx() in bonds:
-                props = {}
                 bond_obj = bonds[b.GetIdx()]
-                props["Display"] = display
-                bond_obj.properties.extend(ChemDrawProperty.dict_to_properties(props))
+                bond_obj.attrib["Display"] = display
             else:
                 b.SetProp("_CDXDisplay", display)
 
@@ -217,13 +225,13 @@ def _get_default_page_properties():
              "HeaderPosition": "36",
              "FooterPosition": "36",
              "PrintTrimMarks": "yes",
-             "HeightPages": 1,
-             "WidthPages": 1
+             "HeightPages": "1",
+             "WidthPages": "1"
              }
-    return ChemDrawProperty.dict_to_properties(props)
+    return props
 
 
-def _get_coordinates(mol: rdchem.Mol, conformer: rdchem.Conformer, bond_length: float, margin: float):
+def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: float, margin: float):
     """
     Assume coordinates are already in points (not true) but it works. Then we simply determine the current bond length
     (usually 1.5 = rdkit default) and scale all coordinates so that bond length then matches to the used styles bond
@@ -275,4 +283,4 @@ def _get_coordinates(mol: rdchem.Mol, conformer: rdchem.Conformer, bond_length: 
         coords_trans = c_scaled + t
         return np.around(coords_trans, decimals=2)
     else:
-        raise ValueError("Average Bond Lenght is 0 or negative.")
+        raise ValueError("Average Bond Length is 0 or negative.")
