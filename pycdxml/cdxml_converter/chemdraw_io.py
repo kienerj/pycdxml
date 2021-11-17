@@ -46,10 +46,8 @@ def read_cdxml(cdxml_file) -> ChemDrawDocument:
     else:
         # assume opened file-handle
         cdxml = cdxml_file.read()
-
-    root = ET.fromstring(cdxml)
-    document = ChemDrawDocument.from_cdxml(root)
-    return document
+    cdxml_stream = io.BytesIO(cdxml)
+    return ChemDrawDocument(ET.parse(cdxml_stream))
 
 
 def write_cdxml_file(document: ChemDrawDocument, file):

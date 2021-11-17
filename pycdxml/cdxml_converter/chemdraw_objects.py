@@ -35,7 +35,7 @@ class ChemDrawDocument(object):
     # Use this sequence to set missing id in xml docs
     OBJECT_ID_SEQUENCE = iter(range(5000, 100000))
 
-    def __init__(self, cdxml: ET):
+    def __init__(self, cdxml: ET.ElementTree):
         self.cdxml = cdxml
 
     @staticmethod
@@ -187,8 +187,9 @@ class ChemDrawDocument(object):
         cdx.seek(cdx.tell() - 2)
 
     @staticmethod
-    def from_cdxml(root: str) -> 'ChemDrawDocument':
-        return ChemDrawDocument(ET.fromstring(root.encode('utf-8')))
+    def from_cdxml(cdxml: str) -> 'ChemDrawDocument':
+        cdxml_bytes = io.BytesIO(cdxml.encode('utf-8'))
+        return ChemDrawDocument(ET.parse(cdxml_bytes))
 
     def to_bytes(self) -> bytes:
         """
