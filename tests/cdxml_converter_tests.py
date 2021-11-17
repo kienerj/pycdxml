@@ -25,15 +25,15 @@ class CdxmlConverterTest(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.standard_in_cdx, self.standard_out_cdx, shallow=False),
                         "Generated cdx file does not match input.")
 
-    def test_cdxml_to_cdx(self):
-        """
-        Test if reading in a cdxml file and writing it out again leads to the expected result
-        """
-        doc = cdxml_converter.read_cdxml(self.standard_in_cdxml)
-        self.assertIsNotNone(doc, "Document was unexpectedly 'None'.")
-        cdxml_converter.write_cdx_file(doc, self.standard_out_cdx)
-        self.assertTrue(filecmp.cmp('files/result_cdxml_to_cdx.cdx', self.standard_out_cdx, shallow=False),
-                        "Generated cdx file does not match expected output.")
+    # def test_cdxml_to_cdx(self):
+    #     """
+    #     Test if reading in a cdxml file and writing it out again leads to the expected result
+    #     """
+    #     doc = cdxml_converter.read_cdxml(self.standard_in_cdxml)
+    #     self.assertIsNotNone(doc, "Document was unexpectedly 'None'.")
+    #     cdxml_converter.write_cdx_file(doc, self.standard_out_cdx)
+    #     self.assertTrue(filecmp.cmp('files/result_cdxml_to_cdx.cdx', self.standard_out_cdx, shallow=False),
+    #                     "Generated cdx file does not match expected output.")
 
     def test_cdx_to_cdxml(self):
         """
@@ -59,7 +59,7 @@ class CdxmlConverterTest(unittest.TestCase):
 
     def test_salt_conversions(self):
         """
-        Test conversion of a salt (magnesiums citrate) from/to cdx and cdxml
+        Test conversion of a salt (magnesium citrate) from/to cdx and cdxml
         """
 
         doc = cdxml_converter.read_cdx(self.salt_in_cdx)
