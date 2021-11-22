@@ -2,9 +2,7 @@
 
 `pycdxml` package contains several modules to support working with `cdxml`and `cdx`file formats used by ChemDraw in an automated, platform-independent way. The package works without needing to have ChemDraw installed and also on non-windows systems (untested but no reason it should not work, pure python).
 
-Initially conceived as 3 separate projects they were converted to a single project / git repository to simplify their management and because they partially depend on each other anyway. 
-
-For example a hypothetical usage scenario is to convert an RDKit molecules to `cdxml`, apply the desired ChemDraw Style to all of them and generate a `cdxml`file contain them all nicely aligned. If needed this `cdxml`file can then be converted to a binary `cdx`file or base64-encoded `cdx` string. The `cdxml`or `cdx` file would then be a normal ChemDraw document that could then be opened in ChemDraw and adjusted by the end-user (chemist) to their needs.
+A hypothetical usage scenario is to convert an RDKit molecules to `cdxml`, apply the desired ChemDraw Style to all of them and generate a `cdxml`file contain them all nicely aligned. If needed this `cdxml`file can then be converted to a binary `cdx`file or base64-encoded `cdx` string. The `cdxml`or `cdx` file would then be a normal ChemDraw document that could then be opened in ChemDraw and adjusted by the end-user (chemist) to their needs.
 
 ## Installation
 
@@ -17,12 +15,11 @@ channels:
   - defaults   
 dependencies:
   - python>=3.8  
-  - pip
   - rdkit>=2020.09.1 
   - numpy
-  - anytree
   - pyyaml
   - lxml
+  - pip
 ```
 
 ```bash
@@ -37,9 +34,81 @@ python -m pip install -e c:\path\to\PyCDXML
 
 If you clone the repo with git (vs downloading), this has the advantage that you can use git to pull new commits and you can then immediately use the new version without any further changes.
 
+## Usage Examples
+
+Usage example here towards the top of the README but I very much advise to still read the full document! Caveats apply!
+
+### Format Conversions
+
+```python
+from pycdxml import cdxml_converter
+
+# cdx to cdxml
+doc = cdxml_converter.read_cdx('/path/to/structure.cdx')    
+cdxml_converter.write_cdxml_file(doc, '/path/to/structure.cdxml')
+
+#cdxml to base64 encoded cdx
+doc = cdxml_converter.read_cdxml('/path/to/structure.cdxml')
+b64 = cdxml_converter.to_b64_cdx(doc)
+
+# rdkit to ChemDraw
+from rdkit import Chem
+suppl = Chem.SDMolSupplier('/path/to/structures.sdf')
+cdxmls = []
+for mol in suppl:     
+    cdxml = cdxml_converter.mol_to_document(mol)
+    cdxmls.append(cdxml)
+```
+
+### Applying a style
+
+```python
+from pycdxml import cdxml_styler
+from pycdxml import cdxml_converter
+
+# apply style from an existing file
+# if outpath is none, input will be overwritten
+styler = cdxml_styler.CDXMLStyler(style_source="/path/to/ACS 1996.cdxml")
+styler.apply_style_to_file('/path/to/input.cdxml', outpath='/path/to/output.cdxml')
+
+# apply style to document
+doc = cdxml_converter.read_cdxml('/path/to/input.cdxml')
+styler.apply_style_to_doc(doc)
+# and now convert to base64 encoded cdx
+b64 = cdxml_converter.to_b64_cdx(doc)
+```
+
+### Slide Generator
+
+Creates a cdxml file with an overview of the input structures and their properties nicely aligned for example for putting into a presentation. Since the output is a valid ChemDraw file, the end-user can still edit the output to his needs.
+
+```python
+from pycdxml.cdxml_slide_generator import TextProperty, CDXMLSlideGenerator
+
+# Preparation
+structures = []
+properties = []
+# files = list of paths to cdxml files
+for idx, f in enumerate(files):
+    with open(f, 'r') as file:
+        cdxml = file.read()
+        self.structures.append(cdxml)
+        # Generate Properties
+        props = [TextProperty('ID', idx, color='#3f6eba'),
+                 TextProperty('Name', "Molecule " + str(idx), show_name=True)]
+        self.properties.append(props)
+
+sg = CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2)
+slide = sg.generate_slide(structures, properties)
+with open('slide_out.cdxml', 'w', encoding='utf8') as f:
+    f.write(slide)
+```
+
+
+
 ## Project Status
 
-The overall status of the project can be described best as **alpha**. It somewhat depends on the specific module used and how you use it. Within the limited scope of basic small molecules, the code will mostly work. I'm sure there are some unknown bugs and edge-cases not present in my set of test molecules but staying in that scope, any you will probably be fine.
+The overall status of the project can be described best as **alpha**. It somewhat depends on the specific module used and how you use it. Within the limited scope of basic small molecules, the code will likely work. I'm sure there are some unknown bugs and edge-cases not present in my set of test molecules but staying in that scope, any you will probably be fine.
 
 Where you might run into issues is with salts, reactions and for sure organometallics or anything that contains non-chemical related drawings.
 
@@ -47,11 +116,11 @@ It's best to limit usage to "single-molecule" documents essentially treating the
 
 ## CDXMLConverter
 
-`cdxml_converter`module allows you to convert between `cdxml`and `cdx` files. Reading in a cdx into the internal representation and writing it out again will lead to a 100% identical file on binary level (if only supported features are used). 
-
-There is also experimental support to convert [RDKit](https://github.com/rdkit/rdkit) molecules to `cdxml` or `cdx` files.
+`cdxml_converter`module allows you to convert between `cdxml`and `cdx` files. There is also support to convert [RDKit](https://github.com/rdkit/rdkit) molecules to `cdxml` or `cdx` files.
 
 The conversions are based on PerkinElmers (formerly CambridgeSofts) official but very much outdated format specification available [here](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/IntroCDX.htm). Some features required some "reverse engineering" as they are either new or different from the specification. For more details see the README.md in the modules directory.
+
+major known issue: very old `cdx` files do not adhere to the official format specification and hence very often fail to be read (old means around ChemDraw 7 time-frame and older).
 
 ## CDXMLStyler
 
@@ -67,7 +136,7 @@ As additional note ChemDraw calls properties "Annotations".  The text below the 
 
 ## Contribute
 
-Please absolutely do. Just reporting issues will already help and in that case please include the affected `cdx` and `cdxml` file(s). 
+Please absolutely do. Just reporting issues will already help and in that case please include the affected `cdx` and `cdxml` file(s). 
 
 ### Add Tests
 
