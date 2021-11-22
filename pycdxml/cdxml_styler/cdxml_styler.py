@@ -1,5 +1,6 @@
 from ..utils import style
 from ..utils import cdxml_io
+from ..cdxml_converter import ChemDrawDocument
 from lxml import etree as ET
 import numpy as np
 import logging
@@ -68,6 +69,10 @@ class CDXMLStyler(object):
         logger.debug("Style applied. Returning result cdxml string.")
         return cdxml_io.etree_to_cdxml(result)
 
+    def apply_style_to_doc(self, doc: ChemDrawDocument):
+
+        self._apply_style(doc.cdxml.getroot())
+
     def _apply_style(self, root: ET.Element) -> ET.Element:
 
         """Applies the selected style to the input cdxml string and all contained drawings and returns the modified
@@ -90,9 +95,10 @@ class CDXMLStyler(object):
         root.attrib["LabelFace"] = self.style["LabelFace"]
         root.attrib["LabelFont"] = self.style["LabelFont"]
 
-        implicit_h_source = root.attrib["HideImplicitHydrogens"]
+        # if not present, specification says it means "no"
+        implicit_h_source = root.attrib.get("HideImplicitHydrogens", 'no')
         root.attrib["HideImplicitHydrogens"] = self.style["HideImplicitHydrogens"]
-        implict_h_changed = implicit_h_source != self.style["HideImplicitHydrogens"]
+        implicit_h_changed = implicit_h_source != self.style["HideImplicitHydrogens"]
 
         bond_length = float(self.style["BondLength"])
 
@@ -166,7 +172,7 @@ class CDXMLStyler(object):
                             s.attrib["font"] = self.style["LabelFont"]
 
                             # Change implicit hydrogen display if needed
-                            if implict_h_changed \
+                            if implicit_h_changed \
                                     and "NumHydrogens" in node.attrib and int(node.attrib["NumHydrogens"]) > 0:
                                 if self.style["HideImplicitHydrogens"] == "no":
                                     # add implicit Hs to text
