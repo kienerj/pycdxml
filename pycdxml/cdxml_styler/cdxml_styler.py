@@ -194,6 +194,13 @@ class CDXMLStyler(object):
                                     s.text = txt
                     idx += 1
 
+                # scale font size of bond labels for query bonds like the S/D bond type
+                query_bond_texts = fragment.xpath('b/objecttag[@Name="query"]/t/s')
+                for s in query_bond_texts:
+                    s.attrib["size"] = str(float(self.style["LabelSize"]) * 0.75)
+                    s.attrib["face"] = self.style["LabelFace"]
+                    s.attrib["font"] = self.style["LabelFont"]
+
             return root
 
         except KeyError:
