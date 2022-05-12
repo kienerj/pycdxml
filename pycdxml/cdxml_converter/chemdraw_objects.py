@@ -32,11 +32,10 @@ class ChemDrawDocument(object):
         CDX_PROPERTIES = yaml.safe_load(stream)
     PROPERTY_NAME_TO_TAG = {value["name"]: key for key, value in CDX_PROPERTIES.items()}
 
-    # Use this sequence to set missing id in xml docs
-    OBJECT_ID_SEQUENCE = iter(range(5000, 100000))
-
     def __init__(self, cdxml: ET.ElementTree):
         self.cdxml = cdxml
+        # Use this sequence to set missing id in xml docs
+        self.object_id_sequence = iter(range(5000, 100000))
 
     @staticmethod
     def from_bytes(cdx: io.BytesIO) -> 'ChemDrawDocument':
@@ -215,7 +214,7 @@ class ChemDrawDocument(object):
             self._type_to_stream(type_obj, stream)
 
         for child in root:
-            ChemDrawDocument._traverse_tree(child, stream)
+            self._traverse_tree(child, stream)
 
         # end of document and end of file
         stream.write(b'\x00\x00\x00\x00')
@@ -225,19 +224,17 @@ class ChemDrawDocument(object):
 
         return etree_to_cdxml(self.cdxml)
 
-    @staticmethod
-    def _traverse_tree(node: ET.Element, stream: io.BytesIO):
+    def _traverse_tree(self, node: ET.Element, stream: io.BytesIO):
         if node.tag not in ['s', 'font', 'color', 'fonttable', 'colortable']:
             # s elements are always in t elements and hence already handled by parent t element
             # this is needed as there is a mismatch between cdx and cdxml
             # same for fonts and colors and font and colortable
-            ChemDrawDocument._element_to_stream(node, stream)
+            self._element_to_stream(node, stream)
             for child in node:
-                ChemDrawDocument._traverse_tree(child, stream)
+                self._traverse_tree(child, stream)
             stream.write(b'\x00\x00')
 
-    @staticmethod
-    def _element_to_stream(element: ET.Element, stream: io.BytesIO):
+    def _element_to_stream(self, element: ET.Element, stream: io.BytesIO):
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
             stream.write(tag_id.to_bytes(2, "little"))
@@ -245,7 +242,7 @@ class ChemDrawDocument(object):
                 stream.write(int(element.attrib['id']).to_bytes(4, "little"))
             else:
                 # Object Read from cdxml with no ID assigned, give it a default one
-                stream.write(next(ChemDrawDocument.OBJECT_ID_SEQUENCE).to_bytes(4, "little"))
+                stream.write(next(self.object_id_sequence).to_bytes(4, "little"))
 
             has_label_style = False
             has_caption_style = False
