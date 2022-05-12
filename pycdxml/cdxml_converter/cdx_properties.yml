@@ -105,7 +105,7 @@
   type: INT16
 0x0400:
   name: NodeType
-  type: INT16
+  type: CDXNodeType
 0x0401:
   name: LabelDisplay
   type: INT8

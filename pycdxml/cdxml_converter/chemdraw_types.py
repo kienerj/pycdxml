@@ -1647,4 +1647,46 @@ class CDXAtomGeometry(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXAtomGeometry(self.geometry))
+        prop_val = val.split('.')[1]  # only actually value without enum name
+        return prop_val.replace("m_", "")
+
+
+class CDXNodeType(CDXType, Enum):
+
+    Unspecified = 0
+    Element = 1
+    ElementList = 2
+    ElementListNickname = 3
+    Nickname = 4
+    Fragment = 5
+    Formula = 6
+    GenericNickname = 7
+    AnonymousAlternativeGroup = 8
+    NamedAlternativeGroup = 9
+    MultiAttachment = 10
+    VariableAttachment = 11
+    ExternalConnectionPoint = 12
+    LinkNode = 13
+
+    def __init__(self, value: int):
+        if -1 > value > 13:
+            raise ValueError("Needs to be between 0 and 13")
+        self.node_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXNodeType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXNodeType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXNodeType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXNodeType':
+        return CDXNodeType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.node_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXNodeType(self.node_type))
         return val.split('.')[1]  # only actually value without enum name
