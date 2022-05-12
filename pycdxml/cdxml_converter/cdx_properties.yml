@@ -159,7 +159,7 @@
   type: CDXBooleanImplied
 0x0430:
   name: Geometry
-  type: INT8
+  type: CDXAtomGeometry
 0x0431:
   name: BondOrdering
   type: CDXObjectIDArray

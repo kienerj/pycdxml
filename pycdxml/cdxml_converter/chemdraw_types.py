@@ -1602,3 +1602,49 @@ class CDXLineHeight(CDXType):
             return 'auto'
         else:
             return str(self.value)
+
+
+class CDXAtomGeometry(CDXType, Enum):
+
+    Unknown = 0
+    m_1 = 1
+    Linear = 2
+    Bent = 3
+    TrigonalPlanar = 4
+    TrigonalPyramidal = 5
+    SquarePlanar = 6
+    Tetrahedral = 7
+    TrigonalBipyramidal = 8
+    SquarePyramidal = 9
+    m_5 = 10
+    Octahedral = 11
+    m_6 = 12
+    m_7 = 13
+    m_8 = 14
+    m_9 = 15
+    m_10 = 16
+
+    def __init__(self, value: int):
+        if -1 > value > 16:
+            raise ValueError("Needs to be between 0 and 6")
+        self.geometry = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXAtomGeometry':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXAtomGeometry should consist of exactly 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXAtomGeometry(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXAtomGeometry':
+        if value.isdigit():
+            value = 'm_' + value
+        return CDXAtomGeometry[value]
+
+    def to_bytes(self) -> bytes:
+        return self.geometry.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXAtomGeometry(self.geometry))
+        return val.split('.')[1]  # only actually value without enum name
