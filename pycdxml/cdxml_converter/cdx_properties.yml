@@ -738,7 +738,7 @@
   type: CDXObjectIDArray
 0x0D00:
   name: TagType
-  type: INT16
+  type: CDXTagType
 0x0D03:
   name: Tracking
   type: CDXBoolean

@@ -1735,3 +1735,34 @@ class CDXSymbolType(CDXType, Enum):
         else:
             val = str(CDXSymbolType(self.symbol_type))
             return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXTagType(CDXType, Enum):
+
+    Unknown = 0
+    Double = 1
+    Long = 2
+    String = 3
+
+    def __init__(self, value: int):
+        if -1 > value > 3:
+            raise ValueError("Needs to be between 0 and 3")
+        self.tag_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXTagType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXTagType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXTagType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXTagType':
+        return CDXTagType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.tag_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXTagType(self.tag_type))
+        return val.split('.')[1]  # only actually value without enum name
