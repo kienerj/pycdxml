@@ -1707,7 +1707,7 @@ class CDXSymbolType(CDXType, Enum):
     Racemic = 10
     Absolute = 11
     Relative = 12
-    LonePair = 13
+    LonePair_2 = 13
 
     def __init__(self, value: int):
         if -1 > value > 13:
@@ -1729,5 +1729,9 @@ class CDXSymbolType(CDXType, Enum):
         return self.symbol_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        val = str(CDXSymbolType(self.symbol_type))
-        return val.split('.')[1]  # only actually value without enum name
+        if self.symbol_type == 13:
+            # Specifications mentions LonePair twice as cdxml text value but 2 options in cdx
+            return "LonePair"
+        else:
+            val = str(CDXSymbolType(self.symbol_type))
+            return val.split('.')[1]  # only actually value without enum name
