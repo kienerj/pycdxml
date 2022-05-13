@@ -480,7 +480,7 @@
   type: CDXBracketType
 0x0A07:
   name: SymbolType
-  type: INT16
+  type: CDXSymbolType
 0x0A08:
   name: CurveType
   type: INT16

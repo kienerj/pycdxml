@@ -1690,3 +1690,44 @@ class CDXNodeType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXNodeType(self.node_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXSymbolType(CDXType, Enum):
+
+    LonePair = 0
+    Electron = 1
+    RadicalCation = 2
+    RadicalAnion = 3
+    CirclePlus = 4
+    CircleMinus = 5
+    Dagger = 6
+    DoubleDagger = 7
+    Plus = 8
+    Minus = 9
+    Racemic = 10
+    Absolute = 11
+    Relative = 12
+    LonePair = 13
+
+    def __init__(self, value: int):
+        if -1 > value > 13:
+            raise ValueError("Needs to be between 0 and 13")
+        self.symbol_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXSymbolType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXSymbolType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXSymbolType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXSymbolType':
+        return CDXSymbolType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.symbol_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXSymbolType(self.symbol_type))
+        return val.split('.')[1]  # only actually value without enum name
