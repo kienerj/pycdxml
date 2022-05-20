@@ -1894,7 +1894,7 @@ class CDXRectangleType(CDXType, Enum):
 
     def __init__(self, value: int):
         if 0 > value > 32:
-            raise ValueError("Needs to be between 0 and 520")
+            raise ValueError("Needs to be between 0 and 32")
         self.rectangle_type = value
 
     @staticmethod
@@ -1913,4 +1913,95 @@ class CDXRectangleType(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXRectangleType(self.rectangle_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXLineType(CDXType, Enum):
+
+    Solid = 0
+    Dashed = 1
+    Bold = 2
+    Wavy = 4
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.line_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXLineType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXLineType should consist 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXLineType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXLineType':
+        return CDXLineType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.line_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXLineType(self.line_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXPolymerRepeatPattern(CDXType, Enum):
+
+    HeadToTail = 0
+    HeadToHead = 1
+    EitherUnknown = 2
+
+    def __init__(self, value: int):
+        if 0 > value > 2:
+            raise ValueError("Needs to be between 0 and 2")
+        self.repeat_pattern = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXPolymerRepeatPattern':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXPolymerRepeatPattern should consist 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXPolymerRepeatPattern(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPolymerRepeatPattern':
+        return CDXPolymerRepeatPattern[value]
+
+    def to_bytes(self) -> bytes:
+        return self.repeat_pattern.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXPolymerRepeatPattern(self.repeat_pattern))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXPolymerFlipType(CDXType, Enum):
+
+    Unspecified = 0
+    NoFlip = 1
+    Flip = 2
+
+    def __init__(self, value: int):
+        if 0 > value > 2:
+            raise ValueError("Needs to be between 0 and 2")
+        self.flip_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXPolymerFlipType':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXPolymerFlipType should consist 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXPolymerFlipType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPolymerFlipType':
+        return CDXPolymerFlipType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.flip_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXPolymerFlipType(self.flip_type))
         return val.split('.')[1]  # only actually value without enum name

@@ -462,7 +462,7 @@
   type: CDXGraphicType
 0x0A01:
   name: LineType
-  type: INT16
+  type: CDXLineType
 0x0A02:
   name: ArrowType
   type: CDXArrowType
@@ -501,10 +501,10 @@
   type: CDXBracketUsage
 0x0A25:
   name: PolymerRepeatPattern
-  type: INT8
+  type: CDXPolymerRepeatPattern
 0x0A26:
   name: PolymerFlipType
-  type: INT8
+  type: CDXPolymerFlipType
 0x0A27:
   name: BracketedObjectIDs
   type: CDXObjectIDArray
