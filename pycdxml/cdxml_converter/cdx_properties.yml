@@ -471,7 +471,7 @@
   type: INT16
 0x0A04:
   name: OvalType
-  type: INT16
+  type: CDXOvalType
 0x0A05:
   name: OrbitalType
   type: INT16
