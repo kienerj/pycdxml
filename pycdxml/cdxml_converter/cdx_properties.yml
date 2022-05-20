@@ -474,7 +474,7 @@
   type: CDXOvalType
 0x0A05:
   name: OrbitalType
-  type: INT16
+  type: CDXOrbitalType
 0x0A06:
   name: BracketType
   type: CDXBracketType

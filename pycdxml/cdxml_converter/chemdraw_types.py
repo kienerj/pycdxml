@@ -1832,3 +1832,51 @@ class CDXOvalType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXPositioningType(self.oval_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXOrbitalType(CDXType, Enum):
+    s = 0
+    oval = 1
+    lobe = 2
+    p = 3
+    hybridPlus = 4
+    hybridMinus = 5
+    dz2Plus = 6
+    dz2Minus = 7
+    dxy = 8
+    sShaded = 256
+    ovalShaded= 257
+    lobeShaded = 258
+    pShaded = 259
+    sFilled = 512
+    ovalFilled = 513
+    lobeFilled = 514
+    pFilled = 515
+    hybridPlusFilled = 516
+    hybridMinusFilled = 517
+    dz2PlusFilled = 518
+    dz2MinusFilled = 519
+    dxyFilled = 520
+
+    def __init__(self, value: int):
+        if 0 > value > 520:
+            raise ValueError("Needs to be between 0 and 520")
+        self.orbital_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXOrbitalType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXOrbitalType should consist 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXOrbitalType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXOrbitalType':
+        return CDXOrbitalType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.orbital_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXOrbitalType(self.orbital_type))
+        return val.split('.')[1]  # only actually value without enum name
