@@ -468,7 +468,7 @@
   type: CDXArrowType
 0x0A03:
   name: RectangleType
-  type: INT16
+  type: CDXRectangleType
 0x0A04:
   name: OvalType
   type: CDXOvalType

@@ -1880,3 +1880,37 @@ class CDXOrbitalType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXOrbitalType(self.orbital_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXRectangleType(CDXType, Enum):
+
+    Plain = 0
+    RoundEdge = 1
+    Shadow = 2
+    Shaded = 4
+    Filled = 8
+    Dashed = 16
+    Bold = 32
+
+    def __init__(self, value: int):
+        if 0 > value > 32:
+            raise ValueError("Needs to be between 0 and 520")
+        self.rectangle_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXRectangleType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXRectangleType should consist 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXRectangleType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXRectangleType':
+        return CDXRectangleType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.rectangle_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXRectangleType(self.rectangle_type))
+        return val.split('.')[1]  # only actually value without enum name
