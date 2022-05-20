@@ -742,8 +742,7 @@ class CDXBondSpacing(CDXType):
 
     @staticmethod
     def from_string(value: str) -> 'CDXBondSpacing':
-
-        return CDXBondSpacing(int(value) * 10)
+        return CDXBondSpacing(int(float(value) * 10))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
