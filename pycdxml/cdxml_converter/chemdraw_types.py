@@ -1798,3 +1798,37 @@ class CDXPositioningType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXPositioningType(self.positioning_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXOvalType(CDXType, Enum):
+
+    Circle = 1
+    Shaded = 2
+    Filled = 4
+    Dashed = 8
+    Bold = 16
+    Shadowed = 32
+
+    def __init__(self, value: int):
+        if 1 > value > 32:
+            raise ValueError("Needs to be between 1 and 32")
+        self.oval_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXOvalType':
+        if len(property_bytes) < 1 and len(property_bytes) > 2:
+            # Bug in ChemDraw 8 wrote this as only 1-byte (int8) so must allow 1 or 2 bytes
+            raise ValueError("CDXOvalType should consist of 1 or 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXOvalType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXOvalType':
+        return CDXOvalType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.oval_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXPositioningType(self.oval_type))
+        return val.split('.')[1]  # only actually value without enum name
