@@ -1159,7 +1159,7 @@ class CDXBracketUsage(CDXType):
     @staticmethod
     def from_string(value: str) -> 'CDXBracketUsage':
         # return int value and not actual enum instance
-        return CDXBracketUsage.BracketUsage[value].value
+        return CDXBracketUsage(CDXBracketUsage.BracketUsage[value].value)
 
     def to_bytes(self) -> bytes:
         val = self.bracket_usage.to_bytes(1, byteorder='little', signed=True)
