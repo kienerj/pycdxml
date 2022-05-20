@@ -195,6 +195,7 @@ class ChemDrawDocument(object):
         Generates a cdx file as bytes in memory
         """
 
+        logger.info("Starting to convert document to cdx.")
         stream = io.BytesIO()
         # Write document to bytes. needs special handling due to font and color tables.
         stream.write(ChemDrawDocument.HEADER)
@@ -218,6 +219,7 @@ class ChemDrawDocument(object):
 
         # end of document and end of file
         stream.write(b'\x00\x00\x00\x00')
+        logger.info("Finished converting document to cdx.")
         return stream.getvalue()
 
     def to_cdxml(self) -> str:
