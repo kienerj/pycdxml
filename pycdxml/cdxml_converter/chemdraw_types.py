@@ -84,7 +84,11 @@ class CDXString(CDXType):
         for idx, style in enumerate(self.styles):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
             stream.write(style.to_bytes())
-        stream.write(self.str_value.encode(self.charset))
+        try:
+            stream.write(self.str_value.encode(self.charset))
+        except UnicodeError as e:
+            logger.error("Caught UnicodeError {}. Retrying with UTF-8".format(e))
+            stream.write(self.str_value.encode('utf8'))
         logger.debug('Wrote CDXString with value {}.'.format(self.str_value))
         stream.seek(0)
         return stream.read()
