@@ -750,7 +750,7 @@
   type: varies
 0x0D06:
   name: PositioningType
-  type: INT8
+  type: CDXPositioningType
 0x0D07:
   name: PositioningAngle
   type: INT32

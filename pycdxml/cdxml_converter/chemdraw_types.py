@@ -57,7 +57,7 @@ class CDXString(CDXType):
         return CDXString(value)
 
     @staticmethod
-    def from_element(t: ET.Element, charset='iso-8859-1') -> 'CDXType':
+    def from_element(t: ET.Element, charset='iso-8859-1') -> 'CDXString':
         """
         create CDXString from a parent xml <t> element
         :return:
@@ -1766,4 +1766,35 @@ class CDXTagType(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXTagType(self.tag_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXPositioningType(CDXType, Enum):
+
+    auto = 0
+    angle = 1
+    offset = 2
+    absolute = 3
+
+    def __init__(self, value: int):
+        if -1 > value > 3:
+            raise ValueError("Needs to be between 0 and 3")
+        self.positioning_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXPositioningType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXPositioningType should consist of exactly 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXPositioningType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPositioningType':
+        return CDXPositioningType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.positioning_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXPositioningType(self.positioning_type))
         return val.split('.')[1]  # only actually value without enum name
