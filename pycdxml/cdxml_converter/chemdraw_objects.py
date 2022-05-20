@@ -320,8 +320,8 @@ class ChemDrawDocument(object):
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
             klass = globals()[chemdraw_type]
             type_obj = klass.from_string(value)
-            ChemDrawDocument._type_to_stream(type_obj, stream)
             logger.debug("Writing attribute {} with value '{}'.".format(attrib, value))
+            ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
             logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attrib))
 
