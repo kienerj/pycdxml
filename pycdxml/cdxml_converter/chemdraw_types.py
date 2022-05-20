@@ -1594,7 +1594,11 @@ class CDXLineHeight(CDXType):
         elif value == 'variable':
             return CDXLineHeight(0)
         else:
-            return CDXLineHeight(int(value))
+            try:
+                return CDXLineHeight(int(value))
+            except ValueError:
+                logger.error("Found invalid LineHeight value {}. Was cast to int.".format(value))
+                return CDXLineHeight(int(float(value)))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
