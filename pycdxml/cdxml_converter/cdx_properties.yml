@@ -684,7 +684,7 @@
   type: CDXObjectIDArray
 0x0B83:
   name: ConstraintType
-  type: INT8
+  type: CDXConstraintType
 0x0B84:
   name: ConstraintMin
   type: FLOAT64

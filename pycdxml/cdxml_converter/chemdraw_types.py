@@ -2005,3 +2005,34 @@ class CDXPolymerFlipType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXPolymerFlipType(self.flip_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXConstraintType(CDXType, Enum):
+
+    Undefined = 0
+    Distance = 1
+    Angle = 2
+    ExclusionSphere = 3
+
+    def __init__(self, value: int):
+        if 0 > value > 3:
+            raise ValueError("Needs to be between 0 and 3")
+        self.constraint_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXConstraintType':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXConstraintType should consist 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXConstraintType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXConstraintType':
+        return CDXConstraintType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.constraint_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXConstraintType(self.constraint_type))
+        return val.split('.')[1]  # only actually value without enum name
