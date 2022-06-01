@@ -140,8 +140,8 @@ class CDXMLStyler(object):
 
                 logger.debug("Applying new coordinates and label styles.")
 
-                node_attributes = ['id', 'p', 'Z', 'AS', 'Element', 'NumHydrogens', 'Geometry', 'NeedsClean']
-                t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment']
+                unwanted_node_attributes = ['LabelFont', 'LabelSize', 'LabelFace', 'LineWidth']
+                t_attributes = ['p', 'BoundingBox', 'LabelJustification', 'LabelAlignment', 'Z']
 
                 idx = 0
                 label_idx = 0
@@ -149,8 +149,7 @@ class CDXMLStyler(object):
                     coords_xml = str(final_coords[idx][0]) + " " + str(final_coords[idx][1])
                     node.attrib['p'] = coords_xml
 
-                    unwanted = set(node.attrib) - set(node_attributes)
-                    for unwanted_key in unwanted:
+                    for unwanted_key in unwanted_node_attributes:
                         logger.info("Deleting unneeded attribute {} from node element.".format(unwanted_key))
                         del node.attrib[unwanted_key]
 
