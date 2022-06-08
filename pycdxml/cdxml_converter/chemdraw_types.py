@@ -69,7 +69,8 @@ class CDXString(CDXType):
         style_start = 0
         for s in t.iter(tag='s'):
             style_starts.append(style_start)
-            value += s.text
+            if s.text is not None:
+                value += s.text
             style_start = len(value)
             font_style = CDXFontStyle.from_element(s)
             font_styles.append(font_style)
@@ -1598,7 +1599,7 @@ class CDXLineHeight(CDXType):
                 return CDXLineHeight(int(value))
             except ValueError:
                 logger.error("Found invalid LineHeight value {}. Was cast to int.".format(value))
-                return CDXLineHeight(int(float(value)))
+                return CDXLineHeight(int(round(float(value))))
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
