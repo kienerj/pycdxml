@@ -10,26 +10,24 @@ Note that there is no chemical knowledge in this tool! It really is just a forma
 
 ## Status
 
-The **status of the project is at best "alpha"** simply due to the limited scope of tested molecules for now. It has to be assumed that anything that isn't a basic small molecules will probably either fail or more likely lead to an invalid output. 
+The **status of the project is at best "alpha"** simply due to the limited scope of tested molecules and limitations how to validate the result. It has to be assumed that anything that isn't a basic small molecules can either fail or even worse lead to an invalid output without error. 
 
 What its implemented:
 
 - Conversion to/from cdx to/from cdxml for small molecules and simple reactions
-- Conversion from RDKit Mol to cdx/cdxml
-
-One can also convert simple and small RDKit Mol instances into the internal representation which can then either be converted to cdx or cdxml.
+- Conversion from simple RDKit Mols to cdx/cdxml
 
 ## ChemDraw Format Specification
 
 #### Issues
 
-The [official specification](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/General.htm) is very much outdated. It's contradicts itself in some places any many properties and objects are outright missing or seem to have changed their type. Some of this issues have been solved simply by changing the type or reverse-engineering the property if it is simple enough.
+The [official specification](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/General.htm) is very much outdated. It's contradicts itself in some places any many properties and objects are outright missing or seem to have changed their type. Some of this issues have been solved simply by changing the type or by trial and error if it is simple enough.
 
 There is an [updated header file](http://forums.cambridgesoft.com/messageview.aspx?catid=12&threadid=3822) on old CambridgeSoft forums but it doesn't explain the type or usage of new object or properties so it's of limited value.
 
 A much bigger issue are inconsistent data types. By creating trivial test files I found that properties `color(UNINT16) `and `BracketUsage (INT8)` can appear with wrong number of bytes in the cdx file (4 and 2). These additional bytes are 0 and it's unclear what they are for. Removing the 0-bytes from color leads to a file that looks exactly the same in ChemDraw UI. Hence their reason to exist is unclear.
 
-The biggest limitation is that very old cdx files do not adhere to the official cdx specification and can hence in many cases not be interpreted.
+The biggest limitation is that very old cdx files (pre ChemDraw 8) do not adhere to the official cdx specification and can hence in many cases not be interpreted.
 
 #### CDX vs CDXML
 
@@ -60,3 +58,5 @@ When reading / writing a file, the two above mention config files are used to fi
 The issues with this basic read/write mechanism is, that the reading and writing can all work without error but the resulting file might still not be readable by ChemDraw either due to a error in the code or an unknown object or property. Currently unknown elements simply get ignored (and logged).
 
 It also means that every type has an `CDXType` implementation even INT8, INT16 etc. which is a bit ugly really but it "unifies" the design. Again there is room for improvement, simplification and better performance.
+
+In terms of logging please be adivised that the debug level should only ever be used in case of troubleshooting a specific file. It is very verbose which makes things slow and generates huge log files.
