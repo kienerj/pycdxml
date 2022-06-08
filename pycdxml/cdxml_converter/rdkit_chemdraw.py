@@ -34,8 +34,9 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
     """
 
     # Use ACS 1996 as default style to build cdxml document
-    m_path = Path('C:/Users/kienerj/PycharmProjects/PyCDXML/pycdxml/cdxml_slide_generator')
-    template_path = m_path / "ACS 1996.cdxml"
+    # m_path = Path('C:/Users/kienerj/PycharmProjects/PyCDXML/pycdxml/cdxml_slide_generator')
+    m_path = Path(__file__).parent.parent
+    template_path = m_path / "cdxml_slide_generator" / "ACS 1996.cdxml"
     cdxml = ET.parse(str(template_path))
     root = cdxml.getroot()
 
