@@ -239,6 +239,7 @@ class ChemDrawDocument(object):
     def _element_to_stream(self, element: ET.Element, stream: io.BytesIO):
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
+            logger.debug("Writing object {}.".format(element.tag))
             stream.write(tag_id.to_bytes(2, "little"))
             if 'id' in element.attrib:
                 stream.write(int(element.attrib['id']).to_bytes(4, "little"))
@@ -318,14 +319,17 @@ class ChemDrawDocument(object):
     def _attribute_to_stream(attrib: str, value: str, stream: io.BytesIO):
         try:
             tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG[attrib]
-            stream.write(tag_id.to_bytes(2, byteorder='little'))
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
             klass = globals()[chemdraw_type]
             type_obj = klass.from_string(value)
             logger.debug("Writing attribute {} with value '{}'.".format(attrib, value))
+            stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
             logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attrib))
+        except ValueError as err:
+            logger.error('Found attribute {} with invalid value: {}. Omitting this property in output'
+                         .format(attrib, value))
 
     @staticmethod
     def _type_to_stream(type_obj: CDXType, stream: io.BytesIO):
