@@ -151,7 +151,8 @@ class CDXMLStyler(object):
 
                     for unwanted_key in unwanted_node_attributes:
                         logger.info("Deleting unneeded attribute {} from node element.".format(unwanted_key))
-                        del node.attrib[unwanted_key]
+                        if unwanted_key in node.attrib:
+                            del node.attrib[unwanted_key]
 
                     for t in node.iter('t'):
                         if 'p' in t.attrib:
@@ -202,10 +203,13 @@ class CDXMLStyler(object):
 
             return root
 
-        except KeyError:
-            # When atoms (the nodes) have no coordinates, attribute p doesn't exist -> Key error
-            # If this applies to one fragment, assumption is all fragments have no coordinates
-            raise ValueError("Molecule has no coordinates")
+        except KeyError as err:
+            # When atoms (the nodes) have no coordinates, attribute 'p' doesn't exist and a KeyError is raised
+            # If this applies to one fragment, assumption is all fragments have no coordinates. It also seems bad
+            # to fix the file partially and ignore this issue.
+            logger.error(err)
+            raise ValueError("A likely cause of the original KeyError is that the molecule has no coordinates. "
+                             "This is the case if the key error is caused by a missing key of 'p'.") from err
 
     @staticmethod
     def add_missing_bounding_box(fragment: ET.Element):
