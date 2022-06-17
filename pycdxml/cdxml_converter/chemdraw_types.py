@@ -917,13 +917,43 @@ class CDXBondStereo(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
+# class INT(CDXType):
+#     """
+#     signed Integer type of all sizes
+#     commented out because there is no clear way to know from cdxml of the type of say "3" is int8 or int32.
+#     """
+#     def __init__(self, value: int, length: int):
+#         self.value = value
+#         self.length = length
+#
+#     @staticmethod
+#     def from_bytes(property_bytes: bytes) -> 'INT':
+#         value = int.from_bytes(property_bytes, "little", signed=True)
+#         return INT(value, len(property_bytes))
+#
+#     @staticmethod
+#     def from_string(value: str, length: int) -> 'INT':
+#         return INT(int(value, length))
+#
+#     def to_bytes(self) -> bytes:
+#         # see https://stackoverflow.com/questions/21017698/converting-int-to-bytes-in-python-3
+#         length = (8 + (self.value + (self.value < 0)).bit_length()) // 8
+#         if length == 3:
+#             # either 16 or 32 bit int (eg length 2 or 4, never 3)
+#             length == 4
+#         return self.value.to_bytes(length, byteorder='little', signed=True)
+#
+#     def to_property_value(self) -> str:
+#         return str(self.value)
+
+
 class INT8(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
     def __init__(self, value: int):
         if -128 > value > 127:
-            raise ValueError("Needs to be a 16-bit int in range -128 to 127.")
+            raise ValueError("Needs to be a 8-bit int in range -128 to 127.")
         self.value = value
 
     @staticmethod
@@ -1031,7 +1061,7 @@ class INT32(CDXType):
     """
     def __init__(self, value: int):
         if -2147483648 > value > 2147483647:
-            raise ValueError("Needs to be a 16-bit int in range -32768 to 32767.")
+            raise ValueError("Needs to be a 16-bit int in range -2147483648 to 2147483647.")
         self.value = value
 
     @staticmethod

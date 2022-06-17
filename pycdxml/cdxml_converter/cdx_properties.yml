@@ -375,10 +375,10 @@
   type: INT16
 0x080F:
   name: WidthPages
-  type: INT16
+  type: UINT16
 0x0810:
   name: HeightPages
-  type: INT16
+  type: UINT16
 0x0811:
   name: DrawingSpace
   type: INT8
