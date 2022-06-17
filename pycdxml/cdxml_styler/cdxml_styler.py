@@ -168,7 +168,17 @@ class CDXMLStyler(object):
 
                         for s in t.iter('s'):
                             s.attrib["size"] = self.style["LabelSize"]
-                            s.attrib["face"] = self.style["LabelFace"]
+                            # see https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/DataType/CDXString.htm
+                            # for explanation on magic numbers. 64 = superscript, >64 with additional styling
+                            # eg, 65 would be superscript and bold
+                            if "face" in s.attrib and int(s.attrib["face"]) ^ 64 < 32:
+                                # preserve style of superscript if default label face is bold or italic
+                                # I label face by default is 96 for formula. if it is also bold it would be 98
+                                # 98 - 96 = 2 and we add that to the superscript style of 64 -> 66 -> bold superscript
+                                s.attrib["face"] = str(64 | (int(self.style["LabelFace"]) - 96))
+                            else:
+                                # by default this is usually 96 for atom labels which handles subscripts automatically
+                                s.attrib["face"] = self.style["LabelFace"]
                             s.attrib["font"] = self.style["LabelFont"]
 
                             # Change implicit hydrogen display if needed
