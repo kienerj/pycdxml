@@ -61,7 +61,7 @@ class ChemDrawDocument(object):
         :param convert_legacy_doc: if conversion of a legacy document should be attempted or an exception thrown
         :param ignore_unknown_properties: if unknown properties should be ignored or an exception raised
         :param ignore_unknown_object: if unknown objects should be ignored or an exception raised
-        :return:
+        :return: ChemDrawDocument
         """
         header = cdx.read(22)
         if header != ChemDrawDocument.HEADER:
@@ -225,9 +225,12 @@ class ChemDrawDocument(object):
         cdxml_bytes = io.BytesIO(cdxml.encode('utf-8'))
         return ChemDrawDocument(ET.parse(cdxml_bytes))
 
-    def to_bytes(self) -> bytes:
+    def to_bytes(self, ignore_unknown_attribute: bool = False, ignore_unknown_element: bool = False) -> bytes:
         """
         Generates a cdx file as bytes in memory
+
+        :param ignore_unknown_attribute: if unknown attributes should be ignored or exception raised
+        :param ignore_unknown_element: if unknown elemnts should be ignored or exception raised
         """
 
         logger.info("Starting to convert document to cdx.")
@@ -235,7 +238,7 @@ class ChemDrawDocument(object):
         # Write document to bytes. needs special handling due to font and color tables.
         stream.write(ChemDrawDocument.HEADER)
         root = self.cdxml.getroot()
-        self._element_to_stream(root, stream)
+        self._element_to_stream(root, stream, ignore_unknown_attribute, ignore_unknown_element)
         colortable = root.find("colortable")
         fonttable = root.find("fonttable")
         if colortable is not None:
@@ -250,7 +253,7 @@ class ChemDrawDocument(object):
             self._type_to_stream(type_obj, stream)
 
         for child in root:
-            self._traverse_tree(child, stream)
+            self._traverse_tree(child, stream, ignore_unknown_attribute, ignore_unknown_element)
 
         # end of document and end of file
         stream.write(b'\x00\x00\x00\x00')
@@ -261,17 +264,19 @@ class ChemDrawDocument(object):
 
         return etree_to_cdxml(self.cdxml)
 
-    def _traverse_tree(self, node: ET.Element, stream: io.BytesIO):
+    def _traverse_tree(self, node: ET.Element, stream: io.BytesIO,
+                       ignore_unknown_attribute: bool, ignore_unknown_element: bool):
         if node.tag not in ['s', 'font', 'color', 'fonttable', 'colortable']:
             # s elements are always in t elements and hence already handled by parent t element
             # this is needed as there is a mismatch between cdx and cdxml
             # same for fonts and colors and font and colortable
-            self._element_to_stream(node, stream)
+            self._element_to_stream(node, stream, ignore_unknown_attribute, ignore_unknown_element)
             for child in node:
-                self._traverse_tree(child, stream)
+                self._traverse_tree(child, stream, ignore_unknown_attribute, ignore_unknown_element)
             stream.write(b'\x00\x00')
 
-    def _element_to_stream(self, element: ET.Element, stream: io.BytesIO):
+    def _element_to_stream(self, element: ET.Element, stream: io.BytesIO,
+                           ignore_unknown_attribute: bool, ignore_unknown_element: bool):
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
             logger.debug("Writing object {}.".format(element.tag))
@@ -293,7 +298,7 @@ class ChemDrawDocument(object):
                     continue
                 if attrib == "id":
                     continue
-                ChemDrawDocument._attribute_to_stream(attrib, value, stream)
+                ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
 
             if element.tag == 't':
                 type_obj = CDXString.from_element(element)
@@ -347,11 +352,13 @@ class ChemDrawDocument(object):
                 stream.write(tag_id.to_bytes(2, byteorder='little'))
                 ChemDrawDocument._type_to_stream(type_obj, stream)
 
-        except KeyError:
+        except KeyError as err:
             logger.error(f"Missing implementation for element: {element.tag}. Ignoring element.")
+            if not ignore_unknown_element:
+                raise UnknownPropertyException(f"Can't convert unknown element {element.tag} to cdx.") from err
 
     @staticmethod
-    def _attribute_to_stream(attrib: str, value: str, stream: io.BytesIO):
+    def _attribute_to_stream(attrib: str, value: str, stream: io.BytesIO, ignore_unknown_attribute: bool):
         try:
             tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG[attrib]
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
@@ -361,7 +368,9 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.warning(f"Found unknown attribute {attrib}. Ignoring this attribute.")
+            logger.warning(f"Found unknown attribute {attrib}.")
+            if not ignore_unknown_attribute:
+                raise UnknownPropertyException(f"Can't convert unknown attribute {attrib} to cdx.")
         except ValueError as err:
             logger.error(f"Found attribute {attrib} with invalid value: {value}. Omitting this property in output")
 
