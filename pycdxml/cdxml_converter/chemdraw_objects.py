@@ -10,6 +10,18 @@ from ..utils.cdxml_io import etree_to_cdxml
 logger = logging.getLogger('pycdxml.chemdraw_objects')
 
 
+class ConversionException(Exception):
+    pass
+
+
+class UnknownPropertyException(ConversionException):
+    pass
+
+
+class LegacyDocumentException(ConversionException):
+    pass
+
+
 class ChemDrawDocument(object):
 
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -38,9 +50,12 @@ class ChemDrawDocument(object):
         self.object_id_sequence = iter(range(5000, 100000))
 
     @staticmethod
-    def from_bytes(cdx: io.BytesIO) -> 'ChemDrawDocument':
+    def from_bytes(cdx: io.BytesIO, convert_legacy_doc: bool = False,
+                   ignore_unknown_properties: bool = False) -> 'ChemDrawDocument':
         """
         :param cdx: a BytesIO object
+        :param convert_legacy_doc: if conversion of a legacy document should be attempted or an exception thrown
+        :param ignore_unknown_properties: if unknown properties should be ignored or an exception raised
         :return:
         """
         header = cdx.read(22)
@@ -54,9 +69,12 @@ class ChemDrawDocument(object):
             # instead of
             # VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00\x00\x03
             # No document tag and one additional byte. read and ignore said additional byte
-            logger.warning('Document tag not found. File seems to be a legacy cdx file.')
-            cdx.read(1)
-            legacy_doc = True
+            if convert_legacy_doc:
+                logger.warning('The file seems to be a legacy cdx file. There might be issues in the generated output.')
+                cdx.read(1)
+                legacy_doc = True
+            else:
+                raise LegacyDocumentException("The file has a legacy document header. Can't ensure correct conversion.")
 
         object_id = int.from_bytes(cdx.read(4), "little")
         logger.debug('Reading document with id: {}'.format(object_id))
