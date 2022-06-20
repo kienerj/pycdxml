@@ -82,8 +82,8 @@ class ChemDrawDocument(object):
                 raise LegacyDocumentException("The file has a legacy document header. Can't ensure correct conversion.")
 
         object_id = int.from_bytes(cdx.read(4), "little")
-        logger.debug('Reading document with id: {}'.format(object_id))
-        root = ET.Element('CDXML')
+        logger.debug(f"Reading document with id: {object_id}")
+        root = ET.Element("CDXML")
         cdxml = ET.ElementTree(root)
         if legacy_doc:
             # legacy document has additional 23 bytes with unknown meaning, ignore
@@ -98,7 +98,7 @@ class ChemDrawDocument(object):
         while tag_id in ChemDrawDocument.CDX_OBJECTS:
             try:
                 el = ChemDrawDocument._element_from_bytes(cdx, tag_id, parent_stack[-1], ignore_unknown_properties)
-                logger.debug('Created element of type {} with id: {}'.format(el.tag, el.attrib["id"]))
+                logger.debug(f'Created element of type {el.tag} with id: {el.attrib["id"]}')
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
                 if tag_id == 0:
@@ -119,7 +119,7 @@ class ChemDrawDocument(object):
                     parent_stack.append(el)
             except KeyError as err:
                 if ignore_unknown_object:
-                    logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+                    logger.error(f"Missing Object Implementation: {err}. Ignoring object.")
                 else:
                     raise UnknownObjectException(f"Unknown object with tag_id {tag_id} found.") from err
 
@@ -159,8 +159,8 @@ class ChemDrawDocument(object):
                     while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
                         length = int.from_bytes(cdx.read(2), "little")
                         cdx.read(length)
-                        logger.warning('Found unknown property {} with length {}. Ignoring this property.'
-                                       .format(tag_id.to_bytes(2, "little"), length))
+                        logger.warning(f'Found unknown property {tag_id.to_bytes(2, "little")} with length {length}. '
+                                       f'Ignoring this property.')
                         # read next tag
                         tag_id = int.from_bytes(cdx.read(2), "little")
                         bit15 = tag_id >> 15 & 1
@@ -190,8 +190,8 @@ class ChemDrawDocument(object):
                         # but it's an uint16 and should only be 2 bytes. first 2 bytes contained correct value
                         type_obj = klass.from_bytes(prop_bytes[:2])
                         length = 2
-                        logger.warning("Property color of type UINT16 found with length {} instead of required "
-                                       "length 2. Fixed by taking only first 2 bytes into account.".format(length))
+                        logger.warning(f"Property color of type UINT16 found with length {length} instead of required "
+                                       "length 2. Fixed by taking only first 2 bytes into account.")
                     else:
                         raise err
 
@@ -209,10 +209,9 @@ class ChemDrawDocument(object):
             elif prop_name == 'Text':
                 # adds style tags <s></s> to this t element containing styled text
                 type_obj.to_element(element)
-                logger.debug("Added {} styles to text object.".format(len(type_obj.styles)))
             elif prop_name == 'UTF8Text':
-                # Do nothing. This is a new property no in official spec and represents the
-                # value of a text objext in UTF-8 inside a cdx file.
+                # Do nothing. This is a new property not in official spec and represents the
+                # value of a text object in UTF-8 inside a cdx file.
                 pass
             else:
                 element.attrib[prop_name] = type_obj.to_property_value()
@@ -349,7 +348,7 @@ class ChemDrawDocument(object):
                 ChemDrawDocument._type_to_stream(type_obj, stream)
 
         except KeyError:
-            logger.error('Missing implementation for element: {}. Ignoring element.'.format(element.tag))
+            logger.error(f"Missing implementation for element: {element.tag}. Ignoring element.")
 
     @staticmethod
     def _attribute_to_stream(attrib: str, value: str, stream: io.BytesIO):
@@ -362,10 +361,9 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.warning('Found unknown attribute {}. Ignoring this attribute.'.format(attrib))
+            logger.warning(f"Found unknown attribute {attrib}. Ignoring this attribute.")
         except ValueError as err:
-            logger.error('Found attribute {} with invalid value: {}. Omitting this property in output'
-                         .format(attrib, value))
+            logger.error(f"Found attribute {attrib} with invalid value: {value}. Omitting this property in output")
 
     @staticmethod
     def _type_to_stream(type_obj: CDXType, stream: io.BytesIO):

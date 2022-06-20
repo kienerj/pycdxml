@@ -49,7 +49,7 @@ class CDXString(CDXType):
             font_styles.append(font_style)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         value = stream.read(text_length).decode(charset)        
-        logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
+        logger.debug(f"Read String '{value}' with  {len(font_styles)} different styles.")
         return CDXString(value, style_starts, font_styles, charset)
 
     @staticmethod
@@ -75,7 +75,7 @@ class CDXString(CDXType):
             font_style = CDXFontStyle.from_element(s)
             font_styles.append(font_style)
 
-        logger.debug("Read String '{}' with  {} different styles.".format(value, len(font_styles)))
+        logger.debug(f"Read String '{value}' with {len(font_styles)} different styles.")
         return CDXString(value, style_starts, font_styles, charset)
 
     def to_bytes(self) -> bytes:
@@ -88,9 +88,9 @@ class CDXString(CDXType):
         try:
             stream.write(self.str_value.encode(self.charset))
         except UnicodeError as e:
-            logger.error("Caught UnicodeError {}. Retrying with UTF-8".format(e))
+            logger.error(f"Caught UnicodeError {e}. Retrying with UTF-8")
             stream.write(self.str_value.encode('utf8'))
-        logger.debug('Wrote CDXString with value {}.'.format(self.str_value))
+        logger.debug(f"Wrote CDXString with value {self.str_value}.")
         stream.seek(0)
         return stream.read()
 
@@ -181,12 +181,12 @@ class CDXFontStyle(CDXType):
         s.attrib['size'] = str(self.font_size_points())
         s.attrib['face'] = str(self.font_type)
         s.attrib['color'] = str(self.font_color)
-        logger.debug("Created element '{}'.".format(ET.tostring(s, encoding='unicode', method='xml')))
+        logger.debug(f"Created element '{ET.tostring(s, encoding='unicode', method='xml')}'.")
         return s
 
     def to_property_value(self) -> str:
-        return 'font="{}" size="{}" face="{}" color="{}"'.format(self.font_id, self.font_size_points(), self.font_type,
-                                                                 self.font_color)
+        return f'font="{self.font_id,}" size="{self.font_size_points()}" face="{self.font_type}" ' \
+               f'color="{self.font_color}"'
 
 
 class Font(object):
@@ -232,7 +232,7 @@ class CDXFontTable(CDXType):
         fonts = []
 
         for font in fonttable.iter(tag="font"):
-            logger.debug("Reading font {}.".format(font.attrib))
+            logger.debug(f"Reading font {font.attrib}.")
             font_id = int(font.attrib["id"])
             charset = next(key for key, value in Font.CHARSETS.items() if value == font.attrib["charset"])
             font_name = font.attrib["name"]
@@ -375,17 +375,17 @@ class CDXCoordinate(CDXType):
 
         units = int(float(value) * CDXCoordinate.CDXML_CONVERSION_FACTOR)
         if units > CDXCoordinate.CDX_MAX_VALUE or units < CDXCoordinate.CDX_MIN_VALUE:
-            logger.info("Coordinate value '{}' exceeds maximum or minimum value for cdx files.".format(units))
+            logger.info(f"Coordinate value '{units}' exceeds maximum or minimum value for cdx files.")
         return CDXCoordinate(units)
 
     def to_bytes(self) -> bytes:
         if self.coordinate > CDXCoordinate.CDX_MAX_VALUE:
-            logger.warning("Coordinate value '{}' exceeds maximum value for cdx files. "
-                           "Reducing value to maximum allowed value.".format(self.coordinate))
+            logger.warning(f"Coordinate value '{self.coordinate}' exceeds maximum value for cdx files. "
+                           "Reducing value to maximum allowed value.")
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
         elif self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
-            logger.warning("Coordinate value '{}' exceeds minimum value for cdx files. "
-                           "Reducing value to minimum allowed value.".format(self.coordinate))
+            logger.warning(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
+                           "Reducing value to minimum allowed value.")
             return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
         else:
             return self.coordinate.to_bytes(4, byteorder='little', signed=True)
@@ -569,7 +569,7 @@ class CDXBoolean(CDXType):
         elif value == "no":
             return CDXBoolean(False)
         else:
-            raise ValueError("Found invalid value {} for boolean type. Allowed are 'yes' and 'no'.".format(value))
+            raise ValueError(f"Found invalid value {value} for boolean type. Allowed are 'yes' and 'no'.")
 
     def to_bytes(self) -> bytes:
         if self.bool_value:
@@ -616,7 +616,7 @@ class CDXBooleanImplied(CDXType):
         elif value == "no":
             return CDXBooleanImplied(False)
         else:
-            raise ValueError("Found invalid value {} for boolean type. Allowed are 'yes' and 'no'.".format(value))
+            raise ValueError(f"Found invalid value {value} for boolean type. Allowed are 'yes' and 'no'.")
 
     def to_bytes(self) -> bytes:
         if not self.bool_value:
@@ -639,7 +639,7 @@ class CDXObjectIDArray(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXObjectIDArray':
         if len(property_bytes) % 4 != 0:
-            raise ValueError('CDXObjectIDArray must consist of n*4 bytes. Found {} bytes.'.format(len(property_bytes)))
+            raise ValueError(f"CDXObjectIDArray must consist of n*4 bytes. Found {len(property_bytes)} bytes.")
         array_length = len(property_bytes) // 4
         ids = []
         stream = io.BytesIO(property_bytes)
@@ -1184,8 +1184,8 @@ class CDXBracketUsage(CDXType):
     def from_bytes(property_bytes: bytes) -> 'CDXBracketUsage':
         length = len(property_bytes)
         if length > 1:
-            logger.warning("Passed bytes value of length {} to CDXBracketUsage which is an INT8 enum and should be "
-                           "only 1-byte.".format(length))
+            logger.warning(f"Passed bytes value of length {length} to CDXBracketUsage which is an INT8 enum and should "
+                           f"be only 1-byte.")
         additional_bytes = property_bytes[1:]
         val = property_bytes[0]
         return CDXBracketUsage(val, additional_bytes)
@@ -1628,7 +1628,7 @@ class CDXLineHeight(CDXType):
             try:
                 return CDXLineHeight(int(value))
             except ValueError:
-                logger.error("Found invalid LineHeight value {}. Was cast to int.".format(value))
+                logger.error(f"Found invalid LineHeight value {value}. Was cast to int.")
                 return CDXLineHeight(int(round(float(value))))
 
     def to_bytes(self) -> bytes:
