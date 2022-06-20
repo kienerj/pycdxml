@@ -18,6 +18,10 @@ class UnknownPropertyException(ConversionException):
     pass
 
 
+class UnknownObjectException(ConversionException):
+    pass
+
+
 class LegacyDocumentException(ConversionException):
     pass
 
@@ -50,12 +54,13 @@ class ChemDrawDocument(object):
         self.object_id_sequence = iter(range(5000, 100000))
 
     @staticmethod
-    def from_bytes(cdx: io.BytesIO, convert_legacy_doc: bool = False,
-                   ignore_unknown_properties: bool = False) -> 'ChemDrawDocument':
+    def from_bytes(cdx: io.BytesIO, convert_legacy_doc: bool = False, ignore_unknown_properties: bool = False,
+                   ignore_unknown_object: bool = False) -> 'ChemDrawDocument':
         """
         :param cdx: a BytesIO object
         :param convert_legacy_doc: if conversion of a legacy document should be attempted or an exception thrown
         :param ignore_unknown_properties: if unknown properties should be ignored or an exception raised
+        :param ignore_unknown_object: if unknown objects should be ignored or an exception raised
         :return:
         """
         header = cdx.read(22)
@@ -85,14 +90,14 @@ class ChemDrawDocument(object):
             # then first property usually is creation program
             cdx.read(23)
         # Document Attributes
-        ChemDrawDocument._read_attributes(cdx, root)
+        ChemDrawDocument._read_attributes(cdx, root, ignore_unknown_properties)
 
         parent_stack = [root]
         tag_id = int.from_bytes(cdx.read(2), "little")
 
         while tag_id in ChemDrawDocument.CDX_OBJECTS:
             try:
-                el = ChemDrawDocument._element_from_bytes(cdx, tag_id, parent_stack[-1])
+                el = ChemDrawDocument._element_from_bytes(cdx, tag_id, parent_stack[-1], ignore_unknown_properties)
                 logger.debug('Created element of type {} with id: {}'.format(el.tag, el.attrib["id"]))
                 # read next tag
                 tag_id = int.from_bytes(cdx.read(2), "little")
@@ -113,10 +118,13 @@ class ChemDrawDocument(object):
                     # no object end found, hence we move deeper inside the object tree
                     parent_stack.append(el)
             except KeyError as err:
-                logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+                if ignore_unknown_object:
+                    logger.error('Missing Object Implementation: {}. Ignoring object.'.format(err))
+                else:
+                    raise UnknownObjectException(f"Unknown object with tag_id {tag_id} found.") from err
 
     @staticmethod
-    def _element_from_bytes(cdx: io.BytesIO, tag_id: int, parent: ET.Element):
+    def _element_from_bytes(cdx: io.BytesIO, tag_id: int, parent: ET.Element, ignore_unknown_properties: bool):
         """
         cdx must be a BytesIO instance at the beginning of the ID position. Eg. the tag_id has been read and the next 4
         bytes are the objects id inside the document.
@@ -129,11 +137,11 @@ class ChemDrawDocument(object):
         element_name = ChemDrawDocument.CDX_OBJECTS[tag_id]['element_name']
         el = ET.SubElement(parent, element_name)
         el.attrib["id"] = str(object_id)
-        ChemDrawDocument._read_attributes(cdx, el)
+        ChemDrawDocument._read_attributes(cdx, el, ignore_unknown_properties)
         return el
 
     @staticmethod
-    def _read_attributes(cdx: io.BytesIO, element: ET.Element):
+    def _read_attributes(cdx: io.BytesIO, element: ET.Element, ignore_unknown_properties: bool):
 
         while True:
             tag_id = int.from_bytes(cdx.read(2), "little")
@@ -145,20 +153,23 @@ class ChemDrawDocument(object):
                 break
 
             if tag_id not in ChemDrawDocument.CDX_PROPERTIES:
-                # If property is unknown, log it and read next property until a known one is found.
-                # tag_id of 0 is end of object
-                while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
-                    length = int.from_bytes(cdx.read(2), "little")
-                    cdx.read(length)
-                    logger.warning('Found unknown property {} with length {}. Ignoring this property.'
-                                   .format(tag_id.to_bytes(2, "little"), length))
-                    # read next tag
-                    tag_id = int.from_bytes(cdx.read(2), "little")
-                    bit15 = tag_id >> 15 & 1
+                if ignore_unknown_properties:
+                    # If property is unknown, log it and read next property until a known one is found.
+                    # tag_id of 0 is end of object
+                    while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
+                        length = int.from_bytes(cdx.read(2), "little")
+                        cdx.read(length)
+                        logger.warning('Found unknown property {} with length {}. Ignoring this property.'
+                                       .format(tag_id.to_bytes(2, "little"), length))
+                        # read next tag
+                        tag_id = int.from_bytes(cdx.read(2), "little")
+                        bit15 = tag_id >> 15 & 1
 
-                # end of object
-                if tag_id == 0 or bit15 != 0:
-                    break
+                    # end of object
+                    if tag_id == 0 or bit15 != 0:
+                        break
+                else:
+                    raise UnknownPropertyException(f"Unknown property with tag_id {tag_id} found.")
 
             prop_name = ChemDrawDocument.CDX_PROPERTIES[tag_id]['name']
             length = int.from_bytes(cdx.read(2), "little")
