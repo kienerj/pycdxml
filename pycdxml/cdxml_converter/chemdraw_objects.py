@@ -368,7 +368,7 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.warning(f"Found unknown attribute {attrib}.")
+            logger.error(f"Found unknown attribute {attrib}. Ignoring attribute.")
             if not ignore_unknown_attribute:
                 raise UnknownPropertyException(f"Can't convert unknown attribute {attrib} to cdx.")
         except ValueError as err:

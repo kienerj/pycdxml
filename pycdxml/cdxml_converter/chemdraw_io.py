@@ -24,10 +24,11 @@ def read_cdx(cdx_file) -> ChemDrawDocument:
     return document
 
 
-def read_b64_cdx(base64_cdx) -> ChemDrawDocument:
+def read_b64_cdx(base64_cdx, convert_legacy_doc: bool = False, ignore_unknown_properties: bool = False,
+                   ignore_unknown_object: bool = False) -> ChemDrawDocument:
 
     cdx = io.BytesIO(base64.b64decode(base64_cdx))
-    document = ChemDrawDocument.from_bytes(cdx)
+    document = ChemDrawDocument.from_bytes(cdx, convert_legacy_doc, ignore_unknown_properties, ignore_unknown_object)
 
     return document
 
@@ -55,13 +56,14 @@ def write_cdxml_file(document: ChemDrawDocument, file):
         xf.write(document.to_cdxml())
 
 
-def write_cdx_file(document: ChemDrawDocument, file):
+def write_cdx_file(document: ChemDrawDocument, file,
+                   ignore_unknown_attribute: bool = False, ignore_unknown_element: bool = False):
     with open(file, 'wb') as file:
-        file.write(document.to_bytes())
+        file.write(document.to_bytes(ignore_unknown_attribute, ignore_unknown_element))
 
 
-def to_b64_cdx(document) -> str:
-    return base64.b64encode(document.to_bytes()).decode('ASCII')
+def to_b64_cdx(document: ChemDrawDocument, ignore_unknown_attribute: bool = False, ignore_unknown_element: bool = False) -> str:
+    return base64.b64encode(document.to_bytes(ignore_unknown_attribute, ignore_unknown_element)).decode('ASCII')
 
 
 def b64_cdx_to_cdxml(b64_cdx: str) -> str:
