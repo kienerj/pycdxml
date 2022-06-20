@@ -135,9 +135,31 @@ class ChemDrawDocument(object):
     @staticmethod
     def _read_attributes(cdx: io.BytesIO, element: ET.Element):
 
-        tag_id = int.from_bytes(cdx.read(2), "little")
+        while True:
+            tag_id = int.from_bytes(cdx.read(2), "little")
+            # Properties have the most significant bit clear (=0).
+            # If it is not 0, then it is not a property but the next object
+            bit15 = tag_id >> 15 & 1
+            # end of object or start of next object
+            if tag_id == 0 or bit15 != 0:
+                break
 
-        while tag_id in ChemDrawDocument.CDX_PROPERTIES:
+            if tag_id not in ChemDrawDocument.CDX_PROPERTIES:
+                # If property is unknown, log it and read next property until a known one is found.
+                # tag_id of 0 is end of object
+                while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
+                    length = int.from_bytes(cdx.read(2), "little")
+                    cdx.read(length)
+                    logger.warning('Found unknown property {} with length {}. Ignoring this property.'
+                                   .format(tag_id.to_bytes(2, "little"), length))
+                    # read next tag
+                    tag_id = int.from_bytes(cdx.read(2), "little")
+                    bit15 = tag_id >> 15 & 1
+
+                # end of object
+                if tag_id == 0 or bit15 != 0:
+                    break
+
             prop_name = ChemDrawDocument.CDX_PROPERTIES[tag_id]['name']
             length = int.from_bytes(cdx.read(2), "little")
             if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
@@ -183,21 +205,6 @@ class ChemDrawDocument(object):
                 pass
             else:
                 element.attrib[prop_name] = type_obj.to_property_value()
-
-            # read next tag
-            tag_id = int.from_bytes(cdx.read(2), "little")
-            bit15 = tag_id >> 15 & 1
-            # Determine if this is a unknown property. Properties have the most significant bit clear (=0).
-            # If property is unknown, log it and read next property until a known one is found.
-            # 0 is end of object hence ignore here
-            while tag_id != 0 and bit15 == 0 and tag_id not in ChemDrawDocument.CDX_PROPERTIES:
-                length = int.from_bytes(cdx.read(2), "little")
-                cdx.read(length)
-                logger.warning('Found unknown property {} with length {}. Ignoring this property.'
-                               .format(tag_id.to_bytes(2, "little"), length))
-                # read next tag
-                tag_id = int.from_bytes(cdx.read(2), "little")
-                bit15 = tag_id >> 15 & 1
 
         logger.debug('Successfully finished reading attributes.')
         # move back 2 positions, finished reading attributes
