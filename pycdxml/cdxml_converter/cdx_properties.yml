@@ -89,10 +89,10 @@
   name: Center3D
   type: CDXPoint3D
 0x020E:
-  name: Center3D
+  name: MajorAxisEnd3D
   type: CDXPoint3D
 0x020F:
-  name: Center3D
+  name: MinorAxisEnd3D
   type: CDXPoint3D
 0x0300:
   name: colortable
@@ -108,7 +108,7 @@
   type: CDXNodeType
 0x0401:
   name: LabelDisplay
-  type: INT8
+  type: CDXLabelDisplay
 0x0402:
   name: Element
   type: INT16
@@ -207,7 +207,7 @@
   type: INT8
 0x0440:
   name: ExternalConnectionType
-  type: INT8
+  type: CDXExternalConnectionType
 0x0441:
   name: GenericList
   type: CDXGenericList
@@ -273,7 +273,7 @@
   type: INT8
 0x0607:
   name: RxnParticipation
-  type: INT8
+  type: CDXRxnParticipation
 0x0608:
   name: BeginAttach
   type: UINT8
@@ -524,7 +524,7 @@
   name: BondID
   type: UINT32
 0x0A2D:
-  name: BInnerAtomID
+  name: InnerAtomID
   type: UINT32
 0x0A2E:
   name: CurvePoints3D
@@ -559,7 +559,7 @@
 0x0A38:
   name: CurveSpacing
   type: UINT16
-0x0A38:
+0x0A39:
   name: Closed
   type: CDXBoolean
 0x0A3A:
@@ -592,6 +592,30 @@
 0x0A65:
   name: EnhancedMetafile
   type: Unformatted
+0x0A66:
+  name: CompressedMacPICT
+  type: Compressed
+0x0A67:
+  name: CompressedWindowsMetafile
+  type: Compressed
+0x0A68:
+  name: Compressed_OLEObject
+  type: Compressed
+0x0A69:
+  name: CompressedEnhancedMetafile
+  type: Compressed
+0x0A6A:
+  name: UncompressedMacPICTSize
+  type: INT32
+0x0A6B:
+  name: UncompressedWindowsMetafileSize
+  type: INT32
+0x0A6C:
+  name: UncompressedOLEObjectSize
+  type: INT32
+0x0A6D:
+  name: UncompressedEnhancedMetafileSize
+  type: INT32
 0x0A6E:
   name: GIF
   type: Unformatted
@@ -606,6 +630,9 @@
   type: Unformatted
 0x0A72:
   name: BMP
+  type: Unformatted
+0x0A73:
+  name: PDF
   type: Unformatted
 0x0A80:
   name: XSpacing
@@ -747,7 +774,7 @@
   type: CDXBoolean
 0x0D05:
   name: Value
-  type: varies
+  type: CDXValue
 0x0D06:
   name: PositioningType
   type: CDXPositioningType
@@ -901,3 +928,6 @@
 0x0C0C:
   name: RxnAutonumberFormat
   type: CDXString
+0x044B:
+  name: ExternalConnectionNum
+  type: INT8

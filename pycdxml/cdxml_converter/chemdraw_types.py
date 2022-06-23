@@ -4,6 +4,7 @@ from lxml import etree as ET
 from pathlib import Path
 from enum import Enum
 import logging
+import struct
 
 logger = logging.getLogger('pycdxml.chemdraw_types')
 
@@ -1109,6 +1110,32 @@ class UINT32(CDXType):
         return str(self.value)
 
 
+class FLOAT64(CDXType):
+    """
+    This is kind of stupid but makes the upper-level parsing code easier
+    """
+    def __init__(self, value: float):
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'FLOAT64':
+        if len(property_bytes) != 8:
+            raise ValueError("FLOAT64 should consist of exactly 8 bytes.")
+        # "<f" means little-endian. unpack returns a tuple, take first value
+        value = struct.unpack("<f", property_bytes)[0]
+        return FLOAT64(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'FLOAT64':
+        return FLOAT64(float(value))
+
+    def to_bytes(self) -> bytes:
+        return struct.pack("<f", self.value)
+
+    def to_property_value(self) -> str:
+        return str(self.value)
+
+
 class INT16ListWithCounts(CDXType):
     """
     This data type consists of a series of UINT16 values.
@@ -1779,13 +1806,13 @@ class CDXSymbolType(CDXType, Enum):
 class CDXTagType(CDXType, Enum):
 
     Unknown = 0
-    Double = 1
-    Long = 2
-    String = 3
+    Double = 1 # FLOAT64
+    Long = 2   # INT32
+    String = 3 # unformatted string / byte sequence
+
+    TYPE_MAPPING = {"Unknown": "Unformatted", "Double": "FLOAT64", "Long": "INT32", "String": "Unformatted"}
 
     def __init__(self, value: int):
-        if -1 > value > 3:
-            raise ValueError("Needs to be between 0 and 3")
         self.tag_type = value
 
     @staticmethod
@@ -1805,6 +1832,51 @@ class CDXTagType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXTagType(self.tag_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXValue(CDXType):
+    """
+    Can be of type Unformatted, INT32 or FLOAT64. On reading the property, generate the correct CDXType and then
+    use the existng types to_bytes method.
+    The type depends on the CDXTagType of the same object.
+    """
+
+    def __init__(self, value):
+        self.value = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes, tag_type: CDXTagType) -> 'CDXValue':
+
+        if tag_type == CDXTagType.Unknown or tag_type == CDXTagType.String:
+            # read as unformatted string
+            val = Unformatted.from_bytes(property_bytes)
+            return CDXValue(val)
+        elif tag_type == CDXTagType.Double:
+            val = FLOAT64.from_bytes(property_bytes)
+            return CDXValue(val)
+        elif tag_type == CDXTagType.Long:
+            val = INT32.from_bytes(property_bytes)
+            return CDXValue(val)
+
+    @staticmethod
+    def from_string(value: str, tag_type: CDXTagType) -> 'CDXValue':
+
+        if tag_type == CDXTagType.Unknown or tag_type == CDXTagType.String:
+            # read as unformatted string
+            val = Unformatted.from_string(value)
+            return CDXValue(val)
+        elif tag_type == CDXTagType.Double:
+            val = FLOAT64.from_string(value)
+            return CDXValue(val)
+        elif tag_type == CDXTagType.Long:
+            val = INT32.from_string(value)
+            return CDXValue(val)
+
+    def to_bytes(self) -> bytes:
+        return self.value.to_bytes()
+
+    def to_property_value(self) -> str:
+        return self.value.to_property_value()
 
 
 class CDXPositioningType(CDXType, Enum):
@@ -2073,4 +2145,104 @@ class CDXConstraintType(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXConstraintType(self.constraint_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXLabelDisplay(CDXType, Enum):
+
+    Auto = 0
+    Left = 1
+    Center = 2
+    Right = 3
+    Above = 4
+    Below = 5
+
+    def __init__(self, value: int):
+        if 0 > value > 5:
+            raise ValueError("Needs to be between 0 and 5")
+        self.label_display = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXLabelDisplay':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXLabelDisplay should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXLabelDisplay(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXLabelDisplay':
+        return CDXLabelDisplay[value]
+
+    def to_bytes(self) -> bytes:
+        return self.label_display.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXLabelDisplay(self.label_display))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXExternalConnectionType(CDXType, Enum):
+
+    Unspecified = 0
+    Diamond = 1
+    Star = 2
+    PolymerBead = 3
+    Wavy = 4
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.connection_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXExternalConnectionType':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXExternalConnectionType should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXExternalConnectionType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXExternalConnectionType':
+        return CDXExternalConnectionType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.connection_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXExternalConnectionType(self.connection_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXRxnParticipation(CDXType, Enum):
+
+    Unspecified = 0
+    ReactionCenter = 1
+    MakeOrBreak = 2
+    ChangeType = 3
+    MakeAndChange = 4
+    NotReactionCenter = 5
+    NoChange = 6
+    Unmapped = 7
+
+    def __init__(self, value: int):
+        if 0 > value > 7:
+            raise ValueError("Needs to be between 0 and 7")
+        self.connection_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXRxnParticipation':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXRxnParticipation should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXRxnParticipation(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXRxnParticipation':
+        return CDXRxnParticipation[value]
+
+    def to_bytes(self) -> bytes:
+        return self.connection_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXRxnParticipation(self.connection_type))
         return val.split('.')[1]  # only actually value without enum name

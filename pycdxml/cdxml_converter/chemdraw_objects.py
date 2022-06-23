@@ -143,6 +143,11 @@ class ChemDrawDocument(object):
     @staticmethod
     def _read_attributes(cdx: io.BytesIO, element: ET.Element, ignore_unknown_properties: bool):
 
+        # control structures for type "Value" which depends on "TagType".
+        # the type of  "Value" is defined in "TagType"
+        tag_type = CDXTagType.Unknown
+        value_read = False
+
         while True:
             tag_id = int.from_bytes(cdx.read(2), "little")
             # Properties have the most significant bit clear (=0).
@@ -171,19 +176,31 @@ class ChemDrawDocument(object):
                 else:
                     raise UnknownPropertyException(f"Unknown property with tag_id {tag_id} found.")
 
-            prop_name = ChemDrawDocument.CDX_PROPERTIES[tag_id]['name']
+            prop_name = ChemDrawDocument.CDX_PROPERTIES[tag_id]["name"]
             length = int.from_bytes(cdx.read(2), "little")
             if length == 0xFFFF:  # special meaning: property bigger than 65534 bytes
                 length = int.from_bytes(cdx.read(4), "little")
             prop_bytes = cdx.read(length)
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]["type"]
-            logger.debug('Reading property {} of type {}.'.format(prop_name, chemdraw_type))
+            logger.debug(f"Reading property {prop_name} of type {chemdraw_type}.")
             klass = globals()[chemdraw_type]
-            if prop_name == 'UTF8Text':
-                type_obj = klass.from_bytes(prop_bytes, 'utf8')
+            if prop_name == "UTF8Text":
+                type_obj = klass.from_bytes(prop_bytes, "utf8")
+            elif prop_name == "Value":
+                # if order in cdx is wrong as "Value" appears before "tag_type", the value is set to unknown.
+                type_obj = klass.from_bytes(prop_bytes, tag_type)
+                value_read = True
             else:
                 try:
                     type_obj = klass.from_bytes(prop_bytes)
+                    if prop_name == "TagType":
+                        tag_type = type_obj
+                        # if value has been read before tag_type, fix it as it was set to unknown
+                        if value_read and tag_type != CDXTagType.Unknown:
+                            old_val = element.attrib["Value"]
+                            val = CDXValue.from_string(old_val, tag_type)
+                            element.attrib["Value"] = val.to_property_value()
+
                 except ValueError as err:
                     if prop_name == 'color' and length == 4:
                         # A simple test file had a color property instance of length 4
@@ -298,6 +315,18 @@ class ChemDrawDocument(object):
                     continue
                 if attrib == "id":
                     continue
+                if attrib == "Value":
+                    # "Value" is a special attribute. The type of the attribute depends on the attribute "TagType".
+                    try:
+                        tag_type = element.attrib["TagType"]
+                        value_type = CDXTagType.TYPE_MAPPING[tag_type]
+                        ChemDrawDocument._attribute_to_stream(value_type, value, stream, ignore_unknown_attribute)
+                    except KeyError:
+                        logger.warning("Found attribute of type 'Value' without a 'TagType'.")
+                        ChemDrawDocument._attribute_to_stream("Unformatted", value, stream, ignore_unknown_attribute)
+                    finally:
+                        continue
+
                 ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
 
             if element.tag == 't':
