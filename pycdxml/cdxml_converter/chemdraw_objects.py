@@ -296,7 +296,7 @@ class ChemDrawDocument(object):
                            ignore_unknown_attribute: bool, ignore_unknown_element: bool):
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
-            logger.debug("Writing object {}.".format(element.tag))
+            logger.debug(f"Writing object {element.tag}.")
             stream.write(tag_id.to_bytes(2, "little"))
             if 'id' in element.attrib:
                 stream.write(int(element.attrib['id']).to_bytes(4, "little"))
@@ -393,11 +393,11 @@ class ChemDrawDocument(object):
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]['type']
             klass = globals()[chemdraw_type]
             type_obj = klass.from_string(value)
-            logger.debug("Writing attribute {} with value '{}'.".format(attrib, value))
+            logger.debug(f"Writing attribute {attrib} with value '{value}'.")
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.error(f"Found unknown attribute {attrib}. Ignoring attribute.")
+            logger.error(f"Found unknown attribute '{attrib}'. Ignoring attribute.")
             if not ignore_unknown_attribute:
                 raise UnknownPropertyException(f"Can't convert unknown attribute {attrib} to cdx.")
         except ValueError as err:
