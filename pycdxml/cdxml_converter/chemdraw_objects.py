@@ -412,11 +412,11 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.error(f"Found unknown attribute '{attrib} with value {value}'. Ignoring attribute.")
+            logger.error(f"Found unknown attribute '{attrib} with value '{value}'. Ignoring attribute.")
             if not ignore_unknown_attribute:
-                raise UnknownPropertyException(f"Can't convert unknown attribute {attrib} to cdx.")
+                raise UnknownPropertyException(f"Can't convert unknown attribute '{attrib}' to cdx.")
         except ValueError as err:
-            logger.error(f"Found attribute {attrib} with invalid value: {value}. Omitting this property in output")
+            logger.error(f"Found attribute {attrib} with invalid value '{value}'. Omitting this property in output")
 
     @staticmethod
     def _type_to_stream(type_obj: CDXType, stream: io.BytesIO):
