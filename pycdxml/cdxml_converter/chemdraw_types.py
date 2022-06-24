@@ -1935,7 +1935,10 @@ class CDXOvalType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXOvalType':
-        return CDXOvalType[value]
+        try:
+            return CDXOvalType[value]
+        except KeyError as err:
+            raise ValueError(f"{value} is not a valid option for property 'OvalType'.") from err
 
     def to_bytes(self) -> bytes:
         return self.oval_type.to_bytes(2, byteorder='little', signed=True)
