@@ -220,7 +220,7 @@ class ChemDrawDocument(object):
                 element.attrib['CaptionFont'] = str(type_obj.font_id)
                 element.attrib['CaptionSize'] = str(type_obj.font_size_points())
                 element.attrib['CaptionFace'] = str(type_obj.font_type)
-            elif prop_name == 'fonttable' or prop_name == 'colortable':
+            elif prop_name == 'fonttable' or prop_name == 'colortable' or prop_name == 'represent':
                 tbl = type_obj.to_element()
                 element.append(tbl)
             elif prop_name == 'Text':
@@ -397,7 +397,7 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, byteorder='little'))
             ChemDrawDocument._type_to_stream(type_obj, stream)
         except KeyError:
-            logger.error(f"Found unknown attribute '{attrib}'. Ignoring attribute.")
+            logger.error(f"Found unknown attribute '{attrib} with value {value}'. Ignoring attribute.")
             if not ignore_unknown_attribute:
                 raise UnknownPropertyException(f"Can't convert unknown attribute {attrib} to cdx.")
         except ValueError as err:

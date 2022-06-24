@@ -931,3 +931,6 @@
 0x044B:
   name: ExternalConnectionNum
   type: INT8
+0x000e:
+  name: represent
+  type: CDXRepresents

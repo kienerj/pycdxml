@@ -2246,3 +2246,42 @@ class CDXRxnParticipation(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXRxnParticipation(self.connection_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXRepresents(CDXType):
+
+    def __init__(self, object_id: int, attribute: bytes):
+
+        self.object_id = object_id
+        self.attribute = attribute
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXRepresents':
+        object_id = int.from_bytes(property_bytes[:4], "little", signed=False)
+        attribute = bytes[4:6]
+        return CDXRepresents(object_id, attribute)
+
+    @staticmethod
+    def from_element(represents: ET.Element) -> 'CDXRepresents':
+
+        object_id = int(represents.attrib["object"])
+        attribute = represents.attrib["attribute"]
+        tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[attribute]
+        return CDXRepresents(object_id, tag_id)
+
+    def to_bytes(self) -> bytes:
+
+        stream = io.BytesIO()
+        stream.write(self.object_id.to_bytes(4, byteorder='little', signed=False))
+        stream.write(self.attribute)
+        stream.seek(0)
+        return stream.read()
+
+    def to_element(self) -> ET.Element:
+        el = ET.Element('represent')
+        tag_name = ChemDrawDocument.CDX_PROPERTIES[self.attribute]["name"]
+        el.attrib["attribute"] = tag_name
+        return el
+
+    def to_property_value(self) -> str:
+        return ET.tostring(self.to_element(), encoding='unicode', method='xml')
