@@ -103,3 +103,6 @@
 0x0300:
   type: ColorTable
   element_name: colortable
+0x000e:
+  type: RepresentsProperty
+  element_name: represent

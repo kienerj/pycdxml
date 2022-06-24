@@ -5,6 +5,7 @@ from pathlib import Path
 from enum import Enum
 import logging
 import struct
+import pycdxml.cdxml_converter.chemdraw_objects
 
 logger = logging.getLogger('pycdxml.chemdraw_types')
 
@@ -2266,7 +2267,7 @@ class CDXRepresents(CDXType):
 
         object_id = int(represents.attrib["object"])
         attribute = represents.attrib["attribute"]
-        tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[attribute]
+        tag_id = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[attribute]
         return CDXRepresents(object_id, tag_id)
 
     def to_bytes(self) -> bytes:
@@ -2279,7 +2280,7 @@ class CDXRepresents(CDXType):
 
     def to_element(self) -> ET.Element:
         el = ET.Element('represent')
-        tag_name = ChemDrawDocument.CDX_PROPERTIES[self.attribute]["name"]
+        tag_name = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.CDX_PROPERTIES[self.attribute]["name"]
         el.attrib["attribute"] = tag_name
         return el
 

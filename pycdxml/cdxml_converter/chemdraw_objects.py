@@ -294,6 +294,12 @@ class ChemDrawDocument(object):
 
     def _element_to_stream(self, element: ET.Element, stream: io.BytesIO,
                            ignore_unknown_attribute: bool, ignore_unknown_element: bool):
+
+        if element.tag == "represent":
+            # do nothing. was already handled by parent adding it as property
+            # this element in cdx if a property of the parent.
+            return
+
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
             logger.debug(f"Writing object {element.tag}.")
@@ -328,6 +334,15 @@ class ChemDrawDocument(object):
                         continue
 
                 ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
+
+            # check if element has child with tag "represent"
+            # in cdx this is a property of the "represent" parent element
+            represent = element.find("represent")
+            if represent is not None:
+                type_obj = CDXRepresents.from_element(represent)
+                tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG["represent"]
+                stream.write(tag_id.to_bytes(2, byteorder='little'))
+                self._type_to_stream(type_obj, stream)
 
             if element.tag == 't':
                 type_obj = CDXString.from_element(element)
