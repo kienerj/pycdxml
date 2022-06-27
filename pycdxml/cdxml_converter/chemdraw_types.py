@@ -1495,25 +1495,21 @@ class CDXJustification(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXBondOrder(CDXType, Enum):
+class CDXBondOrder(CDXType):
+    """
+    The 'Order' attribute is in contrast to initial assumption not actually an Enum:
 
-    Unspecified = 0xFFFF
-    Single = 0x0001
-    Double = 0x0002
-    Triple = 0x0004
-    Quadruple = 0x0008
-    Quintuple = 0x0010
-    Hextuple = 0x0020
-    OneHalf = 0x0040
-    OneAndAHalf = 0x0080  # Aromatic
-    TwoAndAHalf = 0x0100
-    ThreeAndAHalf = 0x0200
-    FourAndAHalf = 0x0400
-    FiveAndAHalf = 0x0800
-    dative = 0x1000
-    ionic = 0x2000
-    hydrogen = 0x4000
-    threecenter = 0x8000
+    Bond order values may be combined. For example, a value of 3 would represent a "single or double" bond, which is
+    useful for substructure queries.
+
+    However above only applies to cdx. In cdxml above example of single or double is represented by the string '1 2'
+    """
+
+    lookup_table_cdxml = ["1", "2", "3", "4", "5", "6", "0.5", "1.5", "2.5", "3.5", "4.5", "5.5", "dative", "ionic",
+                    "hydrogen", "threecenter"]
+    lookup_table_cdx = {"1": 0x0001, "2": 0x0002, "3": 0x0004, "4": 0x0008, "5": 0x0010, "6": 0x0020, "0.5": 0x0040,
+                        "1.5": 0x0080, "2.5": 0x0100, "3.5": 0x0200, "4.5": 0x0400, "5.5": 0x0800, "dative": 0x1000,
+                        "ionic": 0x2000, "hydrogen": 0x4000, "threecenter": 0x8000}
 
     def __init__(self, value: int):
         self.order = value
@@ -1527,70 +1523,33 @@ class CDXBondOrder(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXBondOrder':
-        try:
-            v = float(value)
-            if v == 1:
-                return CDXBondOrder["Single"]
-            elif v == 2:
-                return CDXBondOrder["Double"]
-            elif v == 3:
-                return CDXBondOrder["Triple"]
-            elif v == 1.5:
-                return CDXBondOrder["OneAndAHalf"]
-            elif v == 4:
-                return CDXBondOrder["Quadruple"]
-            elif v == 5:
-                return CDXBondOrder["Quintuple"]
-            elif v == 6:
-                return CDXBondOrder["Hextuple"]
-            elif v == 0.5:
-                return CDXBondOrder["OneHalf"]
-            elif v == 2.5:
-                return CDXBondOrder["TwoAndAHalf"]
-            elif v == 3.5:
-                return CDXBondOrder["ThreeAndAHalf"]
-            elif v == 4.5:
-                return CDXBondOrder["FourAndAHalf"]
-            elif v == 5.5:
-                return CDXBondOrder["FiveAndAHalf"]
-            elif v == 0xFFFF:
-                return CDXBondOrder["Unspecified"]
-        except ValueError:
-            # use enum name
-            return CDXBondOrder[value]
+        # for example a single or double bond has vale '3' in cdx but is string '1 2' in cdxml
+        orders = value.split(" ")
+        total_order = 0
+        for order in orders:
+            total_order += CDXBondOrder.lookup_table_cdx[order]
+        if total_order == 0:
+            # Unspecified
+            total_order = 0xFFFF
+        return CDXBondOrder(total_order)
 
     def to_bytes(self) -> bytes:
         return self.order.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
+        """
+        Convert bytes into cdxmls "space-separated" format
 
-        if self.order >= 0x1000:
-            val = str(CDXJustification(self.order))
-            return val.split('.')[1]  # only actually value without enum name
-        elif self.order == 0x0001:
-            return "1"
-        elif self.order == 0x0002:
-            return "2"
-        elif self.order == 0x0004:
-            return "3"
-        elif self.order == 0x0008:
-            return "4"
-        elif self.order == 0x0010:
-            return "5"
-        elif self.order == 0x0020:
-            return "6"
-        elif self.order == 0x0040:
-            return "0.5"
-        elif self.order == 0x0080:
-            return "1.5"
-        elif self.order == 0x0100:
-            return "2.5"
-        elif self.order == 0x0200:
-            return "3.5"
-        elif self.order == 0x0400:
-            return "4.5"
-        elif self.order == 0x0800:
-            return "5.5"
+        The main part of the decode function is a generator expression. It takes the numbers 0 to 15 (range(16)).
+        For each of these numbers, it checks if the ith bit is set in value (if value & 1<<i). If it is, the
+        corresponding value from the lookup_table is included in the result. If it's not, it's not.
+        """
+        return " ".join(
+            str(CDXBondOrder.lookup_table_cdxml[i])
+            for i
+            in range(16)
+            if self.order & 1 << i
+    )
 
 
 class CDXLabelAlignment(CDXType, Enum):
