@@ -536,7 +536,7 @@
   name: ArrowheadCenterSize
   type: UINT16
 0x0A31:
-  name: HeadWidth
+  name: ArrowheadWidth
   type: UINT16
 0x0A32:
   name: ShadowSize
