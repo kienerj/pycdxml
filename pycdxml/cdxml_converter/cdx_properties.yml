@@ -533,7 +533,7 @@
   name: ArrowheadType
   type: CDXArrowHeadType
 0x0A30:
-  name: HeadCenterSize
+  name: ArrowheadCenterSize
   type: UINT16
 0x0A31:
   name: HeadWidth
