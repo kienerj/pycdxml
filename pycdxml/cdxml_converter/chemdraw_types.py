@@ -1427,7 +1427,7 @@ class CDXArrowHeadPosition(CDXType, Enum):
 class CDXFillType(CDXType, Enum):
 
     Unspecified = 0x0000
-    Non = 0x0001  # actual value is None but not possible here
+    _None = 0x0001  # actual value is None but not possible here
     Solid = 0x0002
     Shaded = 0x0004
     Gradient = 0x0008
@@ -1447,6 +1447,8 @@ class CDXFillType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXFillType':
+        if value == "None":
+            return CDXFillType["_None"]
         return CDXFillType[value]
 
     def to_bytes(self) -> bytes:
