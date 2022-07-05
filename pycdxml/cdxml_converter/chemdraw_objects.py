@@ -397,7 +397,7 @@ class ChemDrawDocument(object):
                 ChemDrawDocument._type_to_stream(type_obj, stream)
 
         except KeyError as err:
-            logger.error(f"Missing implementation for element: {element.tag}. Ignoring element.")
+            logger.error(f"Missing implementation for element: {element.tag}. {err}.")
             if not ignore_unknown_element:
                 raise UnknownPropertyException(f"Can't convert unknown element {element.tag} to cdx.") from err
 

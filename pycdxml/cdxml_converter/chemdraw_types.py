@@ -386,9 +386,15 @@ class CDXCoordinate(CDXType):
                            "Reducing value to maximum allowed value.")
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
         elif self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
-            logger.warning(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
-                           "Reducing value to minimum allowed value.")
-            return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
+            if self.coordinate == -70368744177664:
+                logger.warning(f"Coordinate value '{self.coordinate}' is invalid. This issue can be caused by prior "
+                               "conversion using ChemDraw JS API for coordinate values of '0'. Setting it to '0'.")
+                zero = 0
+                return zero.to_bytes(4, byteorder='little', signed=True)
+            else:
+                logger.warning(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
+                               "Reducing value to minimum allowed value.")
+                return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
         else:
             return self.coordinate.to_bytes(4, byteorder='little', signed=True)
 
@@ -2231,7 +2237,7 @@ class CDXRepresents(CDXType):
 
         object_id = int(represents.attrib["object"])
         attribute = represents.attrib["attribute"]
-        tag_id = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[attribute]
+        tag_id = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.PROPERTY_NAME_TO_TAG[attribute]
         return CDXRepresents(object_id, tag_id)
 
     def to_bytes(self) -> bytes:
