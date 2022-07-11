@@ -129,14 +129,20 @@ class CDXMLStyler(object):
                 scaling_factor = bond_length / avg_bl
                 scaled_coords = all_coords * scaling_factor
                 logger.debug("Determining new coordinates.")
-                final_coords = CDXMLStyler.translate(all_coords, scaled_coords)
+                x_translate, y_translate = CDXMLStyler.get_translation_coordinates(all_coords, scaled_coords)
+                final_coords = CDXMLStyler.translate(scaled_coords, x_translate, y_translate)
                 # Scale atom labels
                 if len(label_coords) > 0:
                     scaled_labels = label_coords * scaling_factor
-                    final_labels = CDXMLStyler.translate(label_coords, scaled_labels)
+                    x_translate_label, y_translate_label = \
+                        CDXMLStyler.get_translation_coordinates(label_coords, scaled_labels)
+                    final_labels = CDXMLStyler.translate(scaled_labels, x_translate_label, y_translate_label)
 
                 # bounding box of fragment
-                CDXMLStyler.fix_bounding_box(fragment, scaling_factor)
+                CDXMLStyler.fix_bounding_box(fragment, scaling_factor, x_translate, y_translate)
+
+                for graphic in fragment.iter('graphic'):
+                    CDXMLStyler.fix_bounding_box(graphic, scaling_factor, x_translate, y_translate)
 
                 logger.debug("Applying new coordinates and label styles.")
 
@@ -279,23 +285,17 @@ class CDXMLStyler(object):
         return all_coords, node_id_mapping, bonds, label_coords
 
     @staticmethod
-    def fix_bounding_box(element: ET.Element, scaling_factor: float):
+    def fix_bounding_box(element: ET.Element, scaling_factor: float, xt: float, yt: float):
 
         fragment_bb = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
         scaled_coords = fragment_bb * scaling_factor
 
-        x_center = (fragment_bb[0] + fragment_bb[2]) / 2
-        y_center = (fragment_bb[1] + fragment_bb[3]) / 2
-        scaled_x_center = (scaled_coords[0] + scaled_coords[2]) / 2
-        scaled_y_center = (scaled_coords[1] + scaled_coords[3]) / 2
+        translate = np.array([xt, yt, xt, yt])
 
-        x_translate = x_center - scaled_x_center
-        y_translate = y_center - scaled_y_center
-        translate = np.array([x_translate, y_translate, x_translate, y_translate])
         final_coords = scaled_coords + translate
         final_coords = np.round(final_coords, 2)
-        element.attrib['BoundingBox'] = "{} {} {} {}".format(
-            final_coords[0], final_coords[1], final_coords[2], final_coords[3])
+
+        element.attrib['BoundingBox'] = f"{final_coords[0]} {final_coords[1]} {final_coords[2]} {final_coords[3]}"
 
     @staticmethod
     def get_center(all_coords: np.array) -> tuple:
@@ -347,26 +347,41 @@ class CDXMLStyler(object):
         return avg_bl
 
     @staticmethod
-    def translate(all_coords, scaled_coords):
-        """Translates the scaled fragment back to it's previous center
+    def get_translation_coordinates(all_coords, scaled_coords):
+        """Gets the x and y translation needed to scale the fragment back to it's previous center
 
         Parameters:
         all_coords (numpy): coordinates of all nodes(atoms) of the fragment
         scaled_coords(numpy): coordinates of all nodes(atoms) of the fragment after scaling
 
-
         Returns:
-        numpy: array of translated coordinates
-
-       """
+        tuple: x and y amount to translate
+        """
 
         x_center, y_center = CDXMLStyler.get_center(all_coords)
         scaled_x_center, scaled_y_center = CDXMLStyler.get_center(scaled_coords)
 
         x_translate = x_center - scaled_x_center
         y_translate = y_center - scaled_y_center
+
+        return x_translate, y_translate
+
+    @staticmethod
+    def translate(coords, x_translate, y_translate):
+        """Translates the input coordinates by the given x and y translation amount
+
+        Parameters:
+        coords (numpy): coordinates of all elements to translate
+        x_translate: amount to translate on x-axis
+        y_translate: amount to translate on y-axis
+
+
+        Returns:
+        numpy: array of translated coordinates
+
+       """
         translate = np.array([x_translate, y_translate])
-        final_coords = scaled_coords + translate
+        final_coords = coords + translate
         return final_coords
 
     @staticmethod
