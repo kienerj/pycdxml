@@ -167,8 +167,10 @@ class CDXMLSlideGenerator(object):
         if scaling_factor < 1:
             all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
             scaled_coords = all_coords * scaling_factor
-            final_coords = self.styler.translate(all_coords, scaled_coords)
-            self.styler.fix_bounding_box(fragment, scaling_factor)
+
+            x_translate, y_translate = self.styler.get_translation_coordinates(all_coords, scaled_coords)
+            final_coords = self.styler.translate(scaled_coords, x_translate, y_translate)
+            self.styler.fix_bounding_box(fragment, scaling_factor, x_translate, y_translate)
             idx = 0
             for node in fragment.iter('n'):
                 coords_xml = str(final_coords[idx][0]) + " " + str(final_coords[idx][1])
