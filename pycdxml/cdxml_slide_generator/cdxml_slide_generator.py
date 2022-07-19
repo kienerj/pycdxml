@@ -159,18 +159,15 @@ class CDXMLSlideGenerator(object):
 
         fragments = cdxml_root.findall('.//fragment')
 
-        # determine final molecule position
+        # determine grid position
         row = document_idx // self.columns
         column = document_idx % self.columns
-        x_center = (column + 0.5) * self.column_width
-        y_center = row * self.row_height + 0.5 * self.molecule_height
 
         if len(fragments) == 0:
             # return an empty group element
-            x_translate = self.margin + column * self.column_width
-            y_translate = self.margin + row * self.row_height
             grp = ET.Element("group")
             grp.attrib['BoundingBox'] = f"0 0 {self.molecule_width} {self.molecule_height}"
+            x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
             geometry.fix_bounding_box(grp, x_translate, y_translate)
             return grp
 
