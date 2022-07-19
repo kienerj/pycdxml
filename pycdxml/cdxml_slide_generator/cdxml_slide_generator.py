@@ -58,43 +58,15 @@ class CDXMLSlideGenerator(object):
         for index, cdxml in enumerate(cdxml_documents):
             cdxml = self.styler.apply_style_to_string(cdxml)
             root = ET.fromstring(bytes(cdxml, encoding='utf8'))
-            # Only first structure in document is put into slide
-            # fragment can also be in a group inside page so just find inside page doesn't work
-            fragment = root.findall('.//fragment')[0]
 
-            # shrinks fragment in case it doesn't fit into available space
-            self._shrink_to_fit(fragment)
-
-            # determine final molecule position
-            row = index // self.columns
-            column = index % self.columns
-            x_center = (column + 0.5) * self.column_width
-            y_center = row * self.row_height + 0.5 * self.molecule_height
-
-            # get translation coords
-            all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
-            # current_x_center, current_y_center = self.styler.get_center(all_coords)
-            fragment_bb = np.asarray([float(x) for x in fragment.attrib['BoundingBox'].split(" ")])
-            current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
-            current_y_center = (fragment_bb[1] + fragment_bb[3]) / 2
-
-            x_translate = x_center - current_x_center
-            y_translate = y_center - current_y_center
-
-            translate = np.array([x_translate, y_translate])
-            final_coords = np.round(all_coords + translate, 2)
-
-            # translate in xml
-            CDXMLSlideGenerator._translate_bounding_box(fragment, x_translate, y_translate)
-
-            idx = 0
-            for node in fragment.iter('n'):
-                coords_xml = str(round(final_coords[idx][0], 2)) + " " + str(round(final_coords[idx][1], 2))
-                node.attrib['p'] = coords_xml
-                idx += 1
+            grp = self._build_group_element(root, index)
 
             # handle properties
             if self.number_of_properties > 0:
+                # determine grid position
+                row = index // self.columns
+                column = index % self.columns
+
                 props = properties[index][:self.number_of_properties]
                 y_top = row * self.row_height + self.molecule_height + self.margin
                 y_bottom = y_top + self.text_height
@@ -129,14 +101,14 @@ class CDXMLSlideGenerator(object):
                     line_starts.append(str(text_length))
 
                     # Add properties as annotations so that they are exported to sdf!
-                    annotation = ET.SubElement(fragment, 'annotation')
+                    annotation = ET.SubElement(grp, 'annotation')
                     annotation.attrib['Keyword'] = prop.name
                     annotation.attrib['Content'] = str(prop.value)
 
                 txt.attrib['LineStarts'] = ' '.join(line_starts)
                 self.slide.find('page').append(txt)
 
-            self.slide.find('page').append(fragment)
+            self.slide.find('page').append(grp)
 
         return cdxml_io.etree_to_cdxml(self.slide)
 
@@ -205,7 +177,7 @@ class CDXMLSlideGenerator(object):
             annotation.attrib['Content'] = str(1 / scaling_factor * 100)
 
             # Scale bounding box of new group element
-            coords = np.asarray([min_left, min_top, max_right, max_bottom])
+            coords = np.asarray([[min_left, min_top], [max_right, max_bottom]])
             bb_scaled = coords * scaling_factor
             x_translate, y_translate = geometry.get_translation(coords, bb_scaled)
             geometry.fix_bounding_box(grp, x_translate, y_translate, scaling_factor)
@@ -244,7 +216,7 @@ class CDXMLSlideGenerator(object):
         all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
         scaled_coords = all_coords * scaling_factor
 
-        x_translate, y_translate = geometry.get_translation_coordinates(all_coords, scaled_coords)
+        x_translate, y_translate = geometry.get_translation(all_coords, scaled_coords)
         final_coords = geometry.translate(scaled_coords, x_translate, y_translate)
         geometry.fix_bounding_box(fragment, x_translate, y_translate, scaling_factor)
 

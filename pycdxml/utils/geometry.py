@@ -57,6 +57,7 @@ def get_translation(old_coords, new_coords):
 
     return x_translate, y_translate
 
+
 def translate(coords, x_translate, y_translate):
     """Translates the input coordinates by the given x and y translation amount
 
