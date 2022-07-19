@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 from ..cdxml_styler import CDXMLStyler
 from ..utils import cdxml_io
+from ..utils import geometry
 
 
 class CDXMLSlideGenerator(object):
@@ -147,6 +148,134 @@ class CDXMLSlideGenerator(object):
         final_bb = fragment_bb + translate_bb
         final_bb = np.round(final_bb, 2)
         element.attrib['BoundingBox'] = "{} {} {} {}".format(final_bb[0], final_bb[1], final_bb[2], final_bb[3])
+
+    def _build_group_element(self, cdxml_root, document_idx: int):
+        """
+        Build a new group element that contains all the fragments in this document.
+
+        The initial size of the element is the most upper left corner including all fragments and the most lower right
+        corner. Then it is scaled to fit into the grid including all fragments.
+        """
+
+        fragments = cdxml_root.findall('.//fragment')
+
+        # determine final molecule position
+        row = document_idx // self.columns
+        column = document_idx % self.columns
+        x_center = (column + 0.5) * self.column_width
+        y_center = row * self.row_height + 0.5 * self.molecule_height
+
+        if len(fragments) == 0:
+            # return an empty group element
+            x_translate = self.margin + column * self.column_width
+            y_translate = self.margin + row * self.row_height
+            grp = ET.Element("group")
+            grp.attrib['BoundingBox'] = f"0 0 {self.molecule_width} {self.molecule_height}"
+            geometry.fix_bounding_box(grp, x_translate, y_translate)
+            return grp
+
+        # determine "minimum" bound box for all fragments
+        min_left = 10000
+        min_top = 10000
+        max_right = 0
+        max_bottom = 0
+
+        for fragment in fragments:
+            bb = fragment.attrib['BoundingBox']
+            bounding_box = [float(x) for x in bb.split(" ")]
+            if bounding_box[0] < min_left:
+                min_left = bounding_box[0]
+            if bounding_box[1] < min_top:
+                min_top = bounding_box[1]
+            if bounding_box[2] > max_right:
+                max_right = bounding_box[2]
+            if bounding_box[3] > max_bottom:
+                max_bottom = bounding_box[3]
+
+        # scaling factor for group bounding box (and hence all fragments
+        width = max_right - min_left
+        height = max_bottom - min_top
+        width_factor = self.molecule_width / width
+        height_factor = self.molecule_height / height
+        scaling_factor = min([width_factor, height_factor])
+
+        grp = ET.Element("group")
+        grp.attrib['BoundingBox'] = f"{min_left} {min_top} {max_right} {max_bottom}"
+        annotation = ET.SubElement(grp, 'annotation')
+        annotation.attrib['Keyword'] = "Scaling Factor"
+
+        if scaling_factor < 1:
+            annotation.attrib['Content'] = str(1 / scaling_factor * 100)
+
+            # Scale bounding box of new group element
+            coords = np.asarray([min_left, min_top, max_right, max_bottom])
+            bb_scaled = coords * scaling_factor
+            x_translate, y_translate = geometry.get_translation(coords, bb_scaled)
+            geometry.fix_bounding_box(grp, x_translate, y_translate, scaling_factor)
+
+            # Translate group element to final position
+            x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
+            geometry.fix_bounding_box(grp, x_translate, y_translate)
+
+            for fragment in fragments:
+                self._scale_fragment(fragment, scaling_factor)
+                # translate by the same amount of the new group element
+                self._translate_fragment(fragment, x_translate, y_translate)
+                grp.append(fragment)
+        else:
+            annotation.attrib['Content'] = "100"
+            # Translate group element to final position
+            x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
+            geometry.fix_bounding_box(grp, x_translate, y_translate)
+            for fragment in fragments:
+                # translate by the same amount of the new group element
+                self._translate_fragment(fragment, x_translate, y_translate)
+                grp.append(fragment)
+
+        return grp
+
+    def _get_translation_to_grid_position(self, element: ET.Element, row: int, column: int):
+
+        bounding_box = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
+        x_translate = column * self.column_width + self.margin - bounding_box[0]
+        y_translate = row * self.row_height + self.margin - bounding_box[1]
+
+        return x_translate, y_translate
+
+    def _scale_fragment(self, fragment: ET.Element, scaling_factor):
+
+        all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
+        scaled_coords = all_coords * scaling_factor
+
+        x_translate, y_translate = geometry.get_translation_coordinates(all_coords, scaled_coords)
+        final_coords = geometry.translate(scaled_coords, x_translate, y_translate)
+        geometry.fix_bounding_box(fragment, x_translate, y_translate, scaling_factor)
+
+        self._translate_nodes(fragment, final_coords, scaling_factor)
+
+    def _translate_fragment(self, fragment: ET.Element, x_translate: float, y_translate: float):
+
+        all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
+        final_coords = geometry.translate(all_coords, x_translate, y_translate)
+        geometry.fix_bounding_box(fragment, x_translate, y_translate)
+
+        self._translate_nodes(fragment, final_coords)
+
+    def _translate_nodes(self, fragment: ET.Element, destination_coordinates, scaling_factor=None):
+
+        idx = 0
+        for node in fragment.iter('n'):
+            coords_xml = str(destination_coordinates[idx][0]) + " " + str(destination_coordinates[idx][1])
+            node.attrib['p'] = coords_xml
+            idx += 1
+        if scaling_factor is not None:
+            # scale all text
+            for t in fragment.iter('t'):
+                for s in t.iter('s'):
+                    # scales Atom Labels
+                    s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
+            # TODO: scaling for graphics and other elements like arrows, curves...
+
 
     def _shrink_to_fit(self, fragment):
         """
