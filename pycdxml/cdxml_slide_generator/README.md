@@ -22,7 +22,7 @@ slide = sg.generate_slide(docs, props)
 
 ## Known Issues
 
-A big caveat currently is, that this doesn't work with salts or any other "multi-fragment" chemical structure. A molecule inside ChemDraw is represented as a `fragment` object. So in a salt, there are at least 2 such `fragments`. If they are drawn by hand and not grouped, there is no way to know which fragments belong to each other. If you create a salt by Name2Structure, then it is grouped correctly. Note: Grouping is currently also not taken into account.
+Only fragment objects of the input are used. If the input contains any additional drawing elements for example brackets, they will not be visible in the output.
 
-Currently `CDXMLSlideGenerator` just takes the first fragment in the file and adds that to the slide. Another option could be to take all fragments and if there are too many you will simply get a very tiny view of these molecules.
+`CDXMLSlideGenerator` takes all the fragments in the file, groups them and adds the group to the slide. If the document contains many molecules, they will become tiny to fit the assigned grid position. Taking all fragments is needed so that it works for salts but the convention is the input documents should contain single-molecules only.
 
