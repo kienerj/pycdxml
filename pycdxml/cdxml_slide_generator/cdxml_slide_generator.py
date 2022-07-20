@@ -106,7 +106,8 @@ class CDXMLSlideGenerator(object):
                     annotation.attrib['Content'] = str(prop.value)
 
                 txt.attrib['LineStarts'] = ' '.join(line_starts)
-                self.slide.find('page').append(txt)
+                #self.slide.find('page').append(txt)
+                grp.append(txt)
 
             self.slide.find('page').append(grp)
 
@@ -264,7 +265,7 @@ class CDXMLSlideGenerator(object):
             for t in fragment.iter('t'):
                 for s in t.iter('s'):
                     # scales Atom Labels
-                    s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
+                    s.attrib["size"] = str(round(float(self.styler.style["LabelSize"]) * scaling_factor, 2))
             # TODO: scaling for graphics and other elements like arrows, curves...
 
     def _build_base_document(self, style):
