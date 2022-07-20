@@ -18,6 +18,24 @@ def fix_bounding_box(element: ET.Element, xt: float, yt: float, scaling_factor: 
     element.attrib['BoundingBox'] = f"{final_coords[0]} {final_coords[1]} {final_coords[2]} {final_coords[3]}"
 
 
+def get_element_center(element: ET.Element) -> np.array:
+
+    bb = element.attrib['BoundingBox']
+    bounding_box = [float(x) for x in bb.split(" ")]
+    coords = np.asarray([[bounding_box[0], bounding_box[1]], [bounding_box[2], bounding_box[3]]])
+    x_center, y_center = get_center(coords)
+    return np.array([x_center, y_center])
+
+
+def get_translation_vector(point_a: np.array, point_b: np.array) -> float:
+
+    vect = []
+    for i in range(len(point_a)):
+        dist = point_a[i] - point_b[i]
+        vect.append(dist)
+    return np.array(vect)
+
+
 def get_center(all_coords: np.array) -> tuple:
     """Gets the center (x,y coordinates) of an element, usually a fragment
 
@@ -38,7 +56,7 @@ def get_center(all_coords: np.array) -> tuple:
     return x_center, y_center
 
 
-def get_translation(old_coords, new_coords):
+def get_translation(old_coords, new_coords, center=True):
     """Gets the x and y translation needed to scale the fragment back to it's previous center
 
     Parameters:
@@ -48,12 +66,18 @@ def get_translation(old_coords, new_coords):
     Returns:
     tuple: x and y amount to translate
     """
+    if center:
+        x_center, y_center = get_center(old_coords)
+        scaled_x_center, scaled_y_center = get_center(new_coords)
 
-    x_center, y_center = get_center(old_coords)
-    scaled_x_center, scaled_y_center = get_center(new_coords)
+        x_translate = x_center - scaled_x_center
+        y_translate = y_center - scaled_y_center
+    else:
+        min_x, min_y = old_coords.min(axis=0)
+        min_x_new, min_y_new = new_coords.min(axis=0)
 
-    x_translate = x_center - scaled_x_center
-    y_translate = y_center - scaled_y_center
+        x_translate = min_x - min_x_new
+        y_translate = min_y - min_y_new
 
     return x_translate, y_translate
 
@@ -71,6 +95,6 @@ def translate(coords, x_translate, y_translate):
     numpy: array of translated coordinates
 
    """
-    translate = np.array([x_translate, y_translate])
-    final_coords = coords + translate
+    translation = np.array([x_translate, y_translate])
+    final_coords = coords + translation
     return final_coords

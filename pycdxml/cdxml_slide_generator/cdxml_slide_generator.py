@@ -178,6 +178,7 @@ class CDXMLSlideGenerator(object):
 
             # Scale bounding box of new group element
             coords = np.asarray([[min_left, min_top], [max_right, max_bottom]])
+            grp_center = geometry.get_element_center(grp)
             bb_scaled = coords * scaling_factor
             x_translate, y_translate = geometry.get_translation(coords, bb_scaled)
             geometry.fix_bounding_box(grp, x_translate, y_translate, scaling_factor)
@@ -185,12 +186,24 @@ class CDXMLSlideGenerator(object):
             # Translate group element to final position
             x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
             geometry.fix_bounding_box(grp, x_translate, y_translate)
+            grp_center_final = geometry.get_element_center(grp)
 
             for fragment in fragments:
+                # Final position of fragment is calculated using the distance from the groups center
+                # 1. Get distance vector between fragment center and group center unscaled
+                # 2. Multiply above vector with scaling factor
+                # 3. Scale the fragment
+                # 4. Determine distance vector of scaled fragment center from scaled group center
+                # 5. Translate fragment by that amount so distance from center remains proportional
+                frg_center = geometry.get_element_center(fragment)
+                center_distance = np.array(geometry.get_translation_vector(frg_center, grp_center)) * scaling_factor
                 self._scale_fragment(fragment, scaling_factor)
-                # translate by the same amount of the new group element
+                frg_center_scaled = geometry.get_element_center(fragment)
+                x_translate = (grp_center_final[0] + center_distance[0]) - frg_center_scaled[0]
+                y_translate = (grp_center_final[1] + center_distance[1]) - frg_center_scaled[1]
                 self._translate_fragment(fragment, x_translate, y_translate)
                 grp.append(fragment)
+
         else:
             annotation.attrib['Content'] = "100"
             # Translate group element to final position
@@ -204,10 +217,19 @@ class CDXMLSlideGenerator(object):
         return grp
 
     def _get_translation_to_grid_position(self, element: ET.Element, row: int, column: int):
-
+        """
+        Get x and y translation amount for moving the element into the desired grid position.
+        The element will be centered vertically and left-aligned.
+        """
         bounding_box = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
+        # grid_center_x = (column + 0.5) * self.column_width
+        grid_center_y = row * self.row_height + 0.5 * self.molecule_height + self.margin
+        # current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
+        current_y_center = (bounding_box[1] + bounding_box[3]) / 2
         x_translate = column * self.column_width + self.margin - bounding_box[0]
+        # x_translate = x_center - current_x_center
         y_translate = row * self.row_height + self.margin - bounding_box[1]
+        y_translate = grid_center_y - current_y_center
 
         return x_translate, y_translate
 
@@ -244,43 +266,6 @@ class CDXMLSlideGenerator(object):
                     # scales Atom Labels
                     s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
             # TODO: scaling for graphics and other elements like arrows, curves...
-
-
-    def _shrink_to_fit(self, fragment):
-        """
-        :param fragment: fragment ET element from cdxml
-        """
-        # scaling factor
-        bb = fragment.attrib['BoundingBox']
-        bounding_box = [float(x) for x in bb.split(" ")]
-        width = bounding_box[2] - bounding_box[0]
-        height = bounding_box[3] - bounding_box[1]
-        width_factor = self.molecule_width / width
-        height_factor = self.molecule_height / height
-        scaling_factor = min([width_factor, height_factor])
-
-        annotation = ET.SubElement(fragment, 'annotation')
-        annotation.attrib['Keyword'] = "Scaling Factor"
-
-        if scaling_factor < 1:
-            all_coords, node_id_mapping, bonds, label_coords = self.styler.get_coords_and_mapping(fragment)
-            scaled_coords = all_coords * scaling_factor
-
-            x_translate, y_translate = self.styler.get_translation_coordinates(all_coords, scaled_coords)
-            final_coords = self.styler.translate(scaled_coords, x_translate, y_translate)
-            self.styler.fix_bounding_box(fragment, scaling_factor, x_translate, y_translate)
-            idx = 0
-            for node in fragment.iter('n'):
-                coords_xml = str(final_coords[idx][0]) + " " + str(final_coords[idx][1])
-                node.attrib['p'] = coords_xml
-                for t in node.iter('t'):
-                    for s in t.iter('s'):
-                        # scales Atom Labels
-                        s.attrib["size"] = str(float(self.styler.style["LabelSize"]) * scaling_factor)
-                idx += 1
-            annotation.attrib['Content'] = str(1/scaling_factor * 100)
-        else:
-            annotation.attrib['Content'] = "100"
 
     def _build_base_document(self, style):
 
