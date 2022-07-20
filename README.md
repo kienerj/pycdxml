@@ -6,7 +6,7 @@ A hypothetical usage scenario is to convert an RDKit molecules to `cdxml`, apply
 
 ## Installation
 
-Currently there is no official release or stable version. The suggested approach to try it out is to create a new conda environment from an environment.yml:
+Currently, there is no official release or stable version. The suggested approach to try it out is to create a new conda environment from an environment.yml:
 
 ```yaml
 name: pycdxml
@@ -32,11 +32,12 @@ Then clone this repository and install it in [development mode](https://packagin
 python -m pip install -e c:\path\to\PyCDXML
 ```
 
-If you clone the repo with git (vs downloading), this has the advantage that you can use git to pull new commits and you can then immediately use the new version without any further changes.
+If you clone the repo with git (vs downloading), this has the advantage that you can use git to pull new commits. 
+You can then immediately use the new version without any further changes.
 
 ## Usage Examples
 
-Usage example here towards the top of the README but I very much advise to still read the full document! Caveats apply!
+Usage example here towards the top, but I advise to still read the full document! Caveats apply!
 
 ### Format Conversions
 
@@ -92,11 +93,11 @@ properties = []
 for idx, f in enumerate(files):
     with open(f, 'r') as file:
         cdxml = file.read()
-        self.structures.append(cdxml)
+        structures.append(cdxml)
         # Generate Properties
         props = [TextProperty('ID', idx, color='#3f6eba'),
                  TextProperty('Name', "Molecule " + str(idx), show_name=True)]
-        self.properties.append(props)
+        properties.append(props)
 
 sg = CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2)
 slide = sg.generate_slide(structures, properties)
@@ -108,9 +109,12 @@ with open('slide_out.cdxml', 'w', encoding='utf8') as f:
 
 ## Project Status
 
-The overall status of the project can be described best as **alpha**. It somewhat depends on the specific module used and how you use it. Within the limited scope of basic small molecules, the code will likely work. I'm sure there are some unknown bugs and edge-cases not present in my set of test molecules but staying in that scope, any you will probably be fine.
+The overall status of the project can be described best as **alpha**. It depends on the specific module used. Within 
+the limited scope of basic small molecules, the code will likely work. But it is certain there are some unknown bugs 
+and edge-cases not present in my set of test molecules.
 
-Where you might run into issues is with salts, reactions and for sure organometallics or anything that contains non-chemical related drawings.
+Where you might run into issues is with reactions and for sure organometallics or anything that contains 
+non-chemical related drawings.
 
 It's best to limit usage to "single-molecule" documents essentially treating the ChemDraw files like mol files. `cdxml`and `cdx` are more like a drawing file format with molecules as first class citizens and not a pure chemical format. Using any of these "drawing features" can lead to errors or worse silent issues. **You have been warned!**
 
@@ -118,7 +122,10 @@ It's best to limit usage to "single-molecule" documents essentially treating the
 
 `cdxml_converter`module allows you to convert between `cdxml`and `cdx` files. There is also support to convert [RDKit](https://github.com/rdkit/rdkit) molecules to `cdxml` or `cdx` files.
 
-The conversions are based on PerkinElmers (formerly CambridgeSofts) official but very much outdated format specification available [here](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/IntroCDX.htm). Some features required some "reverse engineering" as they are either new or different from the specification. For more details see the README.md in the modules directory.
+The conversions are based on PerkinElmers (formerly CambridgeSofts) official but very much outdated format 
+specification available [here](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/IntroCDX.htm). 
+Some features required "trial and error" to get working as they are either new or different from the specification. For 
+more details see the README.md in the modules' directory.
 
 major known issue: very old `cdx` files do not adhere to the official format specification and hence very often fail to be read (old means around ChemDraw 7 time-frame and older).
 
@@ -140,13 +147,17 @@ Please absolutely do. Just reporting issues will already help and in that case p
 
 ### Add Tests
 
-An important help would also be adding more and better tests. Ultimately the different modules generate new files which must somehow be validated. Currently I'm just comparing to a reference file which itself was created by these modules but visually inspected to be correct. Issue is small changes can lead to test failures and the need to regenerate and inspect the reference files. The hence testing is not very automatic at all. 
+An important help would also be adding more and better tests. Ultimately the different modules generate new files which must somehow be validated. Currently, I'm just comparing to a reference file which itself was created by these modules but visually inspected to be correct. Issue is small changes can lead to test failures and the need to regenerate and inspect the reference files. The hence testing is not very automatic at all. 
 
 ## Miscellaneous
 
 ### License
 
-I've used the GPLv3 because this project should be a pre-competitive community effort to make certain internal workflows easier to handle. The GPLv3 entirely permits you to create an internal or personal tool without needing to share your source code. What you can't do is add it you your commercial software and not share the full source code.
+I've used the GPLv3 because this project should be a pre-competitive community effort to make certain internal 
+workflows easier to handle. The GPLv3 entirely permits you to create an internal or personal tool without needing to 
+share your source code. What you can't do is add it to your commercial software and not share the full source code.
+It's possible I will change this to a more permissive licence in the future.
+
 
 ### Chemical Intelligence
 
