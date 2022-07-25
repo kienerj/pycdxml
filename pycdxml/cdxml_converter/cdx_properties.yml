@@ -934,3 +934,9 @@
 0x000e:
   name: represent
   type: CDXRepresents
+0x1500:
+  name: Keyword
+  type: CDXString
+0x1501:
+  name: Content
+  type: CDXString

@@ -97,6 +97,9 @@
 0x8027:
   type: PlasmidMarker
   element_name: plasmidmarker
+0x802B:
+  type: Annotation
+  element_name: annotation
 0x0100:
   type: FontTable 
   element_name: fonttable
