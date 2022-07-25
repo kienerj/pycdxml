@@ -417,7 +417,6 @@ class ChemDrawDocument(object):
                 raise UnknownPropertyException(f"Can't convert unknown attribute '{attrib}' to cdx.")
         except ValueError as err:
             logger.error(f"Found attribute {attrib} with invalid value '{value}'. Omitting this property in output")
-            logger.error(err)
 
     @staticmethod
     def _type_to_stream(type_obj: CDXType, stream: io.BytesIO):
