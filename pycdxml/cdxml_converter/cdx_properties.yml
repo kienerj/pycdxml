@@ -594,16 +594,16 @@
   type: Unformatted
 0x0A66:
   name: CompressedMacPICT
-  type: Compressed
+  type: CDXCompressed
 0x0A67:
   name: CompressedWindowsMetafile
-  type: Compressed
+  type: CDXCompressed
 0x0A68:
   name: Compressed_OLEObject
-  type: Compressed
+  type: CDXCompressed
 0x0A69:
   name: CompressedEnhancedMetafile
-  type: Compressed
+  type: CDXCompressed
 0x0A6A:
   name: UncompressedMacPICTSize
   type: INT32

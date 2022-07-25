@@ -6,6 +6,7 @@ from enum import Enum
 import logging
 import struct
 import pycdxml.cdxml_converter.chemdraw_objects
+import base64
 
 logger = logging.getLogger('pycdxml.chemdraw_types')
 
@@ -2300,3 +2301,27 @@ class CDXCurvePoints(CDXType):
             # hence '" ".join(curve_points)' would result in a wrong result!!!
             converted_points.append(point.to_property_value())
         return " ".join(converted_points)
+
+
+class CDXCompressed(CDXType):
+
+    def __init__(self, data: bytes):
+
+        self.data = data
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXCompressed':
+        return CDXCompressed(property_bytes)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXCompressed':
+        base64_bytes = value.encode('ascii')
+        data_bytes = base64.b64decode(base64_bytes)
+        return CDXCompressed(data_bytes)
+
+    def to_bytes(self) -> bytes:
+        return self.data
+
+    def to_property_value(self) -> str:
+        base64_bytes = base64.b64encode(self.data)
+        return base64_bytes.decode('ascii')
