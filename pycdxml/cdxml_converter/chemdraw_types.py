@@ -382,17 +382,17 @@ class CDXCoordinate(CDXType):
 
     def to_bytes(self) -> bytes:
         if self.coordinate > CDXCoordinate.CDX_MAX_VALUE:
-            logger.warning(f"Coordinate value '{self.coordinate}' exceeds maximum value for cdx files. "
+            logger.info(f"Coordinate value '{self.coordinate}' exceeds maximum value for cdx files. "
                            "Reducing value to maximum allowed value.")
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
         elif self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
             if self.coordinate == -70368744177664:
-                logger.warning(f"Coordinate value '{self.coordinate}' is invalid. This issue can be caused by prior "
+                logger.info(f"Coordinate value '{self.coordinate}' is invalid. This issue can be caused by prior "
                                "conversion using ChemDraw JS API for coordinate values of '0'. Setting it to '0'.")
                 zero = 0
                 return zero.to_bytes(4, byteorder='little', signed=True)
             else:
-                logger.warning(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
+                logger.info(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
                                "Reducing value to minimum allowed value.")
                 return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
         else:
@@ -2256,3 +2256,47 @@ class CDXRepresents(CDXType):
 
     def to_property_value(self) -> str:
         return ET.tostring(self.to_element(), encoding='unicode', method='xml')
+
+
+class CDXCurvePoints(CDXType):
+
+    def __init__(self, curve_points: list):
+
+        self.curve_points = curve_points
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXCurvePoints':
+        stream = io.BytesIO(property_bytes)
+        # UINT16 that says how many CDXCoordinates follow
+        # CDXCoordinates are INT32 values
+        num_points = int.from_bytes(stream.read(2), "little", signed=False)
+        curve_points = []
+        for idx in range(num_points):
+            point = int.from_bytes(stream.read(4), "little", signed=True)
+            coordinate = CDXCoordinate(point)
+            curve_points.append(coordinate)
+        return CDXCurvePoints(curve_points)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXCurvePoints':
+
+        curve_points = [CDXCoordinate(float(x) * CDXCoordinate.CDXML_CONVERSION_FACTOR) for x in value.split(" ")]
+        return CDXCurvePoints(curve_points)
+
+    def to_bytes(self) -> bytes:
+
+        stream = io.BytesIO()
+        num_points = len(self.curve_points)
+        stream.write(num_points.to_bytes(2, byteorder='little', signed=False))
+        for point in self.curve_points:
+            stream.write(point.to_bytes(4, byteorder='little', signed=True))
+        stream.seek(0)
+        return stream.read()
+
+    def to_property_value(self) -> str:
+        converted_points = []
+        for point in self.curve_points:
+            # this also converts between cdx and cdxml coordinate systems
+            # hence '" ".join(curve_points)' would result in a wrong result!!!
+            converted_points.append(point.to_property_value())
+        return " ".join(converted_points)
