@@ -17,7 +17,7 @@ def get_style_from_template(template):
     elif isinstance(template, Path):
         p = template
     else:
-        raise TypeError("Expected str or Path but got {} instead.".format(type(template)))
+        raise TypeError(f"Expected str or Path but got {type(template)} instead.")
 
     if p.exists():
         if p.suffix == '.cdxml':
@@ -31,7 +31,7 @@ def get_style_from_template(template):
     elif template.startswith("<?xml"):
         style_dict = cdxml_str_to_style_dict(template)
     else:
-        raise ValueError("Template file {} does not exists.".format(template))
+        raise ValueError(f"Template file {template} does not exists.")
 
     return style_dict
 

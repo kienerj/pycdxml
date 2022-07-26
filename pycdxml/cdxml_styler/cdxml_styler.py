@@ -16,7 +16,7 @@ class CDXMLStyler(object):
         specifying a path to a cdxml file that has the desired style or by supplying a dictionary containing the needed
         style settings.
 
-        Note that the structures within a cdxml file do not necessarily have the style defined in the cdxml. A easy way
+        Note that the structures within a cdxml file do not necessarily have the style defined in the cdxml. An easy way
         to get a style is to open a style sheet (cds) and save it as cdxml. But any cdxml document can be used.
 
         For a style_dict the required settings are:
