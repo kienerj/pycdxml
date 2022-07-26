@@ -113,15 +113,6 @@ class CDXMLSlideGenerator(object):
 
         return cdxml_io.etree_to_cdxml(self.slide)
 
-    @staticmethod
-    def _translate_bounding_box(element, x_translate, y_translate):
-
-        fragment_bb = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
-        translate_bb = np.array([x_translate, y_translate, x_translate, y_translate])
-        final_bb = fragment_bb + translate_bb
-        final_bb = np.round(final_bb, 2)
-        element.attrib['BoundingBox'] = "{} {} {} {}".format(final_bb[0], final_bb[1], final_bb[2], final_bb[3])
-
     def _build_group_element(self, cdxml_root, document_idx: int):
         """
         Build a new group element that contains all the fragments in this document.
