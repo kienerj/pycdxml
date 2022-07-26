@@ -39,7 +39,21 @@ def get_style_from_template(template):
 def cdxml_str_to_style_dict(cdxml: str):
     cdxml = cdxml.encode('utf-8')
     tree = ET.fromstring(cdxml)
-    return tree.attrib
+    # determine default font
+    font_table = get_font_table(tree)
+    style_dict = tree.attrib
+    font_id = int(style_dict["LabelFont"])
+    style_dict["LabelFont"] = font_table.get_font_name(font_id)
+    return style_dict
+
+
+def get_font_table(cdxml: ET.Element):
+
+    fonttable_xml = cdxml.find("fonttable")
+    if fonttable_xml is None:
+        fonttable_xml = ET.SubElement(cdxml, 'fonttable')
+    font_table = FontTable(fonttable_xml)
+    return font_table
 
 
 class FontTable:
@@ -51,6 +65,8 @@ class FontTable:
 
     def __init__(self, font_table: ET.Element):
 
+        if font_table is None:
+            raise ValueError("font_table argument can't be None.")
         self.font_table = font_table
         self.font_table_dict = {}
         # initialize helper dict
@@ -70,6 +86,12 @@ class FontTable:
     def contains_font(self, font_name):
         return font_name in self.font_table_dict.values()
 
+    def get_default_font_id(self):
+        """
+        Returns font with the lowest font_id
+        """
+        return min(self.font_table_dict.keys())
+
     def add_font(self, font_name: str, charset: str = "iso-8859-1") -> int:
         """
         Add new font to font table and return the id of the new font.
@@ -84,7 +106,11 @@ class FontTable:
         if self.contains_font(font_name):
             return self.get_font_id(font_name)
         else:
-            font_id = max(self.font_table_dict.keys()) + 1
+            if len(self.font_table_dict) > 0:
+                font_id = max(self.font_table_dict.keys()) + 1
+            else:
+                # first font entry
+                font_id = 1
 
             c = ET.SubElement(self.font_table, 'font')
             c.attrib["id"] = str(font_id)

@@ -12,7 +12,7 @@ class CDXMLStyler(object):
 
     def __init__(self, style_name: str = "ACS 1996", style_source=None, style_dict: dict = None):
         """
-        The output style can be defined by selecting one of the built in styles (ACS 1996 or Wiley), by
+        The output style can be defined by selecting one of the built-in styles (ACS 1996 or Wiley), by
         specifying a path to a cdxml file that has the desired style or by supplying a dictionary containing the needed
         style settings.
 
@@ -24,9 +24,17 @@ class CDXMLStyler(object):
        BondSpacing, BondLength, BoldWidth, LineWidth, MarginWidth, HashSpacing, CaptionSize, LabelSize, LabelFace
        and LabelFont.
 
+       Font Handling:
+
+       text objects contain a reference (and id) to a font in the documents' font table.
+       In case of a named style, that styles default font is used.
+       In case of a template (style_source), the font with the lowest id is used
+       In case of style_dict, 'LabelFont' must be a name of a valid font (not verified) like 'Arial'.
+
+
         :param style_name: name of built-in style to use (ACS 1996 or Wiley)
         :param style_source: path to cdxml file with the desired style
-        :param style_dict: dict containg the required style settings
+        :param style_dict: dict containing the required style settings
         """
         if style_source is not None:
             self.style = style.get_style_from_template(style_source)
@@ -34,7 +42,7 @@ class CDXMLStyler(object):
             self.style = style_dict
         else:
             self.style = self.get_style(style_name)
-    
+
     def apply_style_to_file(self, cdxml_path, outpath=None):
         """
         Converts the passed in cdxml to the defined style and writes the result to outpath. If outpath is none, the
@@ -84,6 +92,10 @@ class CDXMLStyler(object):
         # Set style on document level
         logger.debug("Setting style on document level.")
 
+        # Change LabelFont from font_name to font_id
+        font_table = style.get_font_table(root)
+        font_id = font_table.add_font(self.style["LabelFont"])
+
         root.attrib["BondSpacing"] = self.style["BondSpacing"]
         root.attrib["BondLength"] = self.style["BondLength"]
         root.attrib["BoldWidth"] = self.style["BoldWidth"]
@@ -93,7 +105,7 @@ class CDXMLStyler(object):
         root.attrib["CaptionSize"] = self.style["CaptionSize"]
         root.attrib["LabelSize"] = self.style["LabelSize"]
         root.attrib["LabelFace"] = self.style["LabelFace"]
-        root.attrib["LabelFont"] = self.style["LabelFont"]
+        root.attrib["LabelFont"] = str(font_id)
 
         # if not present, specification says it means "no"
         implicit_h_source = root.attrib.get("HideImplicitHydrogens", 'no')
@@ -120,7 +132,7 @@ class CDXMLStyler(object):
                     for s in fragment.iter('s'):
                         s.attrib["size"] = self.style["LabelSize"]
                         s.attrib["face"] = self.style["LabelFace"]
-                        s.attrib["font"] = self.style["LabelFont"]
+                        s.attrib["font"] = str(font_id)
                     return root
                 logger.debug("Calculating scaling.")
                 avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
@@ -185,7 +197,7 @@ class CDXMLStyler(object):
                             else:
                                 # by default this is usually 96 for atom labels which handles subscripts automatically
                                 s.attrib["face"] = self.style["LabelFace"]
-                            s.attrib["font"] = self.style["LabelFont"]
+                            s.attrib["font"] = str(font_id)
 
                             # Change implicit hydrogen display if needed
                             if implicit_h_changed \
@@ -215,7 +227,7 @@ class CDXMLStyler(object):
                 for s in query_bond_texts:
                     s.attrib["size"] = str(float(self.style["LabelSize"]) * 0.75)
                     s.attrib["face"] = self.style["LabelFace"]
-                    s.attrib["font"] = self.style["LabelFont"]
+                    s.attrib["font"] = str(font_id)
 
             return root
 
@@ -399,7 +411,7 @@ class CDXMLStyler(object):
             chemdraw_style["HashSpacing"] = "2.50"
             chemdraw_style["CaptionSize"] = "10"
             chemdraw_style["LabelSize"] = "10"
-            chemdraw_style["LabelFont"] = "3"
+            chemdraw_style["LabelFont"] = "Arial"
             chemdraw_style["LabelFace"] = "96"
             chemdraw_style["HideImplicitHydrogens"] = "no"
 
@@ -413,12 +425,12 @@ class CDXMLStyler(object):
             chemdraw_style["HashSpacing"] = "2.6"
             chemdraw_style["CaptionSize"] = "12"
             chemdraw_style["LabelSize"] = "12"
-            chemdraw_style["LabelFont"] = "3"
+            chemdraw_style["LabelFont"] = "Arial"
             chemdraw_style["LabelFace"] = "96"
             chemdraw_style["HideImplicitHydrogens"] = "no"
 
         else:
-            logger.exception("Trying to apply unknown named style {}.".format(style_name))
-            raise ValueError('{} is not a valid style.'.format(style_name))
+            logger.exception(f"Trying to apply unknown named style {style_name}.")
+            raise ValueError(f'{style_name} is not an available named style.')
 
         return chemdraw_style
