@@ -5,6 +5,7 @@ from pathlib import Path
 from ..cdxml_styler import CDXMLStyler
 from ..utils import cdxml_io
 from ..utils import geometry
+from ..utils.style import FontTable
 
 
 class CDXMLSlideGenerator(object):
@@ -31,8 +32,7 @@ class CDXMLSlideGenerator(object):
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
         self.colortable = {}
-        self.fonttable = {}
-        self.slide = self._build_base_document(style)
+        self.slide, self.font_table = self._build_base_document(style)
         style_dict = self.slide.attrib
         self.styler = CDXMLStyler(style_dict=style_dict)
 
@@ -85,7 +85,7 @@ class CDXMLSlideGenerator(object):
                 txt.attrib['p'] = "{} {}".format(x_left, y_top + 0.895 * self.font_size)
                 line_starts = []
                 text_length = 0
-                font_id = self.register_font(self.font)
+                font_id = self.font_table.add_font(self.font)
 
                 for prop_index, prop in enumerate(props):
                     s = ET.SubElement(txt, 's')
@@ -277,12 +277,9 @@ class CDXMLSlideGenerator(object):
         # register fonts
         fonttable_xml = root.find("fonttable")
 
-        for font in fonttable_xml.iter("font"):
-            font_name = font.attrib["name"]
-            font_id = font.attrib["id"]
-            self.fonttable[font_name] = int(font_id)
+        font_table = FontTable(fonttable_xml)
 
-        return root
+        return root, font_table
 
     def register_color(self, color):
         """
@@ -309,27 +306,6 @@ class CDXMLSlideGenerator(object):
             return color_index
         else:
             return self.colortable[color.hex]
-
-    def register_font(self, font):
-        """
-
-        :param font: a Font name like Arial
-        :return: int, id of the font
-        """
-
-        if font not in self.fonttable:
-
-            font_id = max(self.fonttable.values()) + 1
-
-            fonttable_xml = self.slide.find('fonttable')
-            c = ET.SubElement(fonttable_xml, 'font')
-            c.attrib["id"] = str(font_id)
-            c.attrib["charset"] = "iso-8859-1"
-            c.attrib["name"] = font
-            self.fonttable[font] = font_id
-            return font_id
-        else:
-            return self.fonttable[font]
 
 
 class TextProperty(object):
