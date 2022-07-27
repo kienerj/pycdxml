@@ -5,6 +5,8 @@ from ..cdxml_converter import ChemDrawDocument
 from lxml import etree as ET
 import numpy as np
 import logging
+from pathlib import Path
+import yaml
 
 logger = logging.getLogger('pycdxml.cdxml_styler')
 
@@ -329,38 +331,15 @@ class CDXMLStyler(object):
     @staticmethod
     def get_style(style_name):
 
-        chemdraw_style = {}
+        if not hasattr(CDXMLStyler, "STYLES"):
+            module_path = Path(__file__).parent
 
-        if style_name == "ACS 1996":
+            styles_path = module_path / 'styles.yml'
+            with open(styles_path, 'r') as stream:
+                CDXMLStyler.STYLES = yaml.safe_load(stream)
 
-            chemdraw_style["BondSpacing"] = "18"
-            chemdraw_style["BondLength"] = "14.40"
-            chemdraw_style["BoldWidth"] = "2"
-            chemdraw_style["LineWidth"] = "0.60"
-            chemdraw_style["MarginWidth"] = "1.60"
-            chemdraw_style["HashSpacing"] = "2.50"
-            chemdraw_style["CaptionSize"] = "10"
-            chemdraw_style["LabelSize"] = "10"
-            chemdraw_style["LabelFont"] = "Arial"
-            chemdraw_style["LabelFace"] = "96"
-            chemdraw_style["HideImplicitHydrogens"] = "no"
-
-        elif style_name == "Wiley":
-
-            chemdraw_style["BondSpacing"] = "18"
-            chemdraw_style["BondLength"] = "17"
-            chemdraw_style["BoldWidth"] = "2.6"
-            chemdraw_style["LineWidth"] = "0.75"
-            chemdraw_style["MarginWidth"] = "2"
-            chemdraw_style["HashSpacing"] = "2.6"
-            chemdraw_style["CaptionSize"] = "12"
-            chemdraw_style["LabelSize"] = "12"
-            chemdraw_style["LabelFont"] = "Arial"
-            chemdraw_style["LabelFace"] = "96"
-            chemdraw_style["HideImplicitHydrogens"] = "no"
-
+        if style_name in CDXMLStyler.STYLES:
+            return CDXMLStyler.STYLES[style_name]
         else:
             logger.exception(f"Trying to apply unknown named style {style_name}.")
             raise ValueError(f'{style_name} is not an available named style.')
-
-        return chemdraw_style
