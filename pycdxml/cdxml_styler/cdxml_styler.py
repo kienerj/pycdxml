@@ -1,5 +1,6 @@
 from ..utils import style
 from ..utils import cdxml_io
+from ..utils import geometry
 from ..cdxml_converter import ChemDrawDocument
 from lxml import etree as ET
 import numpy as np
@@ -151,10 +152,10 @@ class CDXMLStyler(object):
                     final_labels = CDXMLStyler.translate(scaled_labels, x_translate_label, y_translate_label)
 
                 # bounding box of fragment
-                CDXMLStyler.fix_bounding_box(fragment, scaling_factor, x_translate, y_translate)
+                geometry.fix_bounding_box(fragment, x_translate, y_translate, scaling_factor)
 
                 for graphic in fragment.iter('graphic'):
-                    CDXMLStyler.fix_bounding_box(graphic, scaling_factor, x_translate, y_translate)
+                    geometry.fix_bounding_box(graphic, x_translate, y_translate, scaling_factor)
 
                 logger.debug("Applying new coordinates and label styles.")
 
@@ -295,19 +296,6 @@ class CDXMLStyler(object):
         label_coords = np.asarray(label_coords)
 
         return all_coords, node_id_mapping, bonds, label_coords
-
-    @staticmethod
-    def fix_bounding_box(element: ET.Element, scaling_factor: float, xt: float, yt: float):
-
-        fragment_bb = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
-        scaled_coords = fragment_bb * scaling_factor
-
-        translate = np.array([xt, yt, xt, yt])
-
-        final_coords = scaled_coords + translate
-        final_coords = np.round(final_coords, 2)
-
-        element.attrib['BoundingBox'] = f"{final_coords[0]} {final_coords[1]} {final_coords[2]} {final_coords[3]}"
 
     @staticmethod
     def get_center(all_coords: np.array) -> tuple:
