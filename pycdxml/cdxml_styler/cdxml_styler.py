@@ -312,19 +312,21 @@ class CDXMLStyler(object):
     @staticmethod
     def get_coords_for_document(root: ET.Element):
         all_coords_doc = []
-        max_avg_bl = 0
-        max_bonds_count = 0
+        bond_counts = []
+        bond_lengths = []
         for fragment in root.iter('fragment'):
             all_coords, node_id_mapping, bonds, label_coords = CDXMLStyler.get_coords_and_mapping(fragment)
             if len(bonds) > 0:
                 avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
-                max_avg_bl = avg_bl
-                max_bonds_count = len(bonds)
+                bond_counts.append(len(bonds))
+                bond_lengths.append(avg_bl)
             for c in all_coords:
                 all_coords_doc.append(c)
-        if max_bonds_count == 0:
+        if len(bond_counts) == 0:
             return all_coords_doc, 0
-        avg_bl = round(max_avg_bl, 1)
+        # get index of the biggest fragment
+        max_idx = bond_counts.index(max(bond_counts))
+        avg_bl = round(bond_lengths[max_idx], 2)
         return np.asarray(all_coords_doc), avg_bl
 
     @staticmethod
