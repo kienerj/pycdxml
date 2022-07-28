@@ -46,18 +46,19 @@ class CDXMLStyler(object):
         else:
             self.style = self.get_style(style_name)
 
-    def apply_style_to_file(self, cdxml_path, outpath=None):
+    def apply_style_to_file(self, cdxml_path, outpath=None, global_scaling: bool = True):
         """
         Converts the passed in cdxml to the defined style and writes the result to outpath. If outpath is none, the
         input will be overwritten.
         :param cdxml_path: path of cdxml file to convert
         :param outpath: path to write converted file. If None will overwrite input file.
-        :return:
+        :param global_scaling: If true entire document will be scaled by same factor, if false each fragment is scaled
+               separately
         """
         logger.debug("Applying style {} to file {}.".format(self.style, cdxml_path))
         tree = ET.parse(cdxml_path)
         root = tree.getroot()
-        result = self._apply_style(root)
+        result = self._apply_style(root, global_scaling)
         logger.debug("Style applied. Preparing for output.")
         xml = cdxml_io.etree_to_cdxml(result)
         if outpath is None:
@@ -67,30 +68,39 @@ class CDXMLStyler(object):
             xf.write(xml)
         logger.debug("Style successfully applied and written output to file {}.".format(outpath))
 
-    def apply_style_to_string(self, cdxml: str) -> str:
+    def apply_style_to_string(self, cdxml: str, global_scaling: bool = True) -> str:
         """
         Takes a cdxml as string, applies the style and returns a new cdxml as string.
 
         :param cdxml: string containing cdxml data
+        :param global_scaling: If true entire document will be scaled by same factor, if false each fragment is scaled
+               separately
         :return: string containing cdxml with the desired style applied
         """
         logger.debug("Applying style {} to a cdxml string.".format(self.style))
         root = ET.fromstring(bytes(cdxml, encoding='utf8'))
-        result = self._apply_style(root)
+        result = self._apply_style(root, global_scaling)
         logger.debug("Style applied. Returning result cdxml string.")
         return cdxml_io.etree_to_cdxml(result)
 
-    def apply_style_to_doc(self, doc: ChemDrawDocument):
+    def apply_style_to_doc(self, doc: ChemDrawDocument, global_scaling: bool = True):
+        """
+        Applies style to the given ChemDrawDocument instance
 
-        self._apply_style(doc.cdxml.getroot())
+        :param ChemDrawDocument: Document to apply style to
+        :param global_scaling: If true entire document will be scaled by same factor, if false each fragment is scaled
+               separately
+        """
+        self._apply_style(doc.cdxml.getroot(), global_scaling)
 
-    def _apply_style(self, root: ET.Element) -> ET.Element:
-
-        """Applies the selected style to the input cdxml string and all contained drawings and returns the modified
+    def _apply_style(self, root: ET.Element, global_scaling: bool = True) -> ET.Element:
+        """
+        Applies the selected style to the input cdxml string and all contained drawings and returns the modified
         cdxml as string.
 
-        Parameters:
-        root (string): the root element of the cdxml
+        :param root: root element of the cdxml document
+        :param global_scaling: If true entire document will be scaled by same factor, if false each fragment is scaled
+               separately
        """
         # Set style on document level
         logger.debug("Setting style on document level.")
@@ -120,6 +130,36 @@ class CDXMLStyler(object):
         # Get all nodes (atoms) and bonds
         logger.debug("Start applying style to molecules.")
         try:
+            global_coords, global_avg_bl = CDXMLStyler.get_coords_for_document(root)
+            if global_avg_bl > 0:
+                scaling_factor = bond_length / global_avg_bl
+            else:
+                scaling_factor = 1
+            scaled_global_coords = global_coords * scaling_factor
+            x_center, y_center = geometry.get_center(global_coords)
+            scaled_x_center, scaled_y_center = geometry.get_center(scaled_global_coords)
+            x_translate = x_center - scaled_x_center
+            y_translate = y_center - scaled_y_center
+
+            # 3D attributes tobe deleted since they can't be transformed; BoundingBox is enough for correct rendering
+            graphic_deletable = ['Center3D', 'MajorAxisEnd3D', 'MinorAxisEnd3D']
+            for page in root.iter('page'):
+                # parse all the children (first level)
+                for sub_node in page:
+                    if sub_node.tag == 't':
+                        if 'p' in sub_node.attrib:
+                            # set new coordinates for p outside any fragment
+                            t_coords = sub_node.attrib['p']
+                            t_coords = [float(c) * scaling_factor for c in t_coords.split(' ')]
+                            t_coords = [t_coords[0] + x_translate, t_coords[1] + y_translate]
+                            coords_label = str(t_coords[0]) + ' ' + str(t_coords[1])
+                            sub_node.attrib['p'] = coords_label
+                    elif sub_node.tag == 'graphic':
+                        geometry.fix_bounding_box(sub_node, scaling_factor, x_translate, y_translate)
+                        for gda in graphic_deletable:
+                            if gda in sub_node.attrib:
+                                del sub_node.attrib[gda]
+
             for fragment in root.iter('fragment'):
                 logger.debug("Applying style to fragment with id {}.".format(fragment.attrib["id"]))
                 CDXMLStyler.add_missing_bounding_box(fragment)
@@ -138,13 +178,16 @@ class CDXMLStyler(object):
                         s.attrib["font"] = str(font_id)
                     return root
                 logger.debug("Calculating scaling.")
-                avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
 
-                # Scale Nodes (=Atoms)
-                scaling_factor = bond_length / avg_bl
-                scaled_coords = all_coords * scaling_factor
+                if global_scaling:
+                    scaled_coords = all_coords * scaling_factor
+                else:
+                    avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
+                    scaling_factor = bond_length / avg_bl
+                    scaled_coords = all_coords * scaling_factor
+                    x_translate, y_translate = geometry.get_translation(all_coords, scaled_coords)
+
                 logger.debug("Determining new coordinates.")
-                x_translate, y_translate = geometry.get_translation(all_coords, scaled_coords)
                 final_coords = geometry.translate(scaled_coords, x_translate, y_translate)
                 # Scale atom labels
                 if len(label_coords) > 0:
@@ -158,6 +201,12 @@ class CDXMLStyler(object):
 
                 for graphic in fragment.iter('graphic'):
                     geometry.fix_bounding_box(graphic, x_translate, y_translate, scaling_factor)
+                    for gda in graphic_deletable:
+                        if gda in graphic.attrib:
+                            del graphic.attrib[gda]
+
+                for cv in fragment.iter('curve'):
+                    CDXMLStyler.fix_curve_points(cv,x_translate, y_translate, scaling_factor)
 
                 logger.debug("Applying new coordinates and label styles.")
 
@@ -261,6 +310,24 @@ class CDXMLStyler(object):
             fragment.attrib['BoundingBox'] = "{} {} {} {}".format(min_x, min_y, max_x, max_y)
 
     @staticmethod
+    def get_coords_for_document(root: ET.Element):
+        all_coords_doc = []
+        max_avg_bl = 0
+        max_bonds_count = 0
+        for fragment in root.iter('fragment'):
+            all_coords, node_id_mapping, bonds, label_coords = CDXMLStyler.get_coords_and_mapping(fragment)
+            if len(bonds) > 0:
+                avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
+                max_avg_bl = avg_bl
+                max_bonds_count = len(bonds)
+            for c in all_coords:
+                all_coords_doc.append(c)
+        if max_bonds_count == 0:
+            return all_coords_doc, 0
+        avg_bl = round(max_avg_bl, 1)
+        return np.asarray(all_coords_doc), avg_bl
+
+    @staticmethod
     def get_coords_and_mapping(fragment: ET.Element) -> tuple:
 
         bond_attributes = ['id', 'Z', 'B', 'E', 'BS', 'Order', 'BondCircularOrdering', 'Display']
@@ -327,6 +394,22 @@ class CDXMLStyler(object):
         bond_length = np.linalg.norm(a - b, axis=1)  # thanks to stackoverflow
         avg_bl = round(np.mean(bond_length), 1)
         return avg_bl
+
+    @staticmethod
+    def fix_curve_points(element: ET.Element, xt: float, yt: float, scaling_factor: float):
+        if 'CurvePoints' not in element.attrib:
+            return
+        p_val = element.attrib['CurvePoints']
+        frs = p_val.split(' ')
+        trans_array = []
+        for idx in range(0, len(frs)):
+            if idx % 2 == 0:
+                trans_array.append(float(frs[idx]) * scaling_factor + xt)
+            else:
+                trans_array.append(float(frs[idx]) * scaling_factor + yt)
+        trans_array = np.round(trans_array, 2)
+        trans_array_text = [str(f) for f in trans_array]
+        element.attrib['CurvePoints'] = ' '.join(trans_array_text)
 
     @staticmethod
     def get_style(style_name):
