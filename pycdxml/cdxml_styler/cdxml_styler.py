@@ -170,13 +170,13 @@ class CDXMLStyler(object):
                 if num_nodes == 0:
                     raise ValueError("Molecule has no Atoms")
                 elif num_nodes == 1:
-                    logger.debug("Found single Node Fragment. Applying Label Style and returning.")
+                    logger.debug("Found single Node Fragment. Applying Label Style and continue with next fragment.")
                     # only one node usually a text like 'HCl' -> only fix label size
                     for s in fragment.iter('s'):
                         s.attrib["size"] = self.style["LabelSize"]
                         s.attrib["face"] = self.style["LabelFace"]
                         s.attrib["font"] = str(font_id)
-                    return root
+                    continue
 
                 if global_scaling:
                     scaled_coords = all_coords * scaling_factor
