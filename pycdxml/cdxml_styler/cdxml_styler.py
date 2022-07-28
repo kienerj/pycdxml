@@ -143,22 +143,22 @@ class CDXMLStyler(object):
 
             # 3D attributes tobe deleted since they can't be transformed; BoundingBox is enough for correct rendering
             graphic_deletable = ['Center3D', 'MajorAxisEnd3D', 'MinorAxisEnd3D']
-            for page in root.iter('page'):
-                # parse all the children (first level)
-                for sub_node in page:
-                    if sub_node.tag == 't':
-                        if 'p' in sub_node.attrib:
-                            # set new coordinates for p outside any fragment
-                            t_coords = sub_node.attrib['p']
-                            t_coords = [float(c) * scaling_factor for c in t_coords.split(' ')]
-                            t_coords = [t_coords[0] + x_translate, t_coords[1] + y_translate]
-                            coords_label = str(t_coords[0]) + ' ' + str(t_coords[1])
-                            sub_node.attrib['p'] = coords_label
-                    elif sub_node.tag == 'graphic':
-                        geometry.fix_bounding_box(sub_node, scaling_factor, x_translate, y_translate)
-                        for gda in graphic_deletable:
-                            if gda in sub_node.attrib:
-                                del sub_node.attrib[gda]
+            for element in root.xpath("//page/*[not(ancestor-or-self::fragment)]"):
+                if 'p' in element.attrib:
+                    # set new coordinates for p outside any fragment
+                    p_coords = element.attrib['p']
+                    p_coords = [float(c) * scaling_factor for c in p_coords.split(' ')]
+                    p_coords = [p_coords[0] + x_translate, p_coords[1] + y_translate]
+                    coords_label = str(p_coords[0]) + ' ' + str(p_coords[1])
+                    element.attrib['p'] = coords_label
+
+                if 'BoundingBox' in element.attrib:
+                    geometry.fix_bounding_box(element, x_translate, y_translate, scaling_factor)
+
+                if element.tag == 'graphic':
+                    for gda in graphic_deletable:
+                        if gda in element.attrib:
+                            del element.attrib[gda]
 
             for fragment in root.iter('fragment'):
                 logger.debug("Applying style to fragment with id {}.".format(fragment.attrib["id"]))
@@ -177,11 +177,11 @@ class CDXMLStyler(object):
                         s.attrib["face"] = self.style["LabelFace"]
                         s.attrib["font"] = str(font_id)
                     return root
-                logger.debug("Calculating scaling.")
 
                 if global_scaling:
                     scaled_coords = all_coords * scaling_factor
                 else:
+                    logger.debug("Calculating local scaling")
                     avg_bl = CDXMLStyler.get_avg_bl(all_coords, bonds, node_id_mapping)
                     scaling_factor = bond_length / avg_bl
                     scaled_coords = all_coords * scaling_factor
