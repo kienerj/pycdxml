@@ -78,33 +78,45 @@ styler.apply_style_to_doc(doc)
 # and now convert to base64 encoded cdx
 b64 = cdxml_converter.to_b64_cdx(doc)
 ```
+Below is a comparison of converting from one style to another. Notice that the source style hides implicit hydrogens while in the target style they are visible again.
+
+![](images/styler_example.png)
 
 ### Slide Generator
 
 Creates a cdxml file with an overview of the input structures and their properties nicely aligned for example for putting into a presentation. Since the output is a valid ChemDraw file, the end-user can still edit the output to his needs.
 
+The example code shows how you can read an sd-file, convert it to cdxml and then generate a slide.
+
 ```python
-from pycdxml.cdxml_slide_generator import TextProperty, CDXMLSlideGenerator
+import os
+from rdkit import Chem
+from pycdxml import cdxml_slide_generator, cdxml_converter
 
-# Preparation
-structures = []
-properties = []
-# files = list of paths to cdxml files
-for idx, f in enumerate(files):
-    with open(f, 'r') as file:
-        cdxml = file.read()
-        structures.append(cdxml)
-        # Generate Properties
-        props = [TextProperty('ID', idx, color='#3f6eba'),
-                 TextProperty('Name', "Molecule " + str(idx), show_name=True)]
-        properties.append(props)
+data_dir = os.environ["CONDA_PREFIX"] + "/Library/share/RDKit/Docs/Book/data"
+cdk2_path = data_dir + "/cdk2.sdf"
+suppl = Chem.SDMolSupplier(cdk2_path)
+cdk2 = [x for x in suppl]
 
-sg = CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2)
-slide = sg.generate_slide(structures, properties)
-with open('slide_out.cdxml', 'w', encoding='utf8') as f:
-    f.write(slide)
+cdxmls = []
+for mol in cdk2:     
+    cdxml = cdxml_converter.mol_to_document(mol).to_cdxml()
+    cdxmls.append(cdxml)
+    
+all_props = []
+for mol in cdk2:
+    props = [cdxml_slide_generator.TextProperty('id', mol.GetProp("id"), color='#3f6eba'), 
+          cdxml_slide_generator.TextProperty('Energy', mol.GetProp("r_mmffld_Potential_Energy-OPLS_2005"), show_name=True)]
+    all_props.append(props)
+
+sg = cdxml_slide_generator.CDXMLSlideGenerator(style="ACS 1996", number_of_properties=2, columns=5, rows=3)
+slide = sg.generate_slide(cdxmls, all_props)
+with open("slide.cdxml", "w", encoding='UTF-8') as xf:
+    xf.write(slide)
 ```
+This will result in a cdxml file that looks like this when viewed in ChemDraw:
 
+![Screenshot of cdxml](images/cdk2_slide.png)
 
 
 ## Project Status
