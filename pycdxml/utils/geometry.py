@@ -3,7 +3,6 @@ from lxml import etree as ET
 
 
 def fix_bounding_box(element: ET.Element, xt: float, yt: float, scaling_factor: float = None):
-
     bounding_box = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
     translation = np.array([xt, yt, xt, yt])
 
@@ -18,8 +17,7 @@ def fix_bounding_box(element: ET.Element, xt: float, yt: float, scaling_factor: 
     element.attrib['BoundingBox'] = f"{final_coords[0]} {final_coords[1]} {final_coords[2]} {final_coords[3]}"
 
 
-def get_element_center(element: ET.Element) -> np.array:
-
+def get_element_center(element: ET.Element) -> np.ndarray:
     bb = element.attrib['BoundingBox']
     bounding_box = [float(x) for x in bb.split(" ")]
     coords = np.asarray([[bounding_box[0], bounding_box[1]], [bounding_box[2], bounding_box[3]]])
@@ -27,8 +25,7 @@ def get_element_center(element: ET.Element) -> np.array:
     return np.array([x_center, y_center])
 
 
-def get_translation_vector(point_a: np.array, point_b: np.array) -> float:
-
+def get_translation_vector(point_a: np.ndarray, point_b: np.ndarray) -> float:
     vect = []
     for i in range(len(point_a)):
         dist = point_a[i] - point_b[i]
@@ -36,7 +33,7 @@ def get_translation_vector(point_a: np.array, point_b: np.array) -> float:
     return np.array(vect)
 
 
-def get_center(all_coords: np.array) -> tuple:
+def get_center(all_coords: np.ndarray) -> tuple:
     """Gets the center (x,y coordinates) of an element, usually a fragment
 
     Parameters:
@@ -56,8 +53,13 @@ def get_center(all_coords: np.array) -> tuple:
     return x_center, y_center
 
 
-def get_translation(old_coords, new_coords, center=True):
-    """Gets the x and y translation needed to scale the fragment back to it's previous center
+def get_translation(old_coords, new_coords, align="center"):
+    """
+    Gets the x and y translation needed to scale the fragment and translate it in regard to the desired alignment.
+    'align' is either "center" or "left-top". In case of any other value, no centering is performed.
+    'center' aligns/translates the coordinates in regard to the previous center. But this will change relative distance
+    between fragments/objects. 'left-top' will align towards left-top corner and will change distance between objects
+    proportionally to the scaling.
 
     Parameters:
     all_coords (numpy): coordinates of all nodes(atoms) of the fragment
@@ -66,13 +68,23 @@ def get_translation(old_coords, new_coords, center=True):
     Returns:
     tuple: x and y amount to translate
     """
-    if center:
+    if align == "left-top":
+
+        min_x, min_y = old_coords.min(axis=0)
+        min_x_scaled, min_y_scaled = new_coords.min(axis=0)
+
+        x_translate = min_x - min_x_scaled
+        y_translate = min_y - min_y_scaled
+
+    elif align == "center":
         x_center, y_center = get_center(old_coords)
         scaled_x_center, scaled_y_center = get_center(new_coords)
 
         x_translate = x_center - scaled_x_center
         y_translate = y_center - scaled_y_center
+
     else:
+        # just scale
         min_x, min_y = old_coords.min(axis=0)
         min_x_new, min_y_new = new_coords.min(axis=0)
 
@@ -98,3 +110,10 @@ def translate(coords, x_translate, y_translate):
     translation = np.array([x_translate, y_translate])
     final_coords = coords + translation
     return final_coords
+
+
+def get_distance(point_a: np.ndarray, point_b: np.ndarray):
+    # This works because the Euclidean distance is the l2 norm, and the default value of the ord parameter in
+    # numpy.linalg.norm is 2.
+    dist = np.linalg.norm(point_a - point_b)
+    return dist
