@@ -53,13 +53,9 @@ def get_center(all_coords: np.ndarray) -> tuple:
     return x_center, y_center
 
 
-def get_translation(old_coords, new_coords, align="center"):
+def get_translation(old_coords, new_coords):
     """
-    Gets the x and y translation needed to scale the fragment and translate it in regard to the desired alignment.
-    'align' is either "center" or "left-top". In case of any other value, no centering is performed.
-    'center' aligns/translates the coordinates in regard to the previous center. But this will change relative distance
-    between fragments/objects. 'left-top' will align towards left-top corner and will change distance between objects
-    proportionally to the scaling.
+    Gets the x and y translation needed to scale the fragment and translate it back to the previous center
 
     Parameters:
     all_coords (numpy): coordinates of all nodes(atoms) of the fragment
@@ -68,28 +64,12 @@ def get_translation(old_coords, new_coords, align="center"):
     Returns:
     tuple: x and y amount to translate
     """
-    if align == "left-top":
 
-        min_x, min_y = old_coords.min(axis=0)
-        min_x_scaled, min_y_scaled = new_coords.min(axis=0)
+    x_center, y_center = get_center(old_coords)
+    scaled_x_center, scaled_y_center = get_center(new_coords)
 
-        x_translate = min_x - min_x_scaled
-        y_translate = min_y - min_y_scaled
-
-    elif align == "center":
-        x_center, y_center = get_center(old_coords)
-        scaled_x_center, scaled_y_center = get_center(new_coords)
-
-        x_translate = x_center - scaled_x_center
-        y_translate = y_center - scaled_y_center
-
-    else:
-        # just scale
-        min_x, min_y = old_coords.min(axis=0)
-        min_x_new, min_y_new = new_coords.min(axis=0)
-
-        x_translate = min_x - min_x_new
-        y_translate = min_y - min_y_new
+    x_translate = x_center - scaled_x_center
+    y_translate = y_center - scaled_y_center
 
     return x_translate, y_translate
 

@@ -129,7 +129,7 @@ class CDXMLStyler(object):
             else:
                 scaling_factor = 1
             scaled_global_coords = global_coords * scaling_factor
-            x_translate, y_translate = geometry.get_translation(global_coords, scaled_global_coords, align="left-top")
+            x_translate, y_translate = geometry.get_translation(global_coords, scaled_global_coords)
 
             # 3D attributes tobe deleted since they can't be transformed; BoundingBox is enough for correct rendering
             graphic_deletable = ['Center3D', 'MajorAxisEnd3D', 'MinorAxisEnd3D']
