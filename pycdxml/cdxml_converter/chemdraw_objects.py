@@ -289,16 +289,12 @@ class ChemDrawDocument(object):
             # same for fonts and colors and font and colortable
             self._element_to_stream(node, stream, ignore_unknown_attribute, ignore_unknown_element)
             for child in node:
-                self._traverse_tree(child, stream, ignore_unknown_attribute, ignore_unknown_element)
+                if child.tag != "represent":
+                    self._traverse_tree(child, stream, ignore_unknown_attribute, ignore_unknown_element)
             stream.write(b'\x00\x00')
 
     def _element_to_stream(self, element: ET.Element, stream: io.BytesIO,
                            ignore_unknown_attribute: bool, ignore_unknown_element: bool):
-
-        if element.tag == "represent":
-            # do nothing. was already handled by parent adding it as property
-            # this element in cdx if a property of the parent.
-            return
 
         try:
             tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG[element.tag]
@@ -342,6 +338,7 @@ class ChemDrawDocument(object):
                 type_obj = CDXRepresents.from_element(represent)
                 tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG["represent"]
                 stream.write(tag_id.to_bytes(2, byteorder='little'))
+                prop_bytes = type_obj.to_bytes()
                 self._type_to_stream(type_obj, stream)
 
             if element.tag == 't':

@@ -2239,7 +2239,7 @@ class CDXRepresents(CDXType):
         object_id = int(represents.attrib["object"])
         attribute = represents.attrib["attribute"]
         tag_id = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.PROPERTY_NAME_TO_TAG[attribute]
-        return CDXRepresents(object_id, tag_id)
+        return CDXRepresents(object_id, tag_id.to_bytes(2, byteorder='little', signed=True))
 
     def to_bytes(self) -> bytes:
 
@@ -2251,7 +2251,8 @@ class CDXRepresents(CDXType):
 
     def to_element(self) -> ET.Element:
         el = ET.Element('represent')
-        tag_name = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.CDX_PROPERTIES[self.attribute]["name"]
+        tag_id = int.from_bytes(self.attribute, "little", signed=True)
+        tag_name = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.CDX_PROPERTIES[tag_id]["name"]
         el.attrib["attribute"] = tag_name
         return el
 

@@ -87,6 +87,17 @@ class CdxmlConverterTest(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.embedded_out, 'files/embedded_reference.cdxml', shallow=False),
                         "Generated cdxml file for embedded image test does not match expected output.")
 
+    def test_represents_to_cdx(self):
+        """
+        test conversion of a file containing a salt causing an exception prior to fix
+        """
+        doc = cdxml_converter.read_cdxml('files/represents.cdxml')
+        self.assertIsNotNone(doc, "Document was unexpectedly 'None'.")
+        b64cdx = cdxml_converter.to_b64_cdx(doc)
+        with open('files/represents_b64cdx.txt') as f:
+            b64ref = f.read()
+            self.assertEqual(b64cdx, b64ref, "Generated b64cdx file for represents test does not match expected output.")
+
     def setUp(self):
         self.standard_in_cdx = 'files/standard_test.cdx'
         self.standard_out_cdx = 'files/standard_test_out.cdx'
