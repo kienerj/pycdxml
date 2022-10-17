@@ -2302,19 +2302,28 @@ class CDXCurvePoints(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXCurvePoints':
         stream = io.BytesIO(property_bytes)
-        # UINT16 that says how many CDXCoordinates follow
-        # CDXCoordinates are INT32 values
+        # UINT16 that says how many CDXPoint2D follow
+        # CDXPoint2D are two INT32 values
         num_points = int.from_bytes(stream.read(2), "little", signed=False)
         curve_points = []
         for idx in range(num_points):
-            point = int.from_bytes(stream.read(4), "little", signed=True)
-            coordinate = CDXCoordinate(point)
-            curve_points.append(coordinate)
+            x = int.from_bytes(stream.read(4), "little", signed=True)
+            y = int.from_bytes(stream.read(4), "little", signed=True)
+            point = CDXPoint2D(CDXCoordinate(x), CDXCoordinate(y))
+            curve_points.append(point)
         return CDXCurvePoints(curve_points)
 
     @staticmethod
     def from_string(value: str) -> 'CDXCurvePoints':
-        curve_points = [CDXCoordinate(int(float(x) * CDXCoordinate.CDXML_CONVERSION_FACTOR)) for x in value.split(" ")]
+        converted_raw_values = [int(float(x) * CDXCoordinate.CDXML_CONVERSION_FACTOR) for x in value.split(" ")]
+        num_points = len(converted_raw_values) // 2
+        curve_points = []
+        for idx in range(num_points):
+            lst_idx = idx * 2
+            x = converted_raw_values[lst_idx]
+            y = converted_raw_values[lst_idx + 1]
+            point = CDXPoint2D(CDXCoordinate(x), CDXCoordinate(y))
+            curve_points.append(point)
         return CDXCurvePoints(curve_points)
 
     def to_bytes(self) -> bytes:
