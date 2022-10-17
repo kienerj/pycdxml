@@ -34,7 +34,7 @@ def decode_options(value: int, options: dict) -> str:
 
     attribute_value = ''
     for opt in used_options:
-        attribute_value = attribute_value + d[opt] + " "
+        attribute_value = attribute_value + options[opt] + " "
     return attribute_value[:-1]
 
 
