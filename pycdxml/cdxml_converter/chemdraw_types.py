@@ -443,6 +443,9 @@ class CDXCoordinate(CDXType):
 
         return str(round(self.coordinate / CDXCoordinate.CDXML_CONVERSION_FACTOR, 2))
 
+    def __repr__(self):
+        return self.to_property_value()
+
 
 class CDXPoint2D(CDXType):
     """
@@ -486,6 +489,9 @@ class CDXPoint2D(CDXType):
     def to_property_value(self) -> str:
 
         return self.x.to_property_value() + " " + self.y.to_property_value()
+
+    def __repr__(self):
+        return self.to_property_value()
 
 
 class CDXPoint3D(CDXType):
@@ -537,6 +543,9 @@ class CDXPoint3D(CDXType):
 
     def to_property_value(self) -> str:
         return self.x.to_property_value() + " " + self.y.to_property_value() + " " + self.z.to_property_value()
+
+    def __repr__(self):
+        return self.to_property_value()
 
 
 class CDXRectangle(CDXType):
@@ -2305,8 +2314,7 @@ class CDXCurvePoints(CDXType):
 
     @staticmethod
     def from_string(value: str) -> 'CDXCurvePoints':
-
-        curve_points = [CDXCoordinate(float(x) * CDXCoordinate.CDXML_CONVERSION_FACTOR) for x in value.split(" ")]
+        curve_points = [CDXCoordinate(int(float(x) * CDXCoordinate.CDXML_CONVERSION_FACTOR)) for x in value.split(" ")]
         return CDXCurvePoints(curve_points)
 
     def to_bytes(self) -> bytes:
@@ -2315,7 +2323,7 @@ class CDXCurvePoints(CDXType):
         num_points = len(self.curve_points)
         stream.write(num_points.to_bytes(2, byteorder='little', signed=False))
         for point in self.curve_points:
-            stream.write(point.to_bytes(4, byteorder='little', signed=True))
+            stream.write(point.to_bytes())
         stream.seek(0)
         return stream.read()
 
