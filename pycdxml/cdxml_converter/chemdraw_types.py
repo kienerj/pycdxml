@@ -1466,18 +1466,14 @@ class CDXArrowHeadPosition(CDXType, Enum):
             return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXFillType(CDXType, Enum):
+class CDXFillType(CDXType):
 
-    Unspecified = 0x0000
-    _None = 0x0001  # actual value is None but not possible here
-    Solid = 0x0002
-    Shaded = 0x0004
-    Gradient = 0x0008
-    Pattern = 0x0010
+    OPTIONS = {0: "Unspecified", 1: "None", 2: "Solid", 4: "Shaded", 8: "Gradient", 16: "Pattern"}
+    OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
     def __init__(self, value: int):
-        if 0 > value > 16:
-            raise ValueError("Needs to be between 0-16")
+        if 0 > value > 31:
+            raise ValueError("Needs to be between 0 and 31")
         self.fill_type = value
 
     @staticmethod
@@ -1489,19 +1485,16 @@ class CDXFillType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXFillType':
-        if value == "None":
-            return CDXFillType["_None"]
-        return CDXFillType[value]
+        try:
+            return CDXFillType(encode_options(value, CDXFillType.OPTIONS_INVERTED))
+        except KeyError as err:
+            raise ValueError(f"{value} is not a valid option for property 'FillType'.") from err
 
     def to_bytes(self) -> bytes:
         return self.fill_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        if self.fill_type == 1:
-            return "None"
-        else:
-            val = str(CDXFillType(self.fill_type))
-            return val.split('.')[1]  # only actually value without enum name
+        return decode_options(self.fill_type, CDXFillType.OPTIONS)
 
 
 class CDXJustification(CDXType, Enum):
