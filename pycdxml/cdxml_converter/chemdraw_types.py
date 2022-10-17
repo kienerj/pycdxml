@@ -1363,21 +1363,15 @@ class CDXGraphicType(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXArrowType(CDXType, Enum):
+class CDXArrowType(CDXType):
 
-    NoHead = 0
-    HalfHead = 1
-    FullHead = 2
-    Resonance = 4
-    Equilibrium = 8
-    Hollow = 16
-    RetroSynthetic = 32
-    NoGo = 64
-    Dipole = 128
+    OPTIONS = {0: "NoHead", 1: "HalfHead", 2: "FullHead", 4: "Resonance", 8: "Equilibrium", 16: "Hollow",
+               32: "RetroSynthetic", 64: "NoGo", 128: "Dipole"}
+    OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
     def __init__(self, value: int):
-        if 0 > value > 128:
-            raise ValueError("Needs to be between 0-128")
+        if 0 > value > 255:
+            raise ValueError("Needs to be between 0-255")
         self.arrow_type = value
 
     @staticmethod
@@ -1389,14 +1383,17 @@ class CDXArrowType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXArrowType':
-        return CDXArrowType[value]
+        try:
+            value = encode_options(value, CDXArrowType.OPTIONS_INVERTED)
+            return CDXArrowType(value)
+        except KeyError as err:
+            raise ValueError(f"{value} is not a valid option for property 'ArrowType'.") from err
 
     def to_bytes(self) -> bytes:
         return self.arrow_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        val = str(CDXArrowType(self.arrow_type))
-        return val.split('.')[1]  # only actually value without enum name
+        return decode_options(self.arrow_type, CDXArrowType.OPTIONS)
 
 
 class CDXArrowHeadType(CDXType, Enum):
