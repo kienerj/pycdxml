@@ -86,7 +86,9 @@ class CDXString(CDXType):
             font_style = CDXFontStyle.from_bytes(stream.read(8))
             font_styles.append(font_style)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
-        value = stream.read(text_length).decode(charset)        
+        value = stream.read(text_length).decode(charset)
+        # Normalize to xml spec where all line breaks in attributes are represented by \n
+        value = value.replace("\r", "\n")
         logger.debug(f"Read String '{value}' with  {len(font_styles)} different styles.")
         return CDXString(value, style_starts, font_styles, charset)
 
@@ -124,7 +126,10 @@ class CDXString(CDXType):
             stream.write(self.style_starts[idx].to_bytes(2, byteorder='little'))
             stream.write(style.to_bytes())
         try:
-            stream.write(self.str_value.encode(self.charset))
+            # XML spec says that line endings in attribute value are to be standardized to \n. lxml adheres to this and
+            # replaced \r\n with \n. This can't be written out as \n in cdx because chemdraw won't break on \n.
+            # We need to convert back to \r only as that is how chemdraw writes an enter in a text field
+            stream.write(self.str_value.replace("\n", "\r").encode(self.charset))
         except UnicodeError as e:
             logger.error(f"Caught UnicodeError {e}. Retrying with UTF-8")
             stream.write(self.str_value.encode('utf8'))
