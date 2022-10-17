@@ -489,7 +489,7 @@
   type: INT16
 0x0A21:
   name: AngularSize
-  type: INT16
+  type: CDXAngularSize
 0x0A22:
   name: LipSize
   type: INT16

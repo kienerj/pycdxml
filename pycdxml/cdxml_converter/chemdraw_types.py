@@ -781,7 +781,7 @@ class CDXBondSpacing(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBondSpacing':
         if len(property_bytes) != 2:
-            raise ValueError("INT16 should consist of exactly 2 bytes.")
+            raise ValueError("CDXBondSpacing should consist of exactly 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXBondSpacing(value)
 
@@ -2345,3 +2345,25 @@ class CDXCompressed(CDXType):
     def to_property_value(self) -> str:
         base64_bytes = base64.b64encode(self.data)
         return base64_bytes.decode('ascii')
+
+
+class CDXAngularSize(CDXType):
+
+    def __init__(self, angular_size: int):
+        self.angular_size = angular_size
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXAngularSize':
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXAngularSize(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXAngularSize':
+        ang_size = int(float(value) * 10)
+        return CDXAngularSize(ang_size)
+
+    def to_bytes(self) -> bytes:
+        return self.angular_size.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        return str(self.angular_size / 10)
