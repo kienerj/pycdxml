@@ -419,17 +419,17 @@ class CDXCoordinate(CDXType):
     def to_bytes(self) -> bytes:
         if self.coordinate > CDXCoordinate.CDX_MAX_VALUE:
             logger.info(f"Coordinate value '{self.coordinate}' exceeds maximum value for cdx files. "
-                           "Reducing value to maximum allowed value.")
+                        "Reducing value to maximum allowed value.")
             return self.CDX_MAX_VALUE.to_bytes(4, byteorder='little', signed=True)
         elif self.coordinate < CDXCoordinate.CDX_MIN_VALUE:
             if self.coordinate == -70368744177664:
                 logger.info(f"Coordinate value '{self.coordinate}' is invalid. This issue can be caused by prior "
-                               "conversion using ChemDraw JS API for coordinate values of '0'. Setting it to '0'.")
+                            "conversion using ChemDraw JS API for coordinate values of '0'. Setting it to '0'.")
                 zero = 0
                 return zero.to_bytes(4, byteorder='little', signed=True)
             else:
                 logger.info(f"Coordinate value '{self.coordinate}' exceeds minimum value for cdx files. "
-                               "Reducing value to minimum allowed value.")
+                            "Reducing value to minimum allowed value.")
                 return self.CDX_MIN_VALUE.to_bytes(4, byteorder='little', signed=True)
         else:
             return self.coordinate.to_bytes(4, byteorder='little', signed=True)
@@ -485,6 +485,8 @@ class CDXPoint2D(CDXType):
 
 class CDXPoint3D(CDXType):
     """
+    The official spec (which contains copy&paste errors is this:
+
     In CDX files, a CDXPoint3D is an x- and a y-CDXCoordinate stored as a pair of INT32s, z coordinate followed by y
     coordinate followed by x coordinate.
 
@@ -494,6 +496,10 @@ class CDXPoint3D(CDXType):
     Example: 1 inch (72 points) to the right, 2 inches down, and 3 inches deep:
     CDX:	00 00 d8 00 00 00 90 00 00 00 48 00
     CDXML:	"72 144 216"
+
+    this however seems to be wrong as Sample files from ChemDraw themselves that make use of 3DMajorAxisEnd, 3DMinorAxisEnd
+    and 3DCenter which all are CDXPoint3D geht corrupted when using the order z,y,x and are correct when using x,y,z.
+    Could this have been changed at some point after the specification was made?
     """
 
     def __init__(self, x: CDXCoordinate, y: CDXCoordinate, z: CDXCoordinate):
@@ -505,9 +511,9 @@ class CDXPoint3D(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXPoint3D':
 
-        z = CDXCoordinate.from_bytes(property_bytes[0:4])
+        x = CDXCoordinate.from_bytes(property_bytes[0:4])
         y = CDXCoordinate.from_bytes(property_bytes[4:8])
-        x = CDXCoordinate.from_bytes(property_bytes[8:12])
+        z = CDXCoordinate.from_bytes(property_bytes[8:12])
 
         return CDXPoint3D(x, y, z)
 
@@ -522,13 +528,10 @@ class CDXPoint3D(CDXType):
 
     def to_bytes(self) -> bytes:
 
-        return self.z.to_bytes() + self.y.to_bytes() + self.x.to_bytes()
+        return self.x.to_bytes() + self.y.to_bytes() + self.z.to_bytes()
 
     def to_property_value(self) -> str:
-        # Spec says z y x for cdx and x y z for cdxml but by looking at cdxml generated from ChemDraw this is
-        # clearly wrong. Not sure but I actually think it's x y z for both cases.
-        # (hence x value is probably z and vice versa)
-        return self.z.to_property_value() + " " + self.y.to_property_value() + " " + self.x.to_property_value()
+        return self.x.to_property_value() + " " + self.y.to_property_value() + " " + self.z.to_property_value()
 
 
 class CDXRectangle(CDXType):
