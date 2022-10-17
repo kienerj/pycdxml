@@ -11,6 +11,41 @@ import base64
 logger = logging.getLogger('pycdxml.chemdraw_types')
 
 
+def decode_options(value: int, options: dict) -> str:
+    """
+    Decodes the value into it's individual options for bit-encoded properties to convert to text for cdxml.
+    (there must be a better way to do this?)
+    Example:
+        options = {1: "RoundEdge", 2: "Shadow", 4:"Shaded", 8: "Filled"}
+
+    if value is 3, the method returns "RoundEdge Shadow" to be used as attribute value in cdxml.
+    """
+
+    if value == 0:
+        return [0]
+    used_options = []
+    power=1
+    while value > 0:
+        opt = value % pow(2,power)
+        if opt > 0:
+            used_options.append(opt)
+            value = value - opt
+        power = power + 1
+
+    attribute_value = ''
+    for opt in used_options:
+        attribute_value = attribute_value + d[opt] + " "
+    return attribute_value[:-1]
+
+
+def encode_options(value: str, options: dict):
+    opts = value.split(" ")
+    encoded = 0
+    for opt in opts:
+        encoded = encoded + options[opt]
+    return encoded
+
+
 class CDXType(object):
 
     @staticmethod
@@ -1879,23 +1914,19 @@ class CDXPositioningType(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXOvalType(CDXType, Enum):
+class CDXOvalType(CDXType):
 
-    Circle = 1
-    Shaded = 2
-    Filled = 4
-    Dashed = 8
-    Bold = 16
-    Shadowed = 32
+    OPTIONS = {1: "Circle", 2: "Shaded", 4: "Filled", 8: "Dashed", 16: "Bold", 32: "Shadowed"}
+    OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
     def __init__(self, value: int):
-        if 1 > value > 32:
-            raise ValueError("Needs to be between 1 and 32")
+        if 1 > value > 63:
+            raise ValueError("Needs to be between 1 and 63")
         self.oval_type = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXOvalType':
-        if len(property_bytes) < 1 and len(property_bytes) > 2:
+        if 1 > len(property_bytes) > 2:
             # Bug in ChemDraw 8 wrote this as only 1-byte (int8) so must allow 1 or 2 bytes
             raise ValueError("CDXOvalType should consist of 1 or 2 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
@@ -1904,7 +1935,8 @@ class CDXOvalType(CDXType, Enum):
     @staticmethod
     def from_string(value: str) -> 'CDXOvalType':
         try:
-            return CDXOvalType[value]
+            value = encode_options(value, CDXOvalType.OPTIONS_INVERTED)
+            return CDXOvalType(value)
         except KeyError as err:
             raise ValueError(f"{value} is not a valid option for property 'OvalType'.") from err
 
@@ -1912,8 +1944,7 @@ class CDXOvalType(CDXType, Enum):
         return self.oval_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        val = str(CDXPositioningType(self.oval_type))
-        return val.split('.')[1]  # only actually value without enum name
+        return decode_options(self.oval_type, CDXOvalType.OPTIONS)
 
 
 class CDXOrbitalType(CDXType, Enum):
@@ -1964,19 +1995,14 @@ class CDXOrbitalType(CDXType, Enum):
         return val.split('.')[1]  # only actually value without enum name
 
 
-class CDXRectangleType(CDXType, Enum):
+class CDXRectangleType(CDXType):
 
-    Plain = 0
-    RoundEdge = 1
-    Shadow = 2
-    Shaded = 4
-    Filled = 8
-    Dashed = 16
-    Bold = 32
+    OPTIONS = {0: "Plain", 1: "RoundEdge", 2: "Shadow", 4: "Shaded", 8: "Filled", 16: "Dashed", 32: "Bold"}
+    OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
     def __init__(self, value: int):
-        if 0 > value > 32:
-            raise ValueError("Needs to be between 0 and 32")
+        if 0 > value > 63:
+            raise ValueError("Needs to be between 0 and 63")
         self.rectangle_type = value
 
     @staticmethod
@@ -1988,14 +2014,14 @@ class CDXRectangleType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXRectangleType':
-        return CDXRectangleType[value]
+        value = encode_options(value, CDXRectangleType.OPTIONS_INVERTED)
+        return CDXRectangleType(value)
 
     def to_bytes(self) -> bytes:
         return self.rectangle_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        val = str(CDXRectangleType(self.rectangle_type))
-        return val.split('.')[1]  # only actually value without enum name
+        return decode_options(self.rectangle_type, CDXRectangleType.OPTIONS)
 
 
 class CDXLineType(CDXType, Enum):
