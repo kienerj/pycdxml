@@ -22,7 +22,7 @@ def decode_options(value: int, options: dict) -> str:
     """
 
     if value == 0:
-        return [0]
+        return options[0]
     used_options = []
     power=1
     while value > 0:
@@ -2159,16 +2159,17 @@ class CDXLabelDisplay(CDXType, Enum):
     Right = 3
     Above = 4
     Below = 5
+    BestInitial = 6
 
     def __init__(self, value: int):
-        if 0 > value > 5:
-            raise ValueError("Needs to be between 0 and 5")
+        if 0 > value > 6:
+            raise ValueError("Needs to be between 0 and 6")
         self.label_display = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXLabelDisplay':
         if len(property_bytes) != 1:
-            raise ValueError("CDXLabelDisplay should consist of 1 byte.")
+            logger.warning("Property LabelDisplay found with more than 1 byte. Should be INT8.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXLabelDisplay(value)
 
@@ -2177,7 +2178,7 @@ class CDXLabelDisplay(CDXType, Enum):
         return CDXLabelDisplay[value]
 
     def to_bytes(self) -> bytes:
-        return self.label_display.to_bytes(2, byteorder='little', signed=True)
+        return self.label_display.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
         val = str(CDXLabelDisplay(self.label_display))
@@ -2261,7 +2262,7 @@ class CDXRepresents(CDXType):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXRepresents':
         object_id = int.from_bytes(property_bytes[:4], "little", signed=False)
-        attribute = bytes[4:6]
+        attribute = property_bytes[4:6]
         return CDXRepresents(object_id, attribute)
 
     @staticmethod
@@ -2404,8 +2405,8 @@ class CDXAtomRadical(CDXType, Enum):
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXAtomRadical':
         if len(property_bytes) != 1:
-            raise ValueError("CDXAtomRadical should consist 1 byte.")
-        value = int.from_bytes(property_bytes, "little", signed=True)
+            logger.warning("CDXAtomRadical should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=False)
         return CDXAtomRadical(value)
 
     @staticmethod
@@ -2416,11 +2417,11 @@ class CDXAtomRadical(CDXType, Enum):
             return CDXAtomRadical[value]
 
     def to_bytes(self) -> bytes:
-        return self.radical.to_bytes(2, byteorder='little', signed=True)
+        return self.radical.to_bytes(1, byteorder='little', signed=False)
 
     def to_property_value(self) -> str:
         if self.radical == 0:
             return "None"
         else:
-            val = str(CDXAtomRadical(self.constraint_type))
+            val = str(CDXAtomRadical(self.radical))
             return val.split('.')[1]  # only actually value without enum name
