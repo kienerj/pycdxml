@@ -561,7 +561,7 @@
   type: UINT16
 0x0A39:
   name: Closed
-  type: CDXBoolean
+  type: CDXBooleanImplied
 0x0A3A:
   name: Dipole
   type: CDXBoolean
@@ -954,10 +954,10 @@
   type: INT16
 0x0AC1:
   name: EnzymeReceptorSize
-  type: INT16
+  type: CDXCoordinate
 0x0AC2:
   name: NeckWidth
-  type: INT16
+  type: CDXCoordinate
 0x0AC3:
   name: CylinderWidth
   type: CDXCoordinate
@@ -981,7 +981,7 @@
   type: CDXCoordinate
 0x0ACA:
   name: MembraneEndAngle
-  type: CDXAngularSize
+  type: CDXCoordinate
 0x0ACB:
   name: DNAWaveLength
   type: CDXCoordinate
