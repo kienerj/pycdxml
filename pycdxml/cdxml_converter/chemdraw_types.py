@@ -2031,16 +2031,14 @@ class CDXRectangleType(CDXType):
         return decode_options(self.rectangle_type, CDXRectangleType.OPTIONS)
 
 
-class CDXLineType(CDXType, Enum):
+class CDXLineType(CDXType):
 
-    Solid = 0
-    Dashed = 1
-    Bold = 2
-    Wavy = 4
+    OPTIONS = {0: "Solid", 1: "Dashed", 2: "Bold", 4: "Wavy"}
+    OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
     def __init__(self, value: int):
-        if 0 > value > 4:
-            raise ValueError("Needs to be between 0 and 4")
+        if 0 > value > 7:
+            raise ValueError("Needs to be between 0 and 7")
         self.line_type = value
 
     @staticmethod
@@ -2052,14 +2050,14 @@ class CDXLineType(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXLineType':
-        return CDXLineType[value]
+        value = encode_options(value, CDXLineType.OPTIONS_INVERTED)
+        return CDXLineType(value)
 
     def to_bytes(self) -> bytes:
         return self.line_type.to_bytes(2, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        val = str(CDXLineType(self.line_type))
-        return val.split('.')[1]  # only actually value without enum name
+        return decode_options(self.line_type, CDXLineType.OPTIONS)
 
 
 class CDXPolymerRepeatPattern(CDXType, Enum):
@@ -2389,3 +2387,40 @@ class CDXAngularSize(CDXType):
 
     def to_property_value(self) -> str:
         return str(self.angular_size / 10)
+
+
+class CDXAtomRadical(CDXType, Enum):
+
+    _None = 0
+    Singlet = 1
+    Doublet = 2
+    Triplet = 3
+
+    def __init__(self, value: int):
+        if 0 > value > 3:
+            raise ValueError("Needs to be between 0 and 3")
+        self.radical = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXAtomRadical':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXAtomRadical should consist 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXAtomRadical(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXAtomRadical':
+        if value == "None":
+            return CDXAtomRadical["_None"]
+        else:
+            return CDXAtomRadical[value]
+
+    def to_bytes(self) -> bytes:
+        return self.radical.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        if self.radical == 0:
+            return "None"
+        else:
+            val = str(CDXAtomRadical(self.constraint_type))
+            return val.split('.')[1]  # only actually value without enum name

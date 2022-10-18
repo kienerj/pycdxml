@@ -126,7 +126,7 @@
   type: INT8
 0x0422:
   name: Radical
-  type: UINT8
+  type: CDXAtomRadical
 0x0423:
   name: FreeSites
   type: UINT8
