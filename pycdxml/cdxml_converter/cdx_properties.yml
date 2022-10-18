@@ -574,6 +574,12 @@
 0x0A3D:
   name: FrameType
   type: INT16
+0x0A3E:
+  name: ArrowSource
+  type: UINT16
+0x0A3F:
+  name: ArrowTarget
+  type: UINT16
 0x0A60:
   name: Edition
   type: Unformatted
