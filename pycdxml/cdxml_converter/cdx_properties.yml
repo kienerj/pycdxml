@@ -697,6 +697,9 @@
 0x0AB2:
   name: ShowRf
   type: CDXBoolean
+0x0AC0:
+  name: BioShapeType
+  type: CDXBioShapeType
 0x0B00:
   name: TextFrame
   type: CDXRectangle
@@ -946,3 +949,48 @@
 0x1501:
   name: Content
   type: CDXString
+0x0303:
+  name: FadePercent
+  type: INT16
+0x0AC1:
+  name: EnzymeReceptorSize
+  type: INT16
+0x0AC2:
+  name: NeckWidth
+  type: INT16
+0x0AC3:
+  name: CylinderWidth
+  type: CDXCoordinate
+0x0AC4:
+  name: CylinderHeight
+  type: CDXCoordinate
+0x0AC5:
+  name: CylinderDistance
+  type: CDXCoordinate
+0x0AC6:
+  name: PipeWidth
+  type: CDXCoordinate
+0x0AC7:
+  name: HelixProteinExtra
+  type: CDXCoordinate
+0x0AC8:
+  name: MembraneElementSize
+  type: CDXCoordinate
+0x0AC9:
+  name: MembraneStartAngle
+  type: CDXCoordinate
+0x0ACA:
+  name: MembraneEndAngle
+  type: CDXAngularSize
+0x0ACB:
+  name: DNAWaveLength
+  type: CDXCoordinate
+0x0ACC:
+  name: DNAWaveWidth
+  type: CDXCoordinate
+0x0ACD:
+  name: DNAWaveOffset
+  type: CDXCoordinate
+0x0ACE:
+  name: DNAWaveHeight
+  type: CDXCoordinate

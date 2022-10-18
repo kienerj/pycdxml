@@ -2425,3 +2425,59 @@ class CDXAtomRadical(CDXType, Enum):
         else:
             val = str(CDXAtomRadical(self.radical))
             return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXBioShapeType(CDXType, Enum):
+
+    Undefined = 0
+    _1SubstrateEnzyme = 1
+    _2SubstrateEnzyme = 2
+    Receptor = 3
+    GProteinAlpha = 4
+    GProteinBeta = 5
+    GProteinGamma = 6
+    Immunoglobin = 7
+    IonChannel = 8
+    EndoplasmicReticulum = 9
+    Golgi = 10
+    MembraneLine = 11
+    MembraneArc = 12
+    MembraneEllipse = 13
+    MembraneMicelle = 14
+    DNA = 15
+    HelixProtein = 16
+    Mitochondrion = 17
+    ShapeCloud = 18
+    tRNA = 19
+    RibosomeA = 20
+    RibosomeB = 21
+
+    def __init__(self, value: int):
+        if 0 > value > 21:
+            raise ValueError("Needs to be between 0 and 21")
+        self.bioshape_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXBioShapeType':
+        if len(property_bytes) != 2:
+            logger.warning("CDXBioShapeType should consist of 2 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=False)
+        return CDXBioShapeType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXBioShapeType':
+        if value[0].isdigit():
+            return CDXBioShapeType["_" + value]
+        else:
+            return CDXBioShapeType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.bioshape_type.to_bytes(2, byteorder='little', signed=False)
+
+    def to_property_value(self) -> str:
+        if self.bioshape_type in [1,2]:
+            val = str(CDXBioShapeType(self.bioshape_type))
+            return val.split('.')[1][1:]
+        else:
+            val = str(CDXBioShapeType(self.bioshape_type))
+            return val.split('.')[1]  # only actually value without enum name
