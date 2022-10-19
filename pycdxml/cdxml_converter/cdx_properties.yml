@@ -994,3 +994,27 @@
 0x0ACE:
   name: DNAWaveHeight
   type: CDXCoordinate
+0x1300:
+  name: NumberBasePairs
+  type: INT32
+0x1301:
+  name: MarkerStart
+  type: INT32
+0x1302:
+  name: MarkerOffset
+  type: INT32
+0x1303:
+  name: MarkerAngle
+  type: INT32
+0x1304:
+  name: RegionStart
+  type: INT32
+0x1305:
+  name: RegionEnd
+  type: INT32
+0x1306:
+  name: RegionOffset
+  type: INT32
+0x1307:
+  name: RingRadius
+  type: INT32
