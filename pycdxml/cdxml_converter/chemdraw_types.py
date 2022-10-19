@@ -1642,8 +1642,13 @@ class CDXLineHeight(CDXType):
     3 Properties use LineHeight: LineHeight (legacy), CaptionLineHeight and LabelLineHeight.
     LineHeight is UINT16 while the other 2 are INT16.
     Assumption: since line height is in point, no value in LineHeight will overflow...
+
     Values 0 and 1 have special meaning and in CDXML take a string value: 0 -> variable and 1 -> auto
+    The specification is also very unclear. Trial and error reveals that cdxml uses value in points, as floating point,
+    eg. 11.5 is valid value in cdxml. In cdx the values seem to be multiplied by 20.
     """
+    CONVERSION_FACTOR = 20
+
     def __init__(self, value: int):
         if -32768 > value > 32767:
             raise ValueError("Needs to be a 16-bit int in range -32768 to 32767.")
@@ -1663,11 +1668,8 @@ class CDXLineHeight(CDXType):
         elif value == 'variable':
             return CDXLineHeight(0)
         else:
-            try:
-                return CDXLineHeight(int(value))
-            except ValueError:
-                logger.error(f"Found invalid LineHeight value {value}. Was cast to int.")
-                return CDXLineHeight(int(round(float(value))))
+            line_height = int(float(value) * CDXLineHeight.CONVERSION_FACTOR)
+            return CDXLineHeight(line_height)
 
     def to_bytes(self) -> bytes:
         return self.value.to_bytes(2, byteorder='little', signed=True)
@@ -1678,7 +1680,7 @@ class CDXLineHeight(CDXType):
         elif self.value == 1:
             return 'auto'
         else:
-            return str(self.value)
+            return str(round(self.value / 20, 1))
 
 
 class CDXAtomGeometry(CDXType, Enum):

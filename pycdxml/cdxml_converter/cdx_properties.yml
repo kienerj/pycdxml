@@ -309,7 +309,7 @@
   type: CDXLineHeight
 0x0703:
   name: WordWrapWidth
-  type: INT16
+  type: CDXLineHeight
 0x0704:
   name: LineStarts
   type: INT16ListWithCounts
