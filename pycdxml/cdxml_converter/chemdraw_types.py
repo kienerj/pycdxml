@@ -705,14 +705,15 @@ class CDXObjectIDArray(CDXType):
         ids = []
         stream = io.BytesIO(property_bytes)
         for i in range(array_length):
-            id = int.from_bytes(stream.read(4), "little", signed=False)
-            ids.append(id)
+            object_id = int.from_bytes(stream.read(4), "little", signed=False)
+            ids.append(object_id)
         return CDXObjectIDArray(ids)
 
     @staticmethod
     def from_string(value: str) -> 'CDXObjectIDArray':
-        ids = value.split(sep=' ')
-        ids = list(map(int, ids))
+        # sample file can have lists like ' 7 45' eg starting with empty string
+        # these need to be removed to avoid casting error with filter(None, list)
+        ids = list(map(int,filter(None, value.split(sep=' '))))
         return CDXObjectIDArray(ids)
 
     def to_bytes(self) -> bytes:
