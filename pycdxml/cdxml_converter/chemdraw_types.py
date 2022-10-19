@@ -1181,8 +1181,8 @@ class FLOAT64(CDXType):
     def from_bytes(property_bytes: bytes) -> 'FLOAT64':
         if len(property_bytes) != 8:
             raise ValueError("FLOAT64 should consist of exactly 8 bytes.")
-        # "<f" means little-endian. unpack returns a tuple, take first value
-        value = struct.unpack("<f", property_bytes)[0]
+        # "<d" means little-endian. unpack returns a tuple, take first value
+        value = struct.unpack("<d", property_bytes)[0]
         return FLOAT64(value)
 
     @staticmethod
@@ -1190,7 +1190,7 @@ class FLOAT64(CDXType):
         return FLOAT64(float(value))
 
     def to_bytes(self) -> bytes:
-        return struct.pack("<f", self.value)
+        return struct.pack("<d", self.value)
 
     def to_property_value(self) -> str:
         return str(self.value)
