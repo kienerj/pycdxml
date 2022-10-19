@@ -449,7 +449,7 @@ class CDXCoordinate(CDXType):
 
 class CDXPoint2D(CDXType):
     """
-    In CDX files, a CDXPoin t2D is an x- and a y-CDXCoordinate stored as a pair of INT32s, y coordinate followed by x
+    In CDX files, a CDXPoint 2D is an x- and a y-CDXCoordinate stored as a pair of INT32s, y coordinate followed by x
     coordinate.
 
     In CDXML files, a CDXPoint2D is a stored as a pair of numeric values, x coordinate followed by y coordinate.
@@ -509,7 +509,7 @@ class CDXPoint3D(CDXType):
     CDXML:	"72 144 216"
 
     this however seems to be wrong as Sample files from ChemDraw themselves that make use of 3DMajorAxisEnd, 3DMinorAxisEnd
-    and 3DCenter which all are CDXPoint3D geht corrupted when using the order z,y,x and are correct when using x,y,z.
+    and 3DCenter which all are CDXPoint3D get corrupted when using the order z,y,x and are correct when using x,y,z.
     Could this have been changed at some point after the specification was made?
     """
 
@@ -2306,8 +2306,9 @@ class CDXCurvePoints(CDXType):
         num_points = int.from_bytes(stream.read(2), "little", signed=False)
         curve_points = []
         for idx in range(num_points):
-            x = int.from_bytes(stream.read(4), "little", signed=True)
+            # y is stored before x in cdx
             y = int.from_bytes(stream.read(4), "little", signed=True)
+            x = int.from_bytes(stream.read(4), "little", signed=True)
             point = CDXPoint2D(CDXCoordinate(x), CDXCoordinate(y))
             curve_points.append(point)
         return CDXCurvePoints(curve_points)
