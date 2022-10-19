@@ -2482,3 +2482,41 @@ class CDXBioShapeType(CDXType, Enum):
         else:
             val = str(CDXBioShapeType(self.bioshape_type))
             return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXEnhancedStereoType(CDXType, Enum):
+
+    Unspecified = 0
+    _None  = 1
+    Absolute = 2
+    Or = 3
+    And = 4
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.stereo_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXEnhancedStereoType':
+        if len(property_bytes) != 1:
+            logger.warning("CDXEnhancedStereoType should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=False)
+        return CDXEnhancedStereoType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXEnhancedStereoType':
+        if value == "None":
+            return CDXEnhancedStereoType["_None"]
+        else:
+            return CDXEnhancedStereoType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.stereo_type.to_bytes(1, byteorder='little', signed=False)
+
+    def to_property_value(self) -> str:
+        if self.stereo_type == 1:
+            return "None"
+        else:
+            val = str(CDXEnhancedStereoType(self.stereo_type))
+            return val.split('.')[1]  # only actually value without enum name

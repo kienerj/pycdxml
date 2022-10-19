@@ -225,7 +225,7 @@
   type: CDXBoolean
 0x0446:
   name: EnhancedStereoType
-  type: UINT8
+  type: CDXEnhancedStereoType
 0x0447:
   name: EnhancedStereoGroupNum
   type: UINT16
