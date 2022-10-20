@@ -2,9 +2,9 @@
 
 ## Scope
 
-CDXML converter **converts between cdx** (binary) **and cdxml**(text/xml) files containing **small molecules**. **Conversion from [RDKit](https://github.com/rdkit/rdkit) molecules to cdx/cdxml is also implemented**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform.
+CDXML converter **converts between cdx** (binary) **and cdxml**(text/xml) files containing **small molecules**. **Conversion from [RDKit](https://github.com/rdkit/rdkit) molecules to cdx/cdxml is also partially implemented**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform.
 
-Biologics are out of scope especially because these are rather new and missing from specification. Out-of-scope are also many other drawing-related things one can to in ChemDraw. The core issue is that ChemDraw is essentially a drawing canvas and hence cdx and cdxml are drawing formats and not really chemical structure exchange formats.
+Newer feature like bilogy drawing elements will possibly only get limited support because they are missing from the specification which requires a lot fo trial and error to figure things out. The core issue for full support is that ChemDraw is essentially a drawing canvas and hence cdx and cdxml are drawing formats and not really chemical structure exchange formats.
 
 Note that there is no chemical knowledge in this tool! It really is just a format converter.
 
@@ -15,7 +15,7 @@ The **status of the project is at best "alpha"** simply due to the limited scope
 What its implemented:
 
 - Conversion to/from cdx to/from cdxml for small molecules and simple reactions
-- Conversion from simple RDKit Mols to cdx/cdxml
+- Conversion from simple RDKit Mols to cdx/cdxml (partial, for example enhanced stereo is not yet implemented)
 
 ## ChemDraw Format Specification
 
@@ -47,7 +47,7 @@ In `cdx` elements (tree nodes) are called objects and attributes are called pro
 
 #### Reading / Writing
 
-Ignoring some exceptions, the types know how to read and write themselves. In `cdx` each object has a tag id of 2 bytes. `cdx_objects.yml` maps the tag to the object name and element tag in cdxml. Like objects, properties have a tag id of 2 bytes. `cdx_properties.yml` maps this tag id to the properties name and it's type. So if new objects and properties are found in the specification or by reverse-engineering,  they can be added to these files.
+Ignoring some exceptions, the types know how to read and write themselves. In `cdx` each object has a tag id of 2 bytes. `cdx_objects.yml` maps the tag to the object name and element tag in cdxml. Like objects, properties have a tag id of 2 bytes. `cdx_properties.yml` maps this tag id to the properties name and it's type. So if new objects and properties are found in the specification or by reverse-engineering,  they can be added to these files. If the property is of an already existing type, only the yml file must be updated and no code change is needed. So theoretically up to a certain degree a user can add new features himself.
 
 Enum types of INT8, INT16 or INT32 are implemented as separate type and not as number. So for each enum a type exists.
 

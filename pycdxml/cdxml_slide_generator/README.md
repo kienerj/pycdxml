@@ -2,7 +2,7 @@
 
 `cdxml_slide_generator` module does a similar thing as my [`molecule-slide-generator`](https://github.com/kienerj/molecule-slide-generator)package but with a `cdxml`file as output. In essence the passed-in molecules and their properties are put into a single `cdxml`file nicely aligned with the properties as text below them. Properties can be anything of your choice like an activity value or simply a name or compound id. Internally `cdxml_slide_generator` makes use of `cdxml_Styler` module to convert input molecules to the same style.
 
-The generated `cdxml`files can then be used in presentations, reports or other documents with ChemDraws MS Office integration.
+The generated `cdxml`files can then be used in presentations, reports or other documents with ChemDraws MS Office integration. The naming of the module might be misleading. Only a cdxml file is generated and the adding to MS Office must be done manually.
 
 As additional note ChemDraw calls properties "Annotations".  The text below the molecules is just text and has no further meaning to ChemDraw. If you work inside ChemDraw and want properties to be exported into an sd-file, you need to annotate each molecule with the according values. However `cdxml_slide_generator` has you covered with this as well. All molecules are already annotated. If you save the `cdxml` file inside ChemDraw as sd-file, all the visible properties will also appear in the sd-file. 
 

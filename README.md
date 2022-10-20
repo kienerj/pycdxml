@@ -6,7 +6,7 @@ A hypothetical usage scenario is to convert an RDKit molecules to `cdxml`, apply
 
 ## Installation
 
-Currently, there is no official release or stable version. The suggested approach to try it out is to create a new conda environment from an environment.yml:
+Due to the experimential status of the project, there is not yet an official release or stable version. The suggested approach to try it out is to create a new conda environment from an environment.yml:
 
 ```yaml
 name: pycdxml
