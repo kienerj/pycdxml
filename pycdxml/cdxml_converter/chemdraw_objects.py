@@ -405,7 +405,9 @@ class CDXReader(object):
             logger.debug(f"Reading property {prop_name} of type {chemdraw_type}.")
             klass = globals()[chemdraw_type]
             if prop_name == "UTF8Text":
-                type_obj = klass.from_bytes(prop_bytes, "utf8")
+                type_obj = klass.from_bytes(prop_bytes, charset="utf8")
+            elif chemdraw_type == "CDXString":
+                type_obj = klass.from_bytes(prop_bytes, fonttable=self.fonttable)
             elif prop_name == "Value":
                 # if order in cdx is wrong as "Value" appears before "tag_type", the value is set to unknown.
                 type_obj = klass.from_bytes(prop_bytes, tag_type)

@@ -60,7 +60,14 @@ class CDXType(object):
 
 
 class CDXString(CDXType):
-    # TODO: implement different charsets from fonttable
+
+    module_path = Path(__file__).parent
+
+    charsets_path = module_path / 'charsets.yml'
+    with open(charsets_path, 'r') as stream:
+        CHARSETS = yaml.safe_load(stream)
+
+
     BYTES_PER_STYLE = 10
 
     def __init__(self, value: str, style_starts=None, styles=None, charset='iso-8859-1'):
@@ -74,19 +81,36 @@ class CDXString(CDXType):
         self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes: bytes, charset='iso-8859-1') -> 'CDXString':
+    def from_bytes(property_bytes: bytes, charset='iso-8859-1', fonttable=None) -> 'CDXString':
 
         stream = io.BytesIO(property_bytes)
         style_runs = int.from_bytes(stream.read(2), "little")
         font_styles = []
-        style_starts = []        
+        style_starts = []
         for idx in range(style_runs):
             style_start = int.from_bytes(stream.read(2), "little")
             style_starts.append(style_start)
-            font_style = CDXFontStyle.from_bytes(stream.read(8))
+            font_style = CDXFontStyle.from_bytes(stream.read(8), fonttable)
             font_styles.append(font_style)
+        # get charset from first fontstyle
+        # general issue is that each font can theoretically have a different charset but the specification is unclear
+        # on how that is handled in cdx as the text is written as one block meaning one encoding.
+        if fonttable is not None and len(font_styles) > 0:
+            charset_id = font_styles[0].charset
+            try:
+                charset = CDXString.CHARSETS[charset_id]
+                if charset.startswith("x-mac"):
+                    charset = charset.replace("x-", "")
+            except KeyError:
+                logger.warning("Found unmapped charset id. Using default charset")
+                pass
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
-        value = stream.read(text_length).decode(charset)
+        try:
+            value = stream.read(text_length).decode(charset)
+        except LookupError:
+            logger.warning("Found unsupported charset. Retrying with 'utf8'.")
+            stream.seek(stream.tell() - text_length)
+            value = stream.read(text_length).decode('utf8')
         # Normalize to xml spec where all line breaks in attributes are represented by \n
         value = value.replace("\r", "\n")
         logger.debug(f"Read String '{value}' with  {len(font_styles)} different styles.")
@@ -174,22 +198,27 @@ class CDXFontStyle(CDXType):
 
     DEFAULT_FONT_SIZE = 12 * 20
 
-    def __init__(self, font_id, font_type, font_size, font_color):
+    def __init__(self, font_id, font_type, font_size, font_color, charset="iso-8859-1"):
 
         self.font_id = font_id
         self.font_type = font_type
         self.font_size = font_size
         self.font_color = font_color
+        self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes: bytes) -> 'CDXFontStyle':
+    def from_bytes(property_bytes: bytes, fonttable=None) -> 'CDXFontStyle':
 
         stream = io.BytesIO(property_bytes)
         font_id = int.from_bytes(stream.read(2), "little")
         font_type = int.from_bytes(stream.read(2), "little")
         font_size = int.from_bytes(stream.read(2), "little")
         font_color = int.from_bytes(stream.read(2), "little")
-        return CDXFontStyle(font_id, font_type, font_size, font_color)
+        if fonttable is not None:
+            font = next((x for x in fonttable.fonts if x.id == font_id), None)
+            return CDXFontStyle(font_id, font_type, font_size, font_color, font.charset)
+        else:
+            return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     @staticmethod
     def from_element(s: ET.Element) -> 'CDXFontStyle':
