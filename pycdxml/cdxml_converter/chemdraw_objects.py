@@ -454,11 +454,6 @@ class CDXReader(object):
             elif prop_name == 'Text':
                 # adds style tags <s></s> to this t element containing styled text
                 type_obj.to_element(element)
-            elif prop_name == 'UTF8Text':
-                # TODO: check if this can be removed
-                # Do nothing. This is a new property not in official spec and represents the
-                # value of a text object in UTF-8 inside a cdx file.
-                pass
             else:
                 element.attrib[prop_name] = type_obj.to_property_value()
 
