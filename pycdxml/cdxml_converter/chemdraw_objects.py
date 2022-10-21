@@ -51,6 +51,8 @@ class ChemDrawDocument(object):
         self.cdxml = cdxml
         # Use this sequence to set missing id in xml docs
         self.object_id_sequence = iter(range(max_object_id, 100000))
+        # To use for determining charset of a font when writing CDXString
+        self.fonttable = CDXFontTable.from_element(cdxml.getroot().find("fonttable"))
 
     @staticmethod
     def from_bytes(cdx: io.BytesIO, convert_legacy_doc: bool = False, ignore_unknown_properties: bool = False,
@@ -79,7 +81,7 @@ class ChemDrawDocument(object):
         Generates a cdx file as bytes in memory
 
         :param ignore_unknown_attribute: if unknown attributes should be ignored or exception raised
-        :param ignore_unknown_element: if unknown elemnts should be ignored or exception raised
+        :param ignore_unknown_element: if unknown elements should be ignored or exception raised
         """
 
         logger.info("Starting to convert document to cdx.")
@@ -170,11 +172,10 @@ class ChemDrawDocument(object):
                 type_obj = CDXRepresents.from_element(represent)
                 tag_id = ChemDrawDocument.ELEMENT_NAME_TO_OBJECT_TAG["represent"]
                 stream.write(tag_id.to_bytes(2, byteorder='little'))
-                prop_bytes = type_obj.to_bytes()
                 self._type_to_stream(type_obj, stream)
 
             if element.tag == 't':
-                type_obj = CDXString.from_element(element)
+                type_obj = CDXString.from_element(element, self.fonttable)
                 tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG['Text']
                 stream.write(tag_id.to_bytes(2, byteorder='little'))
                 ChemDrawDocument._type_to_stream(type_obj, stream)

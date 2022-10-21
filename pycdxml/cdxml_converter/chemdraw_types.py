@@ -7,6 +7,7 @@ import logging
 import struct
 import pycdxml.cdxml_converter.chemdraw_objects
 import base64
+import platform
 
 logger = logging.getLogger('pycdxml.chemdraw_types')
 
@@ -61,16 +62,10 @@ class CDXType(object):
 
 class CDXString(CDXType):
 
-    module_path = Path(__file__).parent
-
-    charsets_path = module_path / 'charsets.yml'
-    with open(charsets_path, 'r') as stream:
-        CHARSETS = yaml.safe_load(stream)
-
-
     BYTES_PER_STYLE = 10
+    DEFAULT_CHARSET = 'cp1252'
 
-    def __init__(self, value: str, style_starts=None, styles=None, charset='iso-8859-1'):
+    def __init__(self, value: str, style_starts=None, styles=None, charset=DEFAULT_CHARSET):
         if styles is None:
             styles = []
         if style_starts is None:
@@ -90,20 +85,11 @@ class CDXString(CDXType):
         for idx in range(style_runs):
             style_start = int.from_bytes(stream.read(2), "little")
             style_starts.append(style_start)
-            font_style = CDXFontStyle.from_bytes(stream.read(8), fonttable)
+            font_style = CDXFontStyle.from_bytes(stream.read(8))
             font_styles.append(font_style)
+
         # get charset from first fontstyle
-        # general issue is that each font can theoretically have a different charset but the specification is unclear
-        # on how that is handled in cdx as the text is written as one block meaning one encoding.
-        if fonttable is not None and len(font_styles) > 0:
-            charset_id = font_styles[0].charset
-            try:
-                charset = CDXString.CHARSETS[charset_id]
-                if charset.startswith("x-mac"):
-                    charset = charset.replace("x-", "")
-            except KeyError:
-                logger.warning("Found unmapped charset id. Using default charset")
-                pass
+        charset = CDXString.get_charset(fonttable, font_styles)
         text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         try:
             value = stream.read(text_length).decode(charset)
@@ -121,12 +107,11 @@ class CDXString(CDXType):
         return CDXString(value)
 
     @staticmethod
-    def from_element(t: ET.Element, charset='iso-8859-1') -> 'CDXString':
+    def from_element(t: ET.Element, fonttable=None) -> 'CDXString':
         """
         create CDXString from a parent xml <t> element
         :return:
         """
-
         style_starts = []
         font_styles = []
         value = ""
@@ -139,8 +124,39 @@ class CDXString(CDXType):
             font_style = CDXFontStyle.from_element(s)
             font_styles.append(font_style)
 
+        charset = CDXString.get_charset(fonttable, font_styles)
         logger.debug(f"Read String '{value}' with {len(font_styles)} different styles.")
         return CDXString(value, style_starts, font_styles, charset)
+
+    @staticmethod
+    def get_charset(fonttable, font_styles):
+        # get charset from first fontstyle
+        # general issue is that each font can theoretically have a different charset but the specification is unclear
+        # on how that is handled in cdx as the text is written as one block meaning one encoding.
+        if fonttable is not None and len(font_styles) > 0:
+            font_id = font_styles[0].font_id
+            font = next((x for x in fonttable.fonts if x.id == font_id), None)
+            charset_id = font.charset
+            try:
+                charset = Font.CHARSETS[charset_id]
+                if charset.startswith("x-mac"):
+                    charset = charset.replace("x-", "")
+                elif charset == "iso-8859-1":
+                    charset = "cp1252"
+                elif charset == 'Unknown':
+                    charset = CDXString.DEFAULT_CHARSET
+                return charset
+            except KeyError:
+                logger.warning(f"Found unmapped charset with id {charset_id}. Using default charset {CDXString.DEFAULT_CHARSET} instead")
+                return CDXString.DEFAULT_CHARSET
+                pass
+        else:
+            # this code is usually reached when reading attributes/properties on the root/document when fonttable has
+            # not yet been read and hence is None.
+            # There is the issue that ChemDraw actually uses windows-1252 and not iso-8859-1 even if it states
+            # iso-8859-1. A sample file actually fails if we use utf8 here.
+            # Needs testing on macos and macos generated files
+            return CDXString.DEFAULT_CHARSET
 
     def to_bytes(self) -> bytes:
         stream = io.BytesIO()
@@ -193,32 +209,28 @@ class CDXFontStyle(CDXType):
     """
     Note about font size:
     Font size, measured in 20ths of a point in cdx. Note that this is an integral field, which implies that CDX files
-    cannot store font sizes any more accurately than the nearest 0.05 of a point.
+    cannot store font sizes more accurately than the nearest 0.05 of a point.
     """
 
     DEFAULT_FONT_SIZE = 12 * 20
 
-    def __init__(self, font_id, font_type, font_size, font_color, charset="iso-8859-1"):
-
+    def __init__(self, font_id, font_type, font_size, font_color):
+        # charset 1252 = iso-8859-1
         self.font_id = font_id
         self.font_type = font_type
         self.font_size = font_size
         self.font_color = font_color
-        self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes: bytes, fonttable=None) -> 'CDXFontStyle':
+    def from_bytes(property_bytes: bytes) -> 'CDXFontStyle':
 
         stream = io.BytesIO(property_bytes)
         font_id = int.from_bytes(stream.read(2), "little")
         font_type = int.from_bytes(stream.read(2), "little")
         font_size = int.from_bytes(stream.read(2), "little")
         font_color = int.from_bytes(stream.read(2), "little")
-        if fonttable is not None:
-            font = next((x for x in fonttable.fonts if x.id == font_id), None)
-            return CDXFontStyle(font_id, font_type, font_size, font_color, font.charset)
-        else:
-            return CDXFontStyle(font_id, font_type, font_size, font_color)
+
+        return CDXFontStyle(font_id, font_type, font_size, font_color)
 
     @staticmethod
     def from_element(s: ET.Element) -> 'CDXFontStyle':
@@ -277,17 +289,20 @@ class Font(object):
 
 class CDXFontTable(CDXType):
 
-    def __init__(self, platform: int, fonts=None):
+    PLATFORM_MAC = 0x0000
+    PLATFORM_WINDOWS = 0x0001
+
+    def __init__(self, os_type: int, fonts=None):
 
         if fonts is None:
             fonts = []
-        self.platform = platform
+        self.os_type = os_type
         self.fonts = fonts
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXFontTable':
         stream = io.BytesIO(property_bytes)
-        platform = int.from_bytes(stream.read(2), "little", signed=False)
+        os_type = int.from_bytes(stream.read(2), "little", signed=False)
         num_fonts = int.from_bytes(stream.read(2), "little", signed=False)
         fonts = []
         for i in range(num_fonts):
@@ -296,7 +311,7 @@ class CDXFontTable(CDXType):
             font_name_length = int.from_bytes(stream.read(2), "little", signed=False)
             font_name = stream.read(font_name_length).decode('ascii')
             fonts.append(Font(font_id, charset, font_name))
-        return CDXFontTable(platform, fonts)
+        return CDXFontTable(os_type, fonts)
 
     @staticmethod
     def from_element(fonttable: ET.Element) -> 'CDXFontTable':
@@ -310,13 +325,19 @@ class CDXFontTable(CDXType):
             font_name = font.attrib["name"]
             fonts.append(Font(font_id, charset, font_name))
 
-        # set platform to windows / not defined in cdxml
-        return CDXFontTable(0x0001, fonts)
+        if platform.system() == "Windows":
+            os_type = CDXFontTable.PLATFORM_WINDOWS
+        elif platform.system() == "Darwin":
+            os_type = CDXFontTable.PLATFORM_MAC
+        else:
+            # running on linux / not supported -> set to windows
+            os_type = CDXFontTable.PLATFORM_WINDOWS
+        return CDXFontTable(os_type, fonts)
 
     def to_bytes(self) -> bytes:
 
         stream = io.BytesIO()
-        stream.write(self.platform.to_bytes(2, byteorder='little'))
+        stream.write(self.os_type.to_bytes(2, byteorder='little'))
         # number of fonts
         stream.write(len(self.fonts).to_bytes(2, byteorder='little'))
         for font in self.fonts:
