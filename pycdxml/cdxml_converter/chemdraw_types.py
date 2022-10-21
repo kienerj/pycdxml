@@ -2298,7 +2298,7 @@ class CDXRxnParticipation(CDXType, Enum):
         return CDXRxnParticipation[value]
 
     def to_bytes(self) -> bytes:
-        return self.connection_type.to_bytes(2, byteorder='little', signed=True)
+        return self.connection_type.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
         val = str(CDXRxnParticipation(self.connection_type))
@@ -2573,3 +2573,35 @@ class CDXEnhancedStereoType(CDXType, Enum):
         else:
             val = str(CDXEnhancedStereoType(self.stereo_type))
             return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXDrawingSpace(CDXType, Enum):
+
+    # by default (property absent) it is pages so that option isn't really ever used
+    # spec says "Poster" but in cdxml it is actually "poster", eg. all lower case
+    # assumption that pages is also lower case.
+    pages = 0
+    poster = 1
+
+    def __init__(self, value: int):
+        if 0 > value > 7:
+            raise ValueError("Needs to be between 0 and 7")
+        self.drawing_space = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXDrawingSpace':
+        if len(property_bytes) != 1:
+            raise ValueError("CDXDrawingSpace should consist of 1 byte.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXDrawingSpace(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXDrawingSpace':
+        return CDXDrawingSpace[value]
+
+    def to_bytes(self) -> bytes:
+        return self.drawing_space.to_bytes(1, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXDrawingSpace(self.drawing_space))
+        return val.split('.')[1]  # only actually value without enum name

@@ -381,7 +381,7 @@
   type: UINT16
 0x0811:
   name: DrawingSpace
-  type: INT8
+  type: CDXDrawingSpace
 0x0812:
   name: Width
   type: CDXCoordinate
