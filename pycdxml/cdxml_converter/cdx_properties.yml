@@ -232,6 +232,9 @@
 0x0448:
   name: NeedsClean
   type: CDXBooleanImplied
+0x0449:
+  name: ResidueID
+  type: CDXString
 0x0500:
   name: Racemic
   type: CDXBoolean
@@ -250,6 +253,9 @@
 0x0505:
   name: ConnectionOrder
   type: CDXObjectIDArray
+0x0506:
+  name: SequenceType
+  type: CDXSequenceType
 0x0600:
   name: Order
   type: CDXBondOrder
@@ -280,6 +286,9 @@
 0x0609:
   name: EndAttach
   type: UINT8
+0x0610:
+  name: Connectivity
+  type: CDXConnectivity
 0x060A:
   name: BS
   type: CDXBondStereo

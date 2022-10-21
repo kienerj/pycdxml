@@ -1797,6 +1797,7 @@ class CDXNodeType(CDXType, Enum):
     VariableAttachment = 11
     ExternalConnectionPoint = 12
     LinkNode = 13
+    Monomer = 14
 
     def __init__(self, value: int):
         if -1 > value > 13:
@@ -2245,16 +2246,24 @@ class CDXExternalConnectionType(CDXType, Enum):
     Star = 2
     PolymerBead = 3
     Wavy = 4
+    Residue = 5
+    Peptide = 6
+    DNA = 7
+    RNA = 8
+    Terminus = 9
+    Sulfide = 10
+    Nucleotide = 11
+    UnlinkedBranch = 12
 
     def __init__(self, value: int):
-        if 0 > value > 4:
-            raise ValueError("Needs to be between 0 and 4")
+        if 0 > value > 12:
+            raise ValueError("Needs to be between 0 and 12")
         self.connection_type = value
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXExternalConnectionType':
-        if len(property_bytes) != 1:
-            raise ValueError("CDXExternalConnectionType should consist of 1 byte.")
+        if len(property_bytes) != 2:
+            raise ValueError("CDXExternalConnectionType should consist of 2 byte.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXExternalConnectionType(value)
 
@@ -2604,4 +2613,65 @@ class CDXDrawingSpace(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXDrawingSpace(self.drawing_space))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXConnectivity(CDXType, Enum):
+
+    Unspecified = 0
+    Linear = 1
+    Bridged = 2
+    Staggered = 3
+    Cyclic = 4
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.connectivity = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXConnectivity':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXConnectivity should consist of 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXConnectivity(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXConnectivity':
+        return CDXConnectivity[value]
+
+    def to_bytes(self) -> bytes:
+        return self.connectivity.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXConnectivity(self.connectivity))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXSequenceType(CDXType, Enum):
+
+    # No Specification available. Needs testing to figure out more
+    Biopolymer = 6
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.sequence_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXSequenceType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXSequenceType should consist of 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXSequenceType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXSequenceType':
+        return CDXSequenceType[value]
+
+    def to_bytes(self) -> bytes:
+        return self.sequence_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXSequenceType(self.sequence_type))
         return val.split('.')[1]  # only actually value without enum name
