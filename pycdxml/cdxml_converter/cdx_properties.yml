@@ -709,6 +709,9 @@
 0x0AC0:
   name: BioShapeType
   type: CDXBioShapeType
+0x0ACF:
+  name: GproteinUpperHeight
+  type: CDXCoordinate
 0x0B00:
   name: TextFrame
   type: CDXRectangle
