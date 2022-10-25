@@ -20,9 +20,10 @@ DEFAULT_ATOM_LABEL_FONT_SIZE = 10
 DEFAULT_ATOM_LABEL_FONT_COLOR = 0
 
 
-def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1):
+def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1,
+                    include_enhanced_stereo=True):
     """
-    Converts an rdkit molecule into an internal document representation.
+    Converts a rdkit molecule into an internal document representation.
 
     style is a dict containing basic document level settings that influence newly! drawn molecules.
 
@@ -30,6 +31,7 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
     :param chemdraw_style: style settings of the document. None takes default settings
     :param conformer_id: id of the conformer to use. Defines 2D coords / orientation of the molecule
     :param margin: margin in cm from the edges of the document. Defines placement of molecule inside document
+    :param: include_enhanced_stereo if enhanced stereo should be included in the cdxml
     :return:
     """
 
@@ -65,14 +67,38 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
     fragment.attrib['id'] = str(next(object_id_sequence))
     fragment.attrib.update(props)
 
+    # Advanced Stereo handling
+    # remap based on ato, idx
+    if include_enhanced_stereo:
+        adv_stereo_grps = mol.GetStereoGroups()
+        adv_stereo_by_atom = {}
+        group_id = 1
+        for stereo_grp in adv_stereo_grps:
+            stereo_type = stereo_grp.GetGroupType()
+            stereo_name = ''
+            if stereo_type == Chem.StereoGroupType.STEREO_ABSOLUTE:
+                stereo_name = 'Absolute'
+            elif stereo_type == Chem.StereoGroupType.STEREO_AND:
+                stereo_name = 'And'
+            elif stereo_type == Chem.StereoGroupType.STEREO_OR:
+                stereo_name = 'Or'
+            else:
+                raise ValueError(f"Unknown StereoGroupType {stereo_type}.")
+            for atom in stereo_grp.GetAtoms():
+                atom_idx = atom.GetIdx()
+                adv_stereo_by_atom[atom_idx] = {"group_number": group_id, "group_type": stereo_name}
+            group_id = group_id + 1
+
     atom_idx_id = {}
     for idx, atom in enumerate(mol.GetAtoms()):
         object_id = next(object_id_sequence)
         atom_idx_id[idx] = object_id
         p = str(atom_coords[idx][0]) + " " + str(atom_coords[idx][1])
         props = {"p": p, "Z": str(20 + object_id), "Element": str(atom.GetAtomicNum())}
+
         if atom.GetAtomicNum() != 6:
             props["NumHydrogens"] = str(atom.GetNumImplicitHs())
+
         if atom.HasProp('_CIPCode'):
             props["AS"] = atom.GetProp('_CIPCode')
         elif atom.HasProp('_ChiralityPossible') and atom.GetProp('_ChiralityPossible') == 1:
@@ -81,6 +107,13 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
             props["AS"] = 'u'
         else:
             props["AS"] = 'N'
+
+        # Advanced Stereo
+        if include_enhanced_stereo:
+            atom_idx = atom.GetIdx()
+            if atom_idx in adv_stereo_by_atom:
+                props["EnhancedStereoType"] = adv_stereo_by_atom[atom_idx]["group_type"]
+                props["EnhancedStereoGroupNum"] = str(adv_stereo_by_atom[atom_idx]["group_number"])
 
         if atom.GetFormalCharge() != 0:
             props["Charge"] = str(atom.GetFormalCharge())
