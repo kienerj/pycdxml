@@ -47,12 +47,17 @@ class ChemDrawDocument(object):
         CDX_PROPERTIES = yaml.safe_load(stream)
     PROPERTY_NAME_TO_TAG = {value["name"]: key for key, value in CDX_PROPERTIES.items()}
 
-    def __init__(self, cdxml: ET.ElementTree, max_object_id=5000):
+    def __init__(self, cdxml: ET.ElementTree, max_object_id=5000, document_id=None):
         self.cdxml = cdxml
         # Use this sequence to set missing id in xml docs
         self.object_id_sequence = iter(range(max_object_id, 100000))
         # To use for determining charset of a font when writing CDXString
         self.fonttable = CDXFontTable.from_element(cdxml.getroot().find("fonttable"))
+        # manage document id on this level as this is not exported as attribute in cdxml
+        if document_id is None:
+            self.document_id = next(self.object_id_sequence)
+        else:
+            self.document_id = document_id
 
     @staticmethod
     def from_bytes(cdx: io.BytesIO, convert_legacy_doc: bool = False, ignore_unknown_properties: bool = False,
@@ -136,6 +141,9 @@ class ChemDrawDocument(object):
             stream.write(tag_id.to_bytes(2, "little"))
             if 'id' in element.attrib:
                 stream.write(int(element.attrib['id']).to_bytes(4, "little"))
+            elif element.tag == "CDXML":
+                # Write document id to cdx
+                stream.write(self.document_id.to_bytes(4, "little"))
             else:
                 # Object Read from cdxml with no ID assigned, give it a default one
                 stream.write(next(self.object_id_sequence).to_bytes(4, "little"))
@@ -304,9 +312,9 @@ class CDXReader(object):
             else:
                 raise LegacyDocumentException("The file has a legacy document header. Can't ensure correct conversion.")
 
-        object_id = int.from_bytes(self.cdx.read(4), "little")
-        self.max_id = object_id
-        logger.debug(f"Reading document with id: {object_id}")
+        document_id = int.from_bytes(self.cdx.read(4), "little")
+        self.max_id = document_id
+        logger.debug(f"Reading document with id: {document_id}")
         root = ET.Element("CDXML")
         cdxml = ET.ElementTree(root)
         if legacy_doc:
@@ -337,7 +345,7 @@ class CDXReader(object):
                             tag_id = int.from_bytes(self.cdx.read(2), "little")
                         else:
                             logger.info('Finished reading document.')
-                            return ChemDrawDocument(cdxml, max_object_id=self.max_id)
+                            return ChemDrawDocument(cdxml, max_object_id=self.max_id, document_id=document_id)
                 else:
                     # no object end found, hence we move deeper inside the object tree
                     parent_stack.append(el)
