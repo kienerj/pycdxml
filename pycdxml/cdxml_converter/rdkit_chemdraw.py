@@ -21,7 +21,7 @@ DEFAULT_ATOM_LABEL_FONT_COLOR = 0
 
 
 def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1,
-                    include_enhanced_stereo=True):
+                    include_enhanced_stereo=True, crossed_bonds=False):
     """
     Converts a rdkit molecule into an internal document representation.
 
@@ -31,7 +31,8 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
     :param chemdraw_style: style settings of the document. None takes default settings
     :param conformer_id: id of the conformer to use. Defines 2D coords / orientation of the molecule
     :param margin: margin in cm from the edges of the document. Defines placement of molecule inside document
-    :param: include_enhanced_stereo if enhanced stereo should be included in the cdxml
+    :param include_enhanced_stereo: if enhanced stereo should be included in the cdxml
+    :param crossed_bonds: if double bonds with undefined stereo should be drawn as crossed bonds (wavy bond)
     :return:
     """
 
@@ -169,7 +170,12 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         if bond_stereo == rdchem.BondStereo.STEREONONE:
             props["BS"] = "N"
         elif bond_stereo == rdchem.BondStereo.STEREOANY:
-            props["BS"] = "U"
+            if bond_type == rdchem.BondType.DOUBLE and crossed_bonds:
+                # this means crossed double bond aka wavy bond which in chemdraw must be created as below
+                props["BS"] = "N"
+                props["Display"] = "Wavy"
+            else:
+                props["BS"] = "U"
         elif bond_stereo == rdchem.BondStereo.STEREOCIS:
             props["BS"] = "Z"
         elif bond_stereo == rdchem.BondStereo.STEREOZ:
