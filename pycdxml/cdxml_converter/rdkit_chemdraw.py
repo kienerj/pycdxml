@@ -223,10 +223,10 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         # Bond Display
         if bond_direction == rdchem.BondDir.BEGINDASH:
             props["Display"] = "WedgedHashBegin"
-            _set_end_wedge_display_style(bonds, bond, "WedgedHashEnd")
+            #_set_end_wedge_display_style(bonds, bond, "WedgedHashEnd")
         elif bond_direction == rdchem.BondDir.BEGINWEDGE:
             props["Display"] = "WedgeBegin"
-            _set_end_wedge_display_style(bonds, bond, "WedgeEnd")
+            #_set_end_wedge_display_style(bonds, bond, "WedgeEnd")
 
         if bond.HasProp("_CDXDisplay"):
             props["Display"] = bond.GetProp("_CDXDisplay")
@@ -288,7 +288,9 @@ def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: floa
     max_coords = np.amax(coords, axis=0)
     if max_coords[2] > 0:
         # 3D coords. convert to 2D
-        AllChem.Compute2DCoords(mol, bondLength=1.5)
+        # AllChem.Compute2DCoords(mol, bondLength=1.5)
+        # Use coordgen in case of macrocylces
+        rdCoordGen.AddCoords(mol)
         mol.UpdatePropertyCache()
         conformer = mol.GetConformer()
 
@@ -315,6 +317,9 @@ def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: floa
         c_scaled = coords * bl_ratio
         # make 2 D
         c_scaled = np.delete(c_scaled, 2, 1)
+        # flip vertically - coordinates form rdkit/molfile have negative y when going "down" in terms of the screen
+        # In ChemDraw the further down, the higher the y coordinate with origin in top-left (only y coordinate flipped)
+        c_scaled = c_scaled * [[1,-1]]
         # transform
         cmin = np.amin(c_scaled, axis=0)
         tx = margin * CM_TO_POINTS - cmin[0]
