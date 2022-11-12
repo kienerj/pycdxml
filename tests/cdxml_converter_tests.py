@@ -1,3 +1,4 @@
+import os
 import unittest
 from pycdxml import cdxml_converter
 from rdkit import Chem
@@ -115,6 +116,28 @@ class CdxmlConverterTest(unittest.TestCase):
         for p in Path("files").glob("*_out.*"):
             p.unlink()
 
+class CdxmlConverterRoundTripTests(unittest.TestCase):
+    def roundtrip(self, fname):
+        """
+        Roundtrip from MOL to CDXML to CANSMI
+        - Assert that the CANSMI from the CDXML is equal to that from the MOL
+        """
+        mol = Chem.MolFromMolFile(fname)
+        cansmi = Chem.MolToSmiles(mol)
+        doc = cdxml_converter.mol_to_document(mol)
+        cdxml = doc.to_cdxml()
+        nmols = Chem.MolsFromCDXML(cdxml)
+        self.assertEqual(1, len(nmols))
+        nmol = nmols[0]
+        ncansmi = Chem.MolToSmiles(nmol)
+        self.assertEqual(ncansmi, cansmi)
+
+    def test_isotope(self):
+        """
+        Test that an isotopically labelled MOL file can be roundtripped
+        """
+        fname = os.path.join('files', 'CHEMBL595085.isotope_test.mol')
+        self.roundtrip(fname)
 
 if __name__ == '__main__':
     unittest.main()

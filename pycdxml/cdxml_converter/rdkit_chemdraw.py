@@ -119,6 +119,9 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         if atom.GetFormalCharge() != 0:
             props["Charge"] = str(atom.GetFormalCharge())
 
+        if atom.GetIsotope() != 0:
+            props["Isotope"] = str(atom.GetIsotope())
+
         atom_obj = ET.SubElement(fragment, "n")
         atom_obj.attrib['id'] = str(object_id)
         atom_obj.attrib.update(props)
