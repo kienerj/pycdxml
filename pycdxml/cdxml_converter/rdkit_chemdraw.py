@@ -98,7 +98,7 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         props = {"p": p, "Z": str(20 + object_id), "Element": str(atom.GetAtomicNum())}
 
         if atom.GetAtomicNum() != 6:
-            props["NumHydrogens"] = str(atom.GetNumImplicitHs())
+            props["NumHydrogens"] = str(atom.GetTotalNumHs())
 
         if atom.HasProp('_CIPCode'):
             props["AS"] = atom.GetProp('_CIPCode')
