@@ -1,6 +1,7 @@
 import os
 import unittest
 from pycdxml import cdxml_converter
+import rdkit
 from rdkit import Chem
 import filecmp
 from pathlib import Path
@@ -124,7 +125,7 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         """
         mol = Chem.MolFromMolFile(fname)
         cansmi = Chem.MolToSmiles(mol)
-        doc = cdxml_converter.mol_to_document(mol)
+        doc = cdxml_converter.mol_to_document(mol, crossed_bonds=True)
         cdxml = doc.to_cdxml()
         nmols = Chem.MolsFromCDXML(cdxml)
         self.assertEqual(1, len(nmols))
@@ -145,6 +146,16 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         """
         fname = os.path.join('files', 'CHEMBL595085.isotope_test.mol')
         self.roundtrip(fname)
+
+    def test_dbl_bond_unknown_stereo(self):
+        """
+        Test that a dbl bond marked in MOL file as unknown stereo ('3') can be roundtripped
+        Note: I assume that https://github.com/rdkit/rdkit/issues/5752 is fixed in the next
+              release of RDKit.
+        """
+        fname = os.path.join('files', 'CHEMBL4303146.dbl_bond_unknown_stereo.mol')
+        if rdkit.__version__ > "2022.09.1":
+            self.roundtrip(fname)
 
 if __name__ == '__main__':
     unittest.main()
