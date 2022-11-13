@@ -132,6 +132,13 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         ncansmi = Chem.MolToSmiles(nmol)
         self.assertEqual(ncansmi, cansmi)
 
+    def test_implicit_Hs(self):
+        """
+        Test that implicit Hs on heteroatoms can be roundtripped  
+        """
+        fname = os.path.join("files", "CHEMBL6509.impl_H_on_heteroatom.mol")
+        self.roundtrip(fname)
+
     def test_isotope(self):
         """
         Test that an isotopically labelled MOL file can be roundtripped
