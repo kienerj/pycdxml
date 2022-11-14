@@ -50,6 +50,10 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         for key, value in chemdraw_style.items():
             root.attrib[key] = str(value)
 
+    if len(mol.GetAtoms()) < 1:
+        # Empty molfile -> return empty cdxml
+        return ChemDrawDocument(cdxml)
+
     object_id_sequence = iter(range(1, 10000))
     page = ET.SubElement(root, "page")
     page.attrib['id'] = str(next(object_id_sequence))
