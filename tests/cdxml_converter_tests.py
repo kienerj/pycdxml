@@ -117,10 +117,11 @@ class CdxmlConverterTest(unittest.TestCase):
         for p in Path("files").glob("*_out.*"):
             p.unlink()
 
+
 class CdxmlConverterRoundTripTests(unittest.TestCase):
     def roundtrip(self, fname):
         """
-        Roundtrip from MOL to CDXML to CANSMI
+        Roundtrip from rdkit back to rdkit via MOL to CDXML to CANSMI
         - Assert that the CANSMI from the CDXML is equal to that from the MOL
         """
         mol = Chem.MolFromMolFile(fname)
@@ -156,6 +157,14 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         fname = os.path.join('files', 'CHEMBL4303146.dbl_bond_unknown_stereo.mol')
         if rdkit.__version__ > "2022.09.1":
             self.roundtrip(fname)
+
+    def test_molecule_without_bonds(self):
+        """
+        Test that a molecule without bonds (salt) can be roundtripped
+        """
+        fname = os.path.join('files', 'CHEMBL69710.no_bonds.mol')
+        self.roundtrip(fname)
+
 
 if __name__ == '__main__':
     unittest.main()

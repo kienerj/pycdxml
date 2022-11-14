@@ -18,6 +18,8 @@ DEFAULT_ATOM_LABEL_FONT_ID = 3
 DEFAULT_ATOM_LABEL_FONT_FACE = 96
 DEFAULT_ATOM_LABEL_FONT_SIZE = 10
 DEFAULT_ATOM_LABEL_FONT_COLOR = 0
+# Empirically determined value
+DEFAULT_AVG_BOND_LENGTH = 0.825
 
 
 def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1,
@@ -299,19 +301,22 @@ def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: floa
 
     bonds = mol.GetBonds()
 
-    if len(bonds) == 0:
-        return np.array([[0.0, 0.0, 0.0]])
+    if len(bonds) > 0:
+        total = 0
+        for bond in bonds:
 
-    total = 0
-    for bond in bonds:
+            ai = bond.GetBeginAtomIdx()
+            aj = bond.GetEndAtomIdx()
+            bl = AllChem.GetBondLength(conformer, ai, aj)
+            if not math.isnan(bl):
+                total += bl
 
-        ai = bond.GetBeginAtomIdx()
-        aj = bond.GetEndAtomIdx()
-        bl = AllChem.GetBondLength(conformer, ai, aj)
-        if not math.isnan(bl):
-            total += bl
-
-    avg_bl = (total / len(bonds))
+        avg_bl = (total / len(bonds))
+    else:
+        # Molecules like simple salt (NaCl) with zero bonds
+        # Use a default bond length / scaling
+        # Could be improved as distance between atom is not exactly the same with this vs opening mol file in ChemDraw
+        avg_bl = DEFAULT_AVG_BOND_LENGTH
 
     if avg_bl > 0.0:
         # scale
