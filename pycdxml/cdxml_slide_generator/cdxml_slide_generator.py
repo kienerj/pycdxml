@@ -10,8 +10,8 @@ from ..utils.style import FontTable
 
 class CDXMLSlideGenerator(object):
 
-    def __init__(self, columns=7, rows=3, font_size=10, font='Arial', number_of_properties=4, slide_width=30.4,
-                 slide_height=13, style='ACS 1996'):
+    def __init__(self, columns=7, rows=3, font_size=10, font="Arial", number_of_properties=4, slide_width=30.4,
+                 slide_height=13, style="ACS 1996"):
 
         self.style_name = "ACS 1996"
         self.font_size = font_size
@@ -47,17 +47,17 @@ class CDXMLSlideGenerator(object):
         """
 
         if cdxml_documents is None:
-            raise ValueError('Expected a list of cdxml documents but got \'None\'')
+            raise ValueError("Expected a list of cdxml documents but got 'None'")
 
         # cut-off mols + properties silently. I think this is better than raising a ValueError
         cdxml_documents = cdxml_documents[:self.mols_per_slide]
         properties = properties[:self.mols_per_slide]
         if len(cdxml_documents) != len(properties):
-            raise ValueError('Number of documents must match number of properties.')
+            raise ValueError("Number of documents must match number of properties.")
 
         for index, cdxml in enumerate(cdxml_documents):
             cdxml = self.styler.apply_style_to_string(cdxml)
-            root = ET.fromstring(bytes(cdxml, encoding='utf8'))
+            root = ET.fromstring(bytes(cdxml, encoding="utf8"))
 
             grp = self._build_group_element(root, index)
 
@@ -74,42 +74,42 @@ class CDXMLSlideGenerator(object):
                 x_left = column * self.column_width + self.margin
                 x_right = (column + 1) * self.column_width - self.margin
 
-                txt = ET.Element('t')
+                txt = ET.Element("t")
                 txt.attrib["LineHeight"] = str(self.line_height)
                 txt.attrib["id"] = str(5000 + index)
-                txt.attrib['BoundingBox'] = "{} {} {} {}".format(x_left, y_top, x_right, y_bottom)
+                txt.attrib["BoundingBox"] = f"{x_left} {y_top} {x_right} {y_bottom}"
                 # TODO: proper position calculation
                 # with Arial font 10 the y-coord of p of a t element is 8.95 points higher than the bounding box top edge
                 # For Arial this "margin seems to be 89.5 % if the font size
                 # But it's different for other fonts
-                txt.attrib['p'] = "{} {}".format(x_left, y_top + 0.895 * self.font_size)
+                txt.attrib["p"] = f"{x_left} {y_top + 0.895 * self.font_size}"
                 line_starts = []
                 text_length = 0
                 font_id = self.font_table.add_font(self.font)
 
                 for prop_index, prop in enumerate(props):
-                    s = ET.SubElement(txt, 's')
-                    s.attrib['font'] = str(font_id)
-                    s.attrib['color'] = str(self.register_color(prop.color))
-                    s.attrib['size'] = str(self.font_size)
+                    s = ET.SubElement(txt, "s")
+                    s.attrib["font"] = str(font_id)
+                    s.attrib["color"] = str(self.register_color(prop.color))
+                    s.attrib["size"] = str(self.font_size)
 
                     if prop_index + 1 == self.number_of_properties:
                         s.text = prop.get_display_value()
                     else:
-                        s.text = prop.get_display_value() + '\n'
+                        s.text = prop.get_display_value() + "\n"
                     text_length += len(s.text)
                     line_starts.append(str(text_length))
 
                     # Add properties as annotations so that they are exported to sdf!
-                    annotation = ET.SubElement(grp, 'annotation')
-                    annotation.attrib['Keyword'] = prop.name
-                    annotation.attrib['Content'] = str(prop.value)
+                    annotation = ET.SubElement(grp, "annotation")
+                    annotation.attrib["Keyword"] = prop.name
+                    annotation.attrib["Content"] = str(prop.value)
 
-                txt.attrib['LineStarts'] = ' '.join(line_starts)
+                txt.attrib["LineStarts"] = " ".join(line_starts)
                 #self.slide.find('page').append(txt)
                 grp.append(txt)
 
-            self.slide.find('page').append(grp)
+            self.slide.find("page").append(grp)
 
         return cdxml_io.etree_to_cdxml(self.slide)
 
@@ -121,7 +121,7 @@ class CDXMLSlideGenerator(object):
         corner. Then it is scaled to fit into the grid including all fragments.
         """
 
-        fragments = cdxml_root.findall('.//fragment')
+        fragments = cdxml_root.findall(".//fragment")
 
         # determine grid position
         row = document_idx // self.columns
@@ -130,7 +130,7 @@ class CDXMLSlideGenerator(object):
         if len(fragments) == 0:
             # return an empty group element
             grp = ET.Element("group")
-            grp.attrib['BoundingBox'] = f"0 0 {self.molecule_width} {self.molecule_height}"
+            grp.attrib["BoundingBox"] = f"0 0 {self.molecule_width} {self.molecule_height}"
             x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
             geometry.fix_bounding_box(grp, x_translate, y_translate)
             return grp
@@ -142,7 +142,7 @@ class CDXMLSlideGenerator(object):
         max_bottom = 0
 
         for fragment in fragments:
-            bb = fragment.attrib['BoundingBox']
+            bb = fragment.attrib["BoundingBox"]
             bounding_box = [float(x) for x in bb.split(" ")]
             if bounding_box[0] < min_left:
                 min_left = bounding_box[0]
@@ -161,12 +161,12 @@ class CDXMLSlideGenerator(object):
         scaling_factor = min([width_factor, height_factor])
 
         grp = ET.Element("group")
-        grp.attrib['BoundingBox'] = f"{min_left} {min_top} {max_right} {max_bottom}"
-        annotation = ET.SubElement(grp, 'annotation')
-        annotation.attrib['Keyword'] = "Scaling Factor"
+        grp.attrib["BoundingBox"] = f"{min_left} {min_top} {max_right} {max_bottom}"
+        annotation = ET.SubElement(grp, "annotation")
+        annotation.attrib["Keyword"] = "Scaling Factor"
 
         if scaling_factor < 1:
-            annotation.attrib['Content'] = str(1 / scaling_factor * 100)
+            annotation.attrib["Content"] = str(1 / scaling_factor * 100)
 
             # Scale bounding box of new group element
             coords = np.asarray([[min_left, min_top], [max_right, max_bottom]])
@@ -197,7 +197,7 @@ class CDXMLSlideGenerator(object):
                 grp.append(fragment)
 
         else:
-            annotation.attrib['Content'] = "100"
+            annotation.attrib["Content"] = "100"
             # Translate group element to final position
             x_translate, y_translate = self._get_translation_to_grid_position(grp, row, column)
             geometry.fix_bounding_box(grp, x_translate, y_translate)
@@ -213,7 +213,7 @@ class CDXMLSlideGenerator(object):
         Get x and y translation amount for moving the element into the desired grid position.
         The element will be centered vertically and left-aligned.
         """
-        bounding_box = np.asarray([float(x) for x in element.attrib['BoundingBox'].split(" ")])
+        bounding_box = np.asarray([float(x) for x in element.attrib["BoundingBox"].split(" ")])
         # grid_center_x = (column + 0.5) * self.column_width
         grid_center_y = row * self.row_height + 0.5 * self.molecule_height + self.margin
         # current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
@@ -247,14 +247,14 @@ class CDXMLSlideGenerator(object):
     def _translate_nodes(self, fragment: ET.Element, destination_coordinates, scaling_factor=None):
 
         idx = 0
-        for node in fragment.iter('n'):
+        for node in fragment.iter("n"):
             coords_xml = str(destination_coordinates[idx][0]) + " " + str(destination_coordinates[idx][1])
-            node.attrib['p'] = coords_xml
+            node.attrib["p"] = coords_xml
             idx += 1
         if scaling_factor is not None:
             # scale all text
-            for t in fragment.iter('t'):
-                for s in t.iter('s'):
+            for t in fragment.iter("t"):
+                for s in t.iter("s"):
                     # scales Atom Labels
                     s.attrib["size"] = str(round(float(self.styler.style["LabelSize"]) * scaling_factor, 2))
             # TODO: scaling for graphics and other elements like arrows, curves...
@@ -265,9 +265,9 @@ class CDXMLSlideGenerator(object):
               'HeightPages="1"\n WidthPages="1"\n DrawingSpace="poster"', '\n BoundingBox="0 0 ', str(self.slide_width),
               " ", str(self.slide_height), '"\n Width="', str(self.slide_width), '"\n Height="', str(self.slide_height),
               '"\n></page>']
-        page = ''.join(sb)
+        page = "".join(sb)
 
-        template_name = style + '.cdxml'
+        template_name = style + ".cdxml"
         module_path = Path(__file__).parent
         template_path = module_path / template_name
         tree = ET.parse(template_path.__str__())
@@ -295,8 +295,8 @@ class CDXMLSlideGenerator(object):
 
         if color.hex not in self.colortable:
 
-            colortable_xml = self.slide.find('colortable')
-            c = ET.SubElement(colortable_xml, 'color')
+            colortable_xml = self.slide.find("colortable")
+            c = ET.SubElement(colortable_xml, "color")
             c.attrib["r"] = str(color.rgb[0])
             c.attrib["g"] = str(color.rgb[1])
             c.attrib["b"] = str(color.rgb[2])
@@ -329,7 +329,7 @@ class TextProperty(object):
     def get_display_value(self):
 
         if self.show_name:
-            return self.name + ': ' + str(self.value)
+            return self.name + ": " + str(self.value)
         else:
             return str(self.value)
 
@@ -347,12 +347,12 @@ class FontColor(object):
                     self.rgb = color
                 self.hex = FontColor.rgb_to_hex(self.rgb)
             else:
-                raise ValueError('Expected a RGB color tuple of 3 values. Got tuple with {} values'.format(len(color)))
-        elif isinstance(color, str) and color[0] == '#':
+                raise ValueError(f"Expected a RGB color tuple of 3 values. Got tuple with {len(color)} values")
+        elif isinstance(color, str) and color[0] == "#":
             self.rgb = FontColor.hex_to_rgb(color)
             self.hex = color.upper()
         else:
-            raise ValueError('Expected a hex color string or RGB 3-tuple but got {}.'.format(color))
+            raise ValueError(f"Expected a hex color string or RGB 3-tuple but got {color}.")
 
     @staticmethod
     def _scale_color(rgb):
@@ -362,7 +362,7 @@ class FontColor(object):
     @staticmethod
     def hex_to_rgb(hex_code):
         # from stackoverflow
-        hex_code = hex_code.lstrip('#').upper()
+        hex_code = hex_code.lstrip("#").upper()
         rgb = tuple(int(hex_code[i:i + 2], 16) for i in (0, 2, 4))
         return FontColor._scale_color(rgb)
 
@@ -370,4 +370,4 @@ class FontColor(object):
     def rgb_to_hex(rgb):
         if 1 > max(rgb) > 0:
             rgb = tuple([round(x * 255, 2) for x in rgb])
-        return '#' + ''.join(f'{i:02X}' for i in rgb)
+        return "#" + "".join(f"{i:02X}" for i in rgb)
