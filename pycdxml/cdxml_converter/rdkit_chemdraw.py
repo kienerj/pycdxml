@@ -305,6 +305,11 @@ def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: floa
         rdCoordGen.AddCoords(mol)
         mol.UpdatePropertyCache()
         conformer = mol.GetConformer()
+    elif max_coords[0] == 0 and max_coords[1] == 0:
+        # no coordinates assigned! generate them
+        rdCoordGen.AddCoords(mol)
+        mol.UpdatePropertyCache()
+        conformer = mol.GetConformer()
 
     bonds = mol.GetBonds()
 
