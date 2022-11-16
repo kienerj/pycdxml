@@ -38,6 +38,9 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
     :return:
     """
 
+    if mol is None:
+        raise ValueError("Argument 'mol' is None. Expected valid RDKit molecule object.")
+
     # Use ACS 1996 as default style to build cdxml document
     # m_path = Path('C:/Users/kienerj/PycharmProjects/PyCDXML/pycdxml/cdxml_slide_generator')
     m_path = Path(__file__).parent.parent
