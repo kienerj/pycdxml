@@ -165,6 +165,20 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         fname = os.path.join('files', 'CHEMBL69710.no_bonds.mol')
         self.roundtrip(fname)
 
+    def test_radical(self):
+        """
+        Test that a molecule without bonds (salt) can be roundtripped
+        """
+        fname = os.path.join('files', 'Aminopropyl_radical.mol')
+        self.roundtrip(fname)
+
+    def test_lone_pair(self):
+        """
+        Test that a molecule without bonds (salt) can be roundtripped
+        """
+        fname = os.path.join('files', 'Aminopropyl_LonePair.mol')
+        self.roundtrip(fname)
+
 
 if __name__ == '__main__':
     unittest.main()

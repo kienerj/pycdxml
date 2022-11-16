@@ -106,8 +106,41 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         p = str(atom_coords[idx][0]) + " " + str(atom_coords[idx][1])
         props = {"p": p, "Z": str(20 + object_id), "Element": str(atom.GetAtomicNum())}
 
-        if atom.GetAtomicNum() != 6:
-            props["NumHydrogens"] = str(atom.GetTotalNumHs())
+        # hacky handling of Radicals and LonePairs
+        # offset values empirically determined - likely to not work for different styles / font sizes
+        # Offset values required for BoundingBox for graphics type as else display of graphics is at wrong place
+        radical_electrons = atom.GetNumRadicalElectrons()
+        if radical_electrons == 1:
+            offset_1 = 4.52
+            offset_2 = 3.0
+            props["Radical"] = "Doublet"
+            graphic = ET.SubElement(fragment, "graphic")
+            bb_y = round(atom_coords[idx][1] - offset_1, 2)
+            graphic.attrib["BoundingBox"] = f"{round(atom_coords[idx][0] + offset_1, 2)} {bb_y} " \
+                                            f"{round(atom_coords[idx][0] - offset_2, 2)} {bb_y}"
+            graphic.attrib["id"] = str(next(object_id_sequence))
+            graphic.attrib["GraphicType"] = "Symbol"
+            graphic.attrib["SymbolType"] = "Electron"
+            represents = ET.SubElement(graphic, "represent")
+            represents.attrib["attribute"] = "Radical"
+            represents.attrib["object"] = str(object_id)
+        elif radical_electrons == 2:
+            offset_1 = 1.87
+            offset_2 = 7.87
+            props["Radical"] = "Singlet"
+            graphic = ET.SubElement(fragment, "graphic")
+            bb_y = round(atom_coords[idx][1] - offset_2, 2)
+            graphic.attrib["BoundingBox"] = f"{round(atom_coords[idx][0] + offset_1, 2)} {bb_y} " \
+                                            f"{round(atom_coords[idx][0] - offset_1, 2)} {bb_y}"
+            graphic.attrib["id"] = str(next(object_id_sequence))
+            graphic.attrib["GraphicType"] = "Symbol"
+            graphic.attrib["SymbolType"] = "LonePair"
+            represents = ET.SubElement(graphic, "represent")
+            represents.attrib["attribute"] = "Radical"
+            represents.attrib["object"] = str(object_id)
+        elif radical_electrons == 3:
+            # TODO: graphics for ChemDraw
+            props["Radical"] = "Triplet"
 
         if atom.HasProp('_CIPCode'):
             props["AS"] = atom.GetProp('_CIPCode')
@@ -125,8 +158,9 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
                 props["EnhancedStereoType"] = adv_stereo_by_atom[atom_idx]["group_type"]
                 props["EnhancedStereoGroupNum"] = str(adv_stereo_by_atom[atom_idx]["group_number"])
 
-        if atom.GetFormalCharge() != 0:
-            props["Charge"] = str(atom.GetFormalCharge())
+        formal_charge = atom.GetFormalCharge()
+        if formal_charge != 0:
+            props["Charge"] = str(formal_charge)
 
         if atom.GetIsotope() != 0:
             props["Isotope"] = str(atom.GetIsotope())
@@ -136,24 +170,26 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         atom_obj.attrib.update(props)
 
         # text label for Heteroatoms or charged carbons
-        if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0:
+        if atom.GetAtomicNum() != 6 or formal_charge != 0 or radical_electrons > 0:
+            total_hs = atom.GetTotalNumHs()
+            atom_obj.attrib["NumHydrogens"] = str(total_hs)
             lbl = atom.GetSymbol()
-            if atom.GetTotalNumHs() > 0:
+            if total_hs > 0:
                 lbl += "H"
-                if atom.GetTotalNumHs() > 1:
-                    lbl += str(atom.GetTotalNumHs())
+                if total_hs > 1:
+                    lbl += str(total_hs)
 
-            if atom.GetFormalCharge() > 0:
-                if atom.GetFormalCharge() == 1:
+            if formal_charge > 0:
+                if formal_charge == 1:
                     lbl += "+"
                 else:
-                    lbl += "+" + str(atom.GetFormalCharge())
-            elif atom.GetFormalCharge() < 0:
-                if atom.GetFormalCharge() == -1:
+                    lbl += "+" + str(formal_charge)
+            elif formal_charge < 0:
+                if formal_charge == -1:
                     lbl += "-"
                 else:
                     # charge already contains minus symbol no need to add
-                    lbl += str(atom.GetFormalCharge())
+                    lbl += str(formal_charge)
 
             cdx_style = CDXFontStyle(int(root.attrib.get('LabelFont', DEFAULT_ATOM_LABEL_FONT_ID)),
                                      int(root.attrib.get('LabelFace', DEFAULT_ATOM_LABEL_FONT_FACE)),
