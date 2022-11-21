@@ -122,10 +122,17 @@ class ChemDrawDocument(object):
 
     def _traverse_tree(self, node: ET.Element, stream: io.BytesIO,
                        ignore_unknown_attribute: bool, ignore_unknown_element: bool):
+
+        # s elements are always in t elements and hence already handled by parent t element
+        # this is needed as there is a mismatch between cdx and cdxml
+        # same for fonts and colors and font and colortable
         if node.tag not in ['s', 'font', 'color', 'fonttable', 'colortable']:
-            # s elements are always in t elements and hence already handled by parent t element
-            # this is needed as there is a mismatch between cdx and cdxml
-            # same for fonts and colors and font and colortable
+            # See Issue 13: Stereochemistry symbols are shown twice after cdxml to cdx conversion
+            # A cdxml that contains stereochemistry symbol in an ojecttag will lead to duplicate display of the tag
+            # in ChemDraw when included in the cdx
+            # hence we simply do not write such a objecttag to cdx to fix the issue
+            if node.tag == "objecttag" and (node.attrib["Name"] == "stereo" or node.attrib["Name"] == "enhancedstereo"):
+                return
             self._element_to_stream(node, stream, ignore_unknown_attribute, ignore_unknown_element)
             for child in node:
                 if child.tag != "represent":
