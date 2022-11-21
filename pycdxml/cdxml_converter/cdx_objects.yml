@@ -118,6 +118,18 @@
 0x802B:
   type: Annotation
   element_name: annotation
+0x802C:
+  type: GEPPlate
+  element_name: gepplate
+0x802D:
+  type: GEPBand
+  element_name: gepband
+0x802E:
+  type: Marker
+  element_name: marker
+0x802F:
+  type: GEPLane
+  element_name: geplane
 0x0100:
   type: FontTable 
   element_name: fonttable

@@ -393,10 +393,10 @@
   type: CDXDrawingSpace
 0x0812:
   name: Width
-  type: CDXCoordinate
+  type: INT32
 0x0813:
   name: Height
-  type: CDXCoordinate
+  type: INT32
 0x0814:
   name: PageOverlap
   type: CDXCoordinate
@@ -706,6 +706,30 @@
 0x0AB2:
   name: ShowRf
   type: CDXBoolean
+0x0AB3:
+  name: ShowScale
+  type: CDXBooleanImplied
+0x0AB4:
+  name: UnitID
+  type: INT32
+0x0AB5:
+  name: StartRange
+  type: INT32
+0x0AB6:
+  name: EndRange
+  type: INT32
+0x0AB7:
+  name: ShowValue
+  type: CDXBooleanImplied
+0x0AB8:
+  name: BandValue
+  type: INT32
+0x0AB9:
+  name: LabelsAngle
+  type: INT32
+0x0ABA:
+  name: AxisWidth
+  type: FLOAT64
 0x0AC0:
   name: BioShapeType
   type: CDXBioShapeType
