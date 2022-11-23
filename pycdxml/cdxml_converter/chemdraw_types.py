@@ -799,6 +799,10 @@ class CDXAminoAcidTermini(CDXType, Enum):
 
     @staticmethod
     def from_string(value: str) -> 'CDXAminoAcidTermini':
+        if value == "H/OH":
+            # A file in the sample dir for ChemDraw has this value
+            # ChemDraw itself fixes it this way when saving the file
+            value = "HOH"
         return CDXAminoAcidTermini[value]
 
     def to_bytes(self) -> bytes:
