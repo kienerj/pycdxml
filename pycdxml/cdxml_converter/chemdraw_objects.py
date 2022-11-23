@@ -199,7 +199,7 @@ class ChemDrawDocument(object):
                 if "LabelFont" in element.attrib:
                     font_id = int(element.attrib["LabelFont"])
                 else:
-                    logger.warning("Setting default label font id to 1. This might cause an issue if no font with id 1 "
+                    logger.info("Setting default label font id to 1. This might cause an issue if no font with id 1 "
                                    "exists.")
                     font_id = 1
                 if "LabelFace" in element.attrib:
@@ -222,7 +222,7 @@ class ChemDrawDocument(object):
                 if "CaptionFont" in element.attrib:
                     font_id = int(element.attrib["CaptionFont"])
                 else:
-                    logger.warning(
+                    logger.info(
                         "Setting default caption font id to 1. This might cause an issue if no font with id 1 exists.")
                     font_id = 1
                 if "CaptionFace" in element.attrib:
