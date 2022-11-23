@@ -393,10 +393,10 @@
   type: CDXDrawingSpace
 0x0812:
   name: Width
-  type: INT32
+  type: CDXCoordinate
 0x0813:
   name: Height
-  type: INT32
+  type: CDXCoordinate
 0x0814:
   name: PageOverlap
   type: CDXCoordinate

@@ -2510,7 +2510,7 @@ class CDXBioShapeType(CDXType, Enum):
     DNA = 15
     HelixProtein = 16
     Mitochondrion = 17
-    ShapeCloud = 18
+    Cloud = 18
     tRNA = 19
     RibosomeA = 20
     RibosomeB = 21
@@ -2651,6 +2651,12 @@ class CDXConnectivity(CDXType, Enum):
 class CDXSequenceType(CDXType, Enum):
 
     # No Specification available. Needs testing to figure out more
+    Unknown = 0
+    Peptide = 1  # HELM peptides
+    Peptide1 = 2  # Single letter amino acids (Legacy biopolymer support)
+    Peptide3 = 3  # Three letter amino acids (Legacy biopolymer support)
+    DNA = 4
+    RNA = 5
     Biopolymer = 6
 
     def __init__(self, value: int):
