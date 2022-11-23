@@ -450,7 +450,7 @@
   type: CDXPoint2D
 0x0825:
   name: Side
-  type: UINT16
+  type: CDXSideType
 0x0826:
   name: FixInPlaceGap
   type: CDXPoint2D

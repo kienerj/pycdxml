@@ -2664,8 +2664,8 @@ class CDXSequenceType(CDXType, Enum):
     Biopolymer = 6
 
     def __init__(self, value: int):
-        if 0 > value > 4:
-            raise ValueError("Needs to be between 0 and 4")
+        if 0 > value > 6:
+            raise ValueError("Needs to be between 0 and 6")
         self.sequence_type = value
 
     @staticmethod
@@ -2684,4 +2684,39 @@ class CDXSequenceType(CDXType, Enum):
 
     def to_property_value(self) -> str:
         val = str(CDXSequenceType(self.sequence_type))
+        return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXSideType(CDXType, Enum):
+
+    # No Specification available. Needs testing to figure out more
+    Undefined = 0
+    Top = 1
+    Left = 2
+    Bottom = 3
+    Right = 4
+
+    def __init__(self, value: int):
+        if 0 > value > 4:
+            raise ValueError("Needs to be between 0 and 4")
+        self.side_type = value
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXSideType':
+        if len(property_bytes) != 2:
+            raise ValueError("CDXSideType should consist of 2 bytes.")
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXSideType(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXSideType':
+        # convert to title case eg left -> Left
+        # This example above appear in a ChemDraw Sample file
+        return CDXSideType[value.title()]
+
+    def to_bytes(self) -> bytes:
+        return self.side_type.to_bytes(2, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        val = str(CDXSideType(self.side_type))
         return val.split('.')[1]  # only actually value without enum name
