@@ -160,13 +160,11 @@ class ChemDrawDocument(object):
             for attrib, value in element.attrib.items():
                 if attrib in ["LabelFont", "LabelSize", "LabelFace"]:
                     has_label_style = True
-                    continue
-                if attrib in ["CaptionFont", "CaptionSize", "CaptionFace"]:
+                elif attrib in ["CaptionFont", "CaptionSize", "CaptionFace"]:
                     has_caption_style = True
-                    continue
-                if attrib == "id":
-                    continue
-                if attrib == "Value":
+                elif attrib == "id":
+                    pass
+                elif attrib == "Value":
                     # "Value" is a special attribute. The type of the attribute depends on the attribute "TagType".
                     try:
                         tag_type = CDXTagType[element.attrib["TagType"]]
@@ -180,9 +178,17 @@ class ChemDrawDocument(object):
                     logger.debug(f"Writing attribute {attrib} with value '{value}'.")
                     stream.write(tag_id.to_bytes(2, byteorder='little'))
                     ChemDrawDocument._type_to_stream(type_obj, stream)
-                    continue
-
-                ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
+                elif element.tag == "gepband" and (attrib == "Height" or attrib == "Width"):
+                    # Height and Width in gepband behave like INT32 and not a CDXCoordinate
+                    # They have the same value in cdx and cdxml
+                    tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG[attrib]
+                    klass = globals()["INT32"]
+                    type_obj = klass.from_string(value)
+                    logger.debug(f"Writing attribute {attrib} with value '{value}'.")
+                    stream.write(tag_id.to_bytes(2, byteorder='little'))
+                    ChemDrawDocument._type_to_stream(type_obj, stream)
+                else:
+                    ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
 
             # check if element has child with tag "represent"
             # in cdx this is a property of the "represent" parent element
@@ -432,6 +438,10 @@ class CDXReader(object):
                 # if order in cdx is wrong as "Value" appears before "tag_type", the value is set to unknown.
                 type_obj = klass.from_bytes(prop_bytes, tag_type)
                 value_read = True
+            elif element.tag == "gepband" and (prop_name == "Height" or prop_name == "Width"):
+                # Height and Width on gepband are INT32 while else they are CDXCoordinate
+                klass = globals()["INT32"]
+                type_obj = klass.from_bytes(prop_bytes)
             else:
                 try:
                     type_obj = klass.from_bytes(prop_bytes)
