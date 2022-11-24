@@ -1906,7 +1906,7 @@ class CDXTagType(CDXType, Enum):
 class CDXValue(CDXType):
     """
     Can be of type Unformatted, INT32 or FLOAT64. On reading the property, generate the correct CDXType and then
-    use the existng types to_bytes method.
+    use the existing types to_bytes method.
     The type depends on the CDXTagType of the same object.
     """
 

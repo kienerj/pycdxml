@@ -169,14 +169,18 @@ class ChemDrawDocument(object):
                 if attrib == "Value":
                     # "Value" is a special attribute. The type of the attribute depends on the attribute "TagType".
                     try:
-                        tag_type = element.attrib["TagType"]
-                        value_type = CDXTagType.TYPE_MAPPING[tag_type]
-                        ChemDrawDocument._attribute_to_stream(value_type, value, stream, ignore_unknown_attribute)
+                        tag_type = CDXTagType[element.attrib["TagType"]]
                     except KeyError:
-                        logger.warning("Found attribute of type 'Value' without a 'TagType'.")
-                        ChemDrawDocument._attribute_to_stream("Unformatted", value, stream, ignore_unknown_attribute)
-                    finally:
-                        continue
+                        logger.warning("Found attribute of type 'Value' without a 'TagType'. Using 'Unknown'.")
+                        tag_type = CDXTagType.Unknown
+
+                    tag_id = ChemDrawDocument.PROPERTY_NAME_TO_TAG["Value"]
+                    klass = globals()["CDXValue"]
+                    type_obj = klass.from_string(value, tag_type)
+                    logger.debug(f"Writing attribute {attrib} with value '{value}'.")
+                    stream.write(tag_id.to_bytes(2, byteorder='little'))
+                    ChemDrawDocument._type_to_stream(type_obj, stream)
+                    continue
 
                 ChemDrawDocument._attribute_to_stream(attrib, value, stream, ignore_unknown_attribute)
 
