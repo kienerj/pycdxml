@@ -131,7 +131,10 @@ class ChemDrawDocument(object):
             # A cdxml that contains stereochemistry symbol in an ojecttag will lead to duplicate display of the tag
             # in ChemDraw when included in the cdx
             # hence we simply do not write such a objecttag to cdx to fix the issue
-            if node.tag == "objecttag" and (node.attrib["Name"] == "stereo" or node.attrib["Name"] == "enhancedstereo"):
+            # Same for residueID in peptides - unclear why duplication is shown as there is no obvious difference
+            # to cdx generated form chemdraw in terms of settings
+            if node.tag == "objecttag" and (node.attrib["Name"] == "stereo" or node.attrib["Name"] == "enhancedstereo"
+                                            or node.attrib["Name"] == "residueID"):
                 return
             self._element_to_stream(node, stream, ignore_unknown_attribute, ignore_unknown_element)
             for child in node:
@@ -210,7 +213,7 @@ class ChemDrawDocument(object):
                     font_id = int(element.attrib["LabelFont"])
                 else:
                     logger.info("Setting default label font id to 1. This might cause an issue if no font with id 1 "
-                                   "exists.")
+                                "exists.")
                     font_id = 1
                 if "LabelFace" in element.attrib:
                     font_type = int(element.attrib["LabelFace"])
