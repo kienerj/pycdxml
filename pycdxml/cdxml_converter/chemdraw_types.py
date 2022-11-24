@@ -2720,3 +2720,27 @@ class CDXSideType(CDXType, Enum):
     def to_property_value(self) -> str:
         val = str(CDXSideType(self.side_type))
         return val.split('.')[1]  # only actually value without enum name
+
+
+class CDXPositioningAngle(CDXType):
+    """In radians in cdxml, as INT32 in cdx: radians * 65536"""
+    RADIANS_CONVERSION_FACTOR = 65536
+
+    def __init__(self, positioning_angle: int):
+        self.positioning_angle = positioning_angle
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes) -> 'CDXPositioningAngle':
+        value = int.from_bytes(property_bytes, "little", signed=True)
+        return CDXPositioningAngle(value)
+
+    @staticmethod
+    def from_string(value: str) -> 'CDXPositioningAngle':
+        ang_size = int(float(value) *  CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)
+        return CDXPositioningAngle(ang_size)
+
+    def to_bytes(self) -> bytes:
+        return self.positioning_angle.to_bytes(4, byteorder='little', signed=True)
+
+    def to_property_value(self) -> str:
+        return str(self.positioning_angle /  CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)

@@ -825,7 +825,7 @@
   type: CDXPositioningType
 0x0D07:
   name: PositioningAngle
-  type: INT32
+  type: CDXPositioningAngle
 0x0D08:
   name: PositioningOffset
   type: CDXPoint2D
