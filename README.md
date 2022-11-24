@@ -121,18 +121,15 @@ This will result in a cdxml file that looks like this when viewed in ChemDraw:
 
 ## Project Status
 
-The overall status of the project can be described best as **alpha**. It depends on the specific module used. Within 
+The overall status of the project can be described best as **beta**. It depends on the specific module used. Within 
 the limited scope of basic small molecules, the code will likely work. But it is certain there are some unknown bugs 
 and edge-cases not present in my set of test molecules.
-
-Where you might run into issues is with reactions and for sure organometallics or anything that contains 
-non-chemical related drawings.
-
-It's best to limit usage to "single-molecule" documents essentially treating the ChemDraw files like mol files. `cdxml`and `cdx` are more like a drawing file format with molecules as first class citizens and not a pure chemical format. Using any of these "drawing features" can lead to errors or worse silent issues. **You have been warned!**
 
 ## CDXMLConverter
 
 `cdxml_converter`module allows you to convert between `cdxml`and `cdx` files. There is also support to convert [RDKit](https://github.com/rdkit/rdkit) molecules to `cdxml` or `cdx` files.
+
+As of commit 9507e48 all files in the ChemDraw Samples directory can be visually correctly converted from/to cdxml. This includes correct conversion of biological shapes and sequences, images and shapes.
 
 The conversions are based on PerkinElmers (formerly CambridgeSofts) official but very much outdated format 
 specification available [here](https://www.cambridgesoft.com/services/documentation/sdk/chemdraw/cdx/IntroCDX.htm). 
@@ -141,9 +138,13 @@ more details see the README.md in the modules' directory.
 
 major known issue: very old `cdx` files do not adhere to the official format specification and hence very often fail to be read (old means around ChemDraw 7 time-frame and older).
 
+When converting from RDKit molecules, you will likely run into issues with organometallics, polymers or other "complex" molecules. It's best to limit usage to "single-molecule" files essentially treating the ChemDraw files like mol files. 
+
 ## CDXMLStyler
 
 `cdxml_styler` module converts the style of the molecules contained in the `cdxml`document. The style options are limited to options that directly affect the display of the molecule like bond length, atom label size and so forth. The core usage scenario here is to convert a bunch of `cdxml`documents containing just molecule drawings to a standardized style.
+
+The styling will often require translating the molecule. In case the document contains additional drawing elements that may or may not be related to the molecule like brackets these might not be translated at all or not entirely correctly. Also distances between molecules might change in relative and absolute terms.
 
 If you have `cdx`files, convert them to `cdxml`with the `cdxml_converter`module, apply the style and convert back to `cdx`. That is in general the basic idea of this package. Do all manipulation in `cdxml`because due to it being `xml`it's relatively easy to do such manipulations in contrast to the binary `cdx`format.
 

@@ -2,20 +2,22 @@
 
 ## Scope
 
-CDXML converter **converts between cdx** (binary) **and cdxml**(text/xml) files containing **small molecules**. **Conversion from [RDKit](https://github.com/rdkit/rdkit) molecules to cdx/cdxml is also partially implemented**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform.
+CDXML converter **converts between cdx** (binary) **and cdxml**(text/xml) files. As of commit 9507e48 all files in the ChemDraw Samples directory can be visually correctly converted from/to cdxml. This includes correct conversion of biological shapes and sequences, images and shapes.
 
-Newer feature like bilogy drawing elements will possibly only get limited support because they are missing from the specification which requires a lot fo trial and error to figure things out. The core issue for full support is that ChemDraw is essentially a drawing canvas and hence cdx and cdxml are drawing formats and not really chemical structure exchange formats.
+ **Conversion from [RDKit](https://github.com/rdkit/rdkit) molecules to cdx/cdxml is also partially implemented**. The goal of the project is to provide conversion for files containing small molecules and later possibly reactions, at least the reaction scheme. The idea is to be able to convert such files coming or going into a database automatically on any OS and hence treating them as molecule file format. ChemDraw itself lacks such usable automation features, especially cross-platform. 
+
+Newer feature like additions to biology drawing elements or 3D chemical features will possibly only get limited support because they are missing from the specification which requires a lot of trial and error to figure things out. The core issue for full support is that ChemDraw is essentially a drawing canvas and hence cdx and cdxml are drawing formats and not really chemical structure exchange formats.
 
 Note that there is no chemical knowledge in this tool! It really is just a format converter.
 
 ## Status
 
-The **status of the project is at best "alpha"** simply due to the limited scope of tested molecules and limitations how to validate the result. It has to be assumed that anything that isn't a basic small molecules can either fail or even worse lead to an invalid output without error. 
+The **status of the project is "beta"**. It has to be assumed that anything that isn't a basic small molecules can either fail or even worse lead to an invalid output without error. 
 
 What its implemented:
 
-- Conversion to/from cdx to/from cdxml for small molecules and simple reactions
-- Conversion from simple RDKit Mols to cdx/cdxml (partial, for example enhanced stereo is not yet implemented)
+- Conversion to/from cdx to/from cdxml working for all Sample files
+- Conversion from simple RDKit Mols to cdx/cdxml including enhanced stereochemistry
 
 ## ChemDraw Format Specification
 
@@ -43,7 +45,7 @@ Let's just say it's a big mess also driven by the format issues and there is a l
 
 The internal architecture consist of `ChemDrawDocument`class which wraps an `ElementTree`. This element tree is a `cdxml` document. Each element has attributes and a value where the values have types defined in the cdx specification. For reach type their is a class that knows how to represent itself either as `bytes`as in `cdx` or as string value in `cdxml`.
 
-In `cdx` elements (tree nodes) are called objects and attributes are called properties.
+In `cdx` elements (tree nodes) are called objects and attributes are called properties.
 
 #### Reading / Writing
 
@@ -59,4 +61,4 @@ The issues with this basic read/write mechanism is, that the reading and writing
 
 It also means that every type has an `CDXType` implementation even INT8, INT16 etc. which is a bit ugly really but it "unifies" the design. Again there is room for improvement, simplification and better performance.
 
-In terms of logging please be adivised that the debug level should only ever be used in case of troubleshooting a specific file. It is very verbose which makes things slow and generates huge log files.
+In terms of logging please be advised that the debug level should only ever be used in case of troubleshooting a specific file. It is very verbose which makes things slow and generates huge log files.
