@@ -267,6 +267,23 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
         elif bond_type == rdchem.BondType.DATIVE:
             props["Order"] = "dative"
             # TODO: other dative types
+        elif bond_type == rdchem.BondType.UNSPECIFIED and bond.HasQuery():
+            qry_smarts = bond.GetSmarts()
+            if qry_smarts == "-,=":
+                # single or double
+                props["Order"] ="1 2"
+            elif not qry_smarts:
+                # single or aromatic
+                props["Order"] = "1 1.5"
+            elif qry_smarts == "=,:":
+                # single or double
+                props["Order"] ="2 1.5"
+            elif qry_smarts == "~":
+                # Any bond
+                props["Order"] ="any"
+            else:
+                raise ValueError(f"Molecule contains unsupported bond query {qry_smarts}.")
+
 
         # Bond Display
         if bond_direction == rdchem.BondDir.BEGINDASH:
