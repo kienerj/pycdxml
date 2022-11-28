@@ -174,6 +174,9 @@ def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: in
             total_hs = atom.GetTotalNumHs()
             atom_obj.attrib["NumHydrogens"] = str(total_hs)
             lbl = atom.GetSymbol()
+            # Deuterium
+            if lbl == "H" and atom.GetIsotope() == 2:
+                lbl = "D"
             if total_hs > 0:
                 lbl += "H"
                 if total_hs > 1:
