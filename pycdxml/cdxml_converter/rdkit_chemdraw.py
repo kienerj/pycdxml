@@ -23,7 +23,7 @@ DEFAULT_AVG_BOND_LENGTH = 0.825
 
 
 def mol_to_document(mol: Chem.Mol, chemdraw_style: dict = None, conformer_id: int = -1, margin=1,
-                    include_enhanced_stereo=True, crossed_bonds=False):
+                    include_enhanced_stereo=True, crossed_bonds=True):
     """
     Converts a rdkit molecule into an internal document representation.
 
