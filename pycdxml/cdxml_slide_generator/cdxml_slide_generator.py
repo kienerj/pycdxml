@@ -32,17 +32,37 @@ class CDXMLSlideGenerator(object):
         self.molecule_height = self.row_height - self.text_height - self.margin
         self.molecule_width = self.column_width - self.margin
         self.colortable = {}
+        self.style = style
         self.slide, self.font_table = self._build_base_document(style)
         style_dict = self.slide.attrib
         self.styler = CDXMLStyler(style_dict=style_dict)
 
-    def generate_slide(self, cdxml_documents, properties):
+    def generate_slides(self, cdxml_documents, properties) -> list:
         """
-        Each document is expected to contain exactly 1 entry (=one structure) for the slide there for only the first
-        fragment in the first page is extracted and place in the slide per document.
+        Generates as many slides as needed to fit all the documents
+        """
+        if len(cdxml_documents) != len(properties):
+            raise ValueError("Number of documents must match number of properties.")
 
-        :param properties:
-        :param cdxml_documents:
+        nr_of_slides = math.ceil(len(cdxml_documents) / self.mols_per_slide)
+        slides = []
+        for i in range(nr_of_slides):
+            start = i * self.mols_per_slide
+            end = (i+1) * self.mols_per_slide
+            slide = self.generate_slide(cdxml_documents[start:end], properties[start:end])
+            slides.append(slide)
+        return slides
+
+    def generate_slide(self, cdxml_documents, properties) -> str:
+        """
+        Generate a cdxml document containing all the based in documents and property up to how many fit into the
+        defined grid of the slide.
+
+        Each document is expected to contain one structure but all of them are taken into account. Having many
+        structures in one document likely leads to shrinking of these structures to fit in the space.
+
+        :param cdxml_documents: cdxml documents each one containing 1 molecule to show on the slide
+        :param properties: properties of the molecules
         :return:
         """
 
@@ -54,6 +74,12 @@ class CDXMLSlideGenerator(object):
         properties = properties[:self.mols_per_slide]
         if len(cdxml_documents) != len(properties):
             raise ValueError("Number of documents must match number of properties.")
+
+        # initialize slide
+        # document must be re-initialized or subsequent calls will use the same document already containing
+        # chemical structures and write on top of them
+        self.slide, self.font_table = self._build_base_document(self.style)
+        self.colortable = {}
 
         for index, cdxml in enumerate(cdxml_documents):
             cdxml = self.styler.apply_style_to_string(cdxml)
