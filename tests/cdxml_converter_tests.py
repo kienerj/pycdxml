@@ -179,6 +179,14 @@ class CdxmlConverterRoundTripTests(unittest.TestCase):
         fname = os.path.join('files', 'Aminopropyl_LonePair.mol')
         self.roundtrip(fname)
 
+    def test_3d_coords(self):
+        """
+        Test that a molecule that has z-coordintes set to -0.0000 (eg. with the minus) do not trigger a 2D coordinates
+        generation.
+        """
+        fname = os.path.join('files', 'CHEMBL4889297_coords.mol')
+        self.roundtrip(fname)
+
 
 if __name__ == '__main__':
     unittest.main()

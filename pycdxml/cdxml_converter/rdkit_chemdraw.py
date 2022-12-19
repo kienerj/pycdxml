@@ -353,15 +353,15 @@ def _get_coordinates(mol: Chem.Mol, conformer: Chem.Conformer, bond_length: floa
     """
 
     coords = conformer.GetPositions()
-    max_coords = np.amax(coords, axis=0)
-    if max_coords[2] > 0:
+    mean_coords = np.mean(coords, axis=0)
+    if mean_coords[2] != 0:
         # 3D coords. convert to 2D
         # AllChem.Compute2DCoords(mol, bondLength=1.5)
         # Use coordgen in case of macrocylces
         rdCoordGen.AddCoords(mol)
         mol.UpdatePropertyCache()
         conformer = mol.GetConformer()
-    elif max_coords[0] == 0 and max_coords[1] == 0:
+    elif mean_coords[0] == 0 and mean_coords[1] == 0:
         # no coordinates assigned! generate them
         rdCoordGen.AddCoords(mol)
         mol.UpdatePropertyCache()
