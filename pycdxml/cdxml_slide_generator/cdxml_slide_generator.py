@@ -141,6 +141,39 @@ class CDXMLSlideGenerator(object):
 
         return cdxml_io.etree_to_cdxml(self.slide)
 
+    def generate_document(self, cdxml_documents, properties):
+        """
+        Build a cdxml document containing all the passed in molecules.
+
+        The document will have a fixed width and fixed amount of columns taken from this instances number of columns.
+        The height of the document and number of rows will be flexible and depend on the number of input documents
+
+        The height of the individual row can be controlled via `slide_height` and `rows` parameters of this instance.
+        eg row_height = slide_height / rows
+        """
+
+        if cdxml_documents is None:
+            raise ValueError("Expected a list of cdxml documents but got 'None'")
+
+        if len(cdxml_documents) != len(properties):
+            raise ValueError("Number of documents must match number of properties.")
+
+        old_num_rows = self.rows
+        old_slide_height = self.slide_height
+        old_mols_per_slide = self.mols_per_slide
+        self.rows = math.ceil(len(cdxml_documents) / self.columns)
+        self.slide_height = self.rows * self.row_height
+        self.mols_per_slide = len(cdxml_documents)
+
+        doc = self.generate_slide(cdxml_documents, properties)
+
+        # revert settings to prevent side-effects
+        self.rows = old_num_rows
+        self.slide_height = old_slide_height
+        self.mols_per_slide = old_mols_per_slide
+
+        return doc
+
     def _build_group_element(self, cdxml_root, document_idx: int):
         """
         Build a new group element that contains all the fragments in this document.
