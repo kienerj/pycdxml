@@ -27,10 +27,12 @@ class CDXMLSlideGenerator(object):
         self.row_height = self.slide_height / rows
 
         self.margin = 5
+        self.vertical_margin = font_size
+        self.horizontal_margin = font_size + self.margin
         self.line_height = font_size + 3
         self.text_height = math.ceil(self.line_height * number_of_properties)
-        self.molecule_height = self.row_height - self.text_height - self.margin
-        self.molecule_width = self.column_width - self.margin
+        self.molecule_height = self.row_height - self.text_height - 2*self.vertical_margin
+        self.molecule_width = self.column_width - self.horizontal_margin
         self.colortable = {}
         self.style = style
         self.slide, self.font_table = self._build_base_document(style)
@@ -94,7 +96,7 @@ class CDXMLSlideGenerator(object):
                 column = index % self.columns
 
                 props = properties[index][:self.number_of_properties]
-                y_top = row * self.row_height + self.molecule_height + self.margin
+                y_top = row * self.row_height + self.molecule_height + 2*self.vertical_margin
                 y_bottom = y_top + self.text_height
                 # y_center_props = y_top + 0.5 * self.text_height
                 x_left = column * self.column_width + self.margin
@@ -241,12 +243,12 @@ class CDXMLSlideGenerator(object):
         """
         bounding_box = np.asarray([float(x) for x in element.attrib["BoundingBox"].split(" ")])
         # grid_center_x = (column + 0.5) * self.column_width
-        grid_center_y = row * self.row_height + 0.5 * self.molecule_height + self.margin
+        grid_center_y = row * self.row_height + 0.5 * self.molecule_height + self.vertical_margin
         # current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
         current_y_center = (bounding_box[1] + bounding_box[3]) / 2
-        x_translate = column * self.column_width + self.margin - bounding_box[0]
+        x_translate = column * self.column_width + self.horizontal_margin - bounding_box[0]
         # x_translate = x_center - current_x_center
-        y_translate = row * self.row_height + self.margin - bounding_box[1]
+        # y_translate = row * self.row_height + self.margin - bounding_box[1]
         y_translate = grid_center_y - current_y_center
 
         return x_translate, y_translate
