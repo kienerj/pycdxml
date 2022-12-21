@@ -6,6 +6,7 @@ from ..cdxml_styler import CDXMLStyler
 from ..utils import cdxml_io
 from ..utils import geometry
 from ..utils.style import FontTable
+from ..utils.font_handling import *
 
 
 class CDXMLSlideGenerator(object):
@@ -16,6 +17,7 @@ class CDXMLSlideGenerator(object):
         self.style_name = "ACS 1996"
         self.font_size = font_size
         self.font = font
+        self.tt_font = get_font_by_name(self.font)
         self.columns = columns
         self.rows = rows
         self.mols_per_slide = columns * rows
@@ -26,13 +28,11 @@ class CDXMLSlideGenerator(object):
         self.column_width = self.slide_width / columns
         self.row_height = self.slide_height / rows
 
-        self.margin = 5
-        self.vertical_margin = font_size
-        self.horizontal_margin = font_size + self.margin
+        self.margin = 10
         self.line_height = font_size + 3
         self.text_height = math.ceil(self.line_height * number_of_properties)
-        self.molecule_height = self.row_height - self.text_height - 2*self.vertical_margin
-        self.molecule_width = self.column_width - self.horizontal_margin
+        self.molecule_height = self.row_height - self.text_height - self.margin
+        self.molecule_width = self.column_width - self.margin
         self.colortable = {}
         self.style = style
         self.slide, self.font_table = self._build_base_document(style)
@@ -96,7 +96,7 @@ class CDXMLSlideGenerator(object):
                 column = index % self.columns
 
                 props = properties[index][:self.number_of_properties]
-                y_top = row * self.row_height + self.molecule_height + 2*self.vertical_margin
+                y_top = row * self.row_height + self.molecule_height + self.margin
                 y_bottom = y_top + self.text_height
                 # y_center_props = y_top + 0.5 * self.text_height
                 x_left = column * self.column_width + self.margin
@@ -214,6 +214,13 @@ class CDXMLSlideGenerator(object):
             if bounding_box[3] > max_bottom:
                 max_bottom = bounding_box[3]
 
+        # calculate additional margin for atom labels not part of above bounding box
+        label_margins = self._get_label_margins(cdxml_root, min_left, min_top, max_right, max_bottom)
+        min_left = min_left - label_margins[0]
+        min_top = min_top - label_margins[1]
+        max_right = max_right + label_margins[2]
+        max_bottom = max_bottom + label_margins[3]
+
         # scaling factor for group bounding box (and hence all fragments
         width = max_right - min_left
         height = max_bottom - min_top
@@ -269,6 +276,39 @@ class CDXMLSlideGenerator(object):
 
         return grp
 
+    def _get_label_margins(self, cdxml_root: ET.Element, min_left: float, min_top: float, max_right: float,
+                           max_bottom: float):
+
+        # Only nodes with contained text (usually hetero atoms) are relevant
+        nodes = cdxml_root.findall(".//n[t]")
+        # left, top, right, bottom
+        label_margins = [0, 0, 0, 0]
+        for node in nodes:
+            p = [float(x) for x in node.attrib["p"].split(" ")]
+            s = node.find("t").find("s")
+            text_width = get_text_width(s.text, self.tt_font, self.font_size)
+            # for left and right, a node not at the outer edge can still have text outside the bounding box
+            # this text needs to be part of the margin
+            # Ideally bond direction is known so text direction could be determined
+            # Edge-cases with long labels might still get cut-off labels if abs_tol is too small
+            if math.isclose(p[0], min_left,  abs_tol=self.font_size):
+                most_left = p[0] - text_width
+                margin = p[0] - most_left
+                if most_left < p[0] and margin > label_margins[0]:
+                    label_margins[0] = margin
+            elif math.isclose(p[0], max_right,  abs_tol=self.font_size):
+                most_right= p[0] + text_width
+                margin = most_right - p[0]
+                if most_right < p[0] and margin > label_margins[2]:
+                    label_margins[2] = margin
+            # Top/Bottom is 1 line always, doesn't depend on text length
+            elif math.isclose(p[1], min_top, abs_tol=5):
+                label_margins[1] = self.font_size
+            elif math.isclose(p[1], max_bottom, abs_tol=5):
+                label_margins[3] = self.font_size
+
+        return label_margins
+
     def _get_translation_to_grid_position(self, element: ET.Element, row: int, column: int):
         """
         Get x and y translation amount for moving the element into the desired grid position.
@@ -276,10 +316,10 @@ class CDXMLSlideGenerator(object):
         """
         bounding_box = np.asarray([float(x) for x in element.attrib["BoundingBox"].split(" ")])
         # grid_center_x = (column + 0.5) * self.column_width
-        grid_center_y = row * self.row_height + 0.5 * self.molecule_height + self.vertical_margin
+        grid_center_y = row * self.row_height + 0.5 * self.molecule_height + 0.5*self.margin
         # current_x_center = (fragment_bb[0] + fragment_bb[2]) / 2
         current_y_center = (bounding_box[1] + bounding_box[3]) / 2
-        x_translate = column * self.column_width + self.horizontal_margin - bounding_box[0]
+        x_translate = column * self.column_width + self.margin - bounding_box[0]
         # x_translate = x_center - current_x_center
         # y_translate = row * self.row_height + self.margin - bounding_box[1]
         y_translate = grid_center_y - current_y_center
