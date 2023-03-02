@@ -19,6 +19,7 @@ dependencies:
   - numpy
   - pyyaml
   - lxml
+  - fonttools
   - pip
 ```
 
