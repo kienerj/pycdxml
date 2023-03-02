@@ -1,0 +1,5 @@
+numpy
+PyYAML
+lxml
+fonttools
+rdkit>=2020.09.1
