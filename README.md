@@ -1,4 +1,4 @@
-# PyCDXML
+# PyCDXML [![Unittests](https://github.com/kienerj/pycdxml/actions/workflows/test_on_push.yml/badge.svg?branch=master)](https://github.com/kienerj/pycdxml/actions/workflows/test_on_push.yml)
 
 `pycdxml` package contains several modules to support working with `cdxml`and `cdx`file formats used by ChemDraw in an automated, platform-independent way. The package works without needing to have ChemDraw installed and also on non-windows systems (untested but no reason it should not work, pure python).
 
