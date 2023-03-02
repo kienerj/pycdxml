@@ -20,6 +20,7 @@ dependencies:
   - pyyaml
   - lxml
   - fonttools
+  - matplotlib
   - pip
 ```
 

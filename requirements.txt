@@ -2,4 +2,5 @@ numpy
 PyYAML
 lxml
 fonttools
+matplotlib
 rdkit>=2020.09.1
