@@ -7,7 +7,7 @@ def get_font_by_name(name: str, fallback_to_default=False):
     Returns path to ttf-file of the given font-name
     Raises ValueError if font is not found
     """
-    font_path = font_manager.findfont("Arial", fontext='ttf', fallback_to_default=False)
+    font_path = font_manager.findfont("Arial", fontext='ttf', fallback_to_default=True)
     return TTFont(font_path)
 
 
