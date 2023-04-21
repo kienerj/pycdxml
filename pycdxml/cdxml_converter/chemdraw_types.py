@@ -25,9 +25,9 @@ def decode_options(value: int, options: dict) -> str:
     if value == 0:
         return options[0]
     used_options = []
-    power=1
+    power = 1
     while value > 0:
-        opt = value % pow(2,power)
+        opt = value % pow(2, power)
         if opt > 0:
             used_options.append(opt)
             value = value - opt
@@ -61,7 +61,6 @@ class CDXType(object):
 
 
 class CDXString(CDXType):
-
     BYTES_PER_STYLE = 10
     DEFAULT_CHARSET = 'cp1252'
 
@@ -76,10 +75,8 @@ class CDXString(CDXType):
         self.charset = charset
 
     @staticmethod
-    def from_bytes(property_bytes: bytes, charset='iso-8859-1', fonttable=None) -> 'CDXString':
-
-        stream = io.BytesIO(property_bytes)
-        style_runs = int.from_bytes(stream.read(2), "little")
+    def _read_style_runs(stream: io.BytesIO, style_run_bits: int = 2):
+        style_runs = int.from_bytes(stream.read(style_run_bits), "little")
         font_styles = []
         style_starts = []
         for idx in range(style_runs):
@@ -87,10 +84,25 @@ class CDXString(CDXType):
             style_starts.append(style_start)
             font_style = CDXFontStyle.from_bytes(stream.read(8))
             font_styles.append(font_style)
+        return style_runs, font_styles, style_starts
+
+    @staticmethod
+    def from_bytes(property_bytes: bytes, charset='iso-8859-1', fonttable=None) -> 'CDXString':
+
+        stream = io.BytesIO(property_bytes)
+        style_runs, font_styles, style_starts = CDXString._read_style_runs(stream)
 
         # get charset from first fontstyle
-        charset = CDXString.get_charset(fonttable, font_styles)
-        text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
+        try:
+            charset = CDXString.get_charset(fonttable, font_styles)
+            text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
+        except pycdxml.cdxml_converter.chemdraw_objects.MissingFontException as ex:
+            # to deal with issue #30 - 0 style runs and that uint16 is completely omitted
+            stream.seek(0)
+            style_runs = 0
+            charset = "ascii"
+            text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs)
+
         try:
             value = stream.read(text_length).decode(charset)
         except LookupError:
@@ -136,6 +148,11 @@ class CDXString(CDXType):
         if fonttable is not None and len(font_styles) > 0:
             font_id = font_styles[0].font_id
             font = next((x for x in fonttable.fonts if x.id == font_id), None)
+            if font is None:
+                logger.error(
+                    f"No font with font id {font_id} exists in the fonttable.")
+                raise pycdxml.cdxml_converter.chemdraw_objects.MissingFontException(
+                    f"No font with font id {font_id} exists in the fonttable.")
             charset_id = font.charset
             try:
                 charset = Font.CHARSETS[charset_id]
@@ -147,7 +164,8 @@ class CDXString(CDXType):
                     charset = CDXString.DEFAULT_CHARSET
                 return charset
             except KeyError:
-                logger.warning(f"Found unmapped charset with id {charset_id}. Using default charset {CDXString.DEFAULT_CHARSET} instead")
+                logger.warning(
+                    f"Found unmapped charset with id {charset_id}. Using default charset {CDXString.DEFAULT_CHARSET} instead")
                 return CDXString.DEFAULT_CHARSET
                 pass
         else:
@@ -191,12 +209,12 @@ class CDXString(CDXType):
             s = style.to_element()
             text_start_index = self.style_starts[idx]
             if len(self.styles) > (idx + 1):
-                text_end_index = self.style_starts[(idx+1)]
+                text_end_index = self.style_starts[(idx + 1)]
                 txt = self.str_value[text_start_index:text_end_index]
                 s.text = txt
             else:
                 txt = self.str_value[text_start_index:]
-                s.text = txt 
+                s.text = txt
             t.append(s)
             logger.debug("Appended style to t element.")
         return t
@@ -257,7 +275,7 @@ class CDXFontStyle(CDXType):
     def to_bytes(self) -> bytes:
 
         return self.font_id.to_bytes(2, byteorder='little') + self.font_type.to_bytes(2, byteorder='little') \
-            + self.font_size.to_bytes(2, byteorder='little') + self.font_color.to_bytes(2, byteorder='little')
+               + self.font_size.to_bytes(2, byteorder='little') + self.font_color.to_bytes(2, byteorder='little')
 
     def to_element(self) -> ET.Element:
         s = ET.Element('s')
@@ -274,21 +292,18 @@ class CDXFontStyle(CDXType):
 
 
 class Font(object):
-
     module_path = Path(__file__).parent
     charsets_path = module_path / 'charsets.yml'
     with open(charsets_path, 'r') as stream:
         CHARSETS = yaml.safe_load(stream)
 
     def __init__(self, font_id: int, charset: int, font_name: str):
-
         self.id = font_id
         self.charset = charset
         self.font_name = font_name
 
 
 class CDXFontTable(CDXType):
-
     PLATFORM_MAC = 0x0000
     PLATFORM_WINDOWS = 0x0001
 
@@ -364,14 +379,12 @@ class CDXFontTable(CDXType):
 class Color(object):
 
     def __init__(self, r: int, g: int, b: int):
-
         self.r = r
         self.g = g
         self.b = b
 
 
 class CDXColorTable(CDXType):
-
     COLOR_MAX_VALUE = 65535
 
     def __init__(self, colors=None):
@@ -511,13 +524,11 @@ class CDXPoint2D(CDXType):
     """
 
     def __init__(self, x: CDXCoordinate, y: CDXCoordinate):
-
         self.x = x
         self.y = y
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXPoint2D':
-
         y = CDXCoordinate.from_bytes(property_bytes[0:4])
         x = CDXCoordinate.from_bytes(property_bytes[4:8])
 
@@ -525,7 +536,6 @@ class CDXPoint2D(CDXType):
 
     @staticmethod
     def from_string(value: str) -> 'CDXPoint2D':
-
         coords = value.split(sep=' ')
         y = CDXCoordinate.from_string(coords[1])
         x = CDXCoordinate.from_string(coords[0])
@@ -533,11 +543,9 @@ class CDXPoint2D(CDXType):
         return CDXPoint2D(x, y)
 
     def to_bytes(self) -> bytes:
-
         return self.y.to_bytes() + self.x.to_bytes()
 
     def to_property_value(self) -> str:
-
         return self.x.to_property_value() + " " + self.y.to_property_value()
 
     def __repr__(self):
@@ -564,14 +572,12 @@ class CDXPoint3D(CDXType):
     """
 
     def __init__(self, x: CDXCoordinate, y: CDXCoordinate, z: CDXCoordinate):
-
         self.x = x
         self.y = y
         self.z = z
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXPoint3D':
-
         x = CDXCoordinate.from_bytes(property_bytes[0:4])
         y = CDXCoordinate.from_bytes(property_bytes[4:8])
         z = CDXCoordinate.from_bytes(property_bytes[8:12])
@@ -588,7 +594,6 @@ class CDXPoint3D(CDXType):
         return CDXPoint3D(x, y, z)
 
     def to_bytes(self) -> bytes:
-
         return self.x.to_bytes() + self.y.to_bytes() + self.z.to_bytes()
 
     def to_property_value(self) -> str:
@@ -612,7 +617,6 @@ class CDXRectangle(CDXType):
     """
 
     def __init__(self, top: CDXCoordinate, left: CDXCoordinate, bottom: CDXCoordinate, right: CDXCoordinate):
-
         self.top = top
         self.left = left
         self.bottom = bottom
@@ -620,7 +624,6 @@ class CDXRectangle(CDXType):
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXRectangle':
-
         top = CDXCoordinate.from_bytes(property_bytes[0:4])
         left = CDXCoordinate.from_bytes(property_bytes[4:8])
         bottom = CDXCoordinate.from_bytes(property_bytes[8:12])
@@ -639,11 +642,9 @@ class CDXRectangle(CDXType):
         return CDXRectangle(top, left, bottom, right)
 
     def to_bytes(self) -> bytes:
-
         return self.top.to_bytes() + self.left.to_bytes() + self.bottom.to_bytes() + self.right.to_bytes()
 
     def to_property_value(self) -> str:
-
         return self.left.to_property_value() + " " + self.top.to_property_value() + " " \
                + self.right.to_property_value() + " " + self.bottom.to_property_value()
 
@@ -763,7 +764,7 @@ class CDXObjectIDArray(CDXType):
     def from_string(value: str) -> 'CDXObjectIDArray':
         # sample file can have lists like ' 7 45' eg starting with empty string
         # these need to be removed to avoid casting error with filter(None, list)
-        ids = list(map(int,filter(None, value.split(sep=' '))))
+        ids = list(map(int, filter(None, value.split(sep=' '))))
         return CDXObjectIDArray(ids)
 
     def to_bytes(self) -> bytes:
@@ -814,7 +815,6 @@ class CDXAminoAcidTermini(CDXType, Enum):
 
 
 class CDXAutonumberStyle(CDXType, Enum):
-
     Roman = 0
     Arabic = 1
     Alphabetic = 2
@@ -869,13 +869,12 @@ class CDXBondSpacing(CDXType):
 
 
 class CDXDoubleBondPosition(CDXType, Enum):
-
-    Center = 0     # Double bond is centered, but was positioned automatically by the program
-    Right = 1      # Double bond is on the right (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
-    Left = 2       # Double bond is on the left (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
-    Center_m = 256 # Double bond is centered, and was positioned manually by the user
+    Center = 0  # Double bond is centered, but was positioned automatically by the program
+    Right = 1  # Double bond is on the right (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    Left = 2  # Double bond is on the left (viewing from the "begin" atom to the "end" atom), but was positioned automatically by the program
+    Center_m = 256  # Double bond is centered, and was positioned manually by the user
     Right_m = 257  # Double bond is on the right (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
-    Left_m = 258   # Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
+    Left_m = 258  # Double bond is on the left (viewing from the "begin" atom to the "end" atom), and was positioned manually by the user
 
     def __init__(self, value: int):
         if 0 > value > 258:
@@ -904,7 +903,6 @@ class CDXDoubleBondPosition(CDXType, Enum):
 
 
 class CDXBondDisplay(CDXType, Enum):
-
     Solid = 0
     Dash = 1
     Hash = 2
@@ -1067,6 +1065,7 @@ class INT8(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if -128 > value > 127:
             raise ValueError("Needs to be a 8-bit int in range -128 to 127.")
@@ -1094,6 +1093,7 @@ class UINT8(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if 0 > value > 255:
             raise ValueError("Needs to be a 8-bit uint in range 0 to 255.")
@@ -1121,6 +1121,7 @@ class INT16(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if -32768 > value > 32767:
             raise ValueError("Needs to be a 16-bit int in range -32768 to 32767.")
@@ -1148,6 +1149,7 @@ class UINT16(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if 0 > value > 65535:
             raise ValueError("Needs to be a 16-bit uint in range 0 to 65535.")
@@ -1175,6 +1177,7 @@ class INT32(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if -2147483648 > value > 2147483647:
             raise ValueError("Needs to be a 16-bit int in range -2147483648 to 2147483647.")
@@ -1202,6 +1205,7 @@ class UINT32(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: int):
         if 0 > value > 4294967295:
             raise ValueError("Needs to be a 32-bit uint in range 0 to 4294967295.")
@@ -1229,6 +1233,7 @@ class FLOAT64(CDXType):
     """
     This is kind of stupid but makes the upper-level parsing code easier
     """
+
     def __init__(self, value: float):
         self.value = value
 
@@ -1257,6 +1262,7 @@ class INT16ListWithCounts(CDXType):
     In CDX files, this data type is prefixed by an additional UINT16 value indicating 
     the total number of values to follow.
     """
+
     def __init__(self, values: list):
         self.values = values
 
@@ -1279,12 +1285,12 @@ class INT16ListWithCounts(CDXType):
     def to_bytes(self) -> bytes:
         stream = io.BytesIO()
         length = len(self.values)
-        stream.write(length.to_bytes(2, byteorder='little', signed=False))        
+        stream.write(length.to_bytes(2, byteorder='little', signed=False))
         for value in self.values:
-            stream.write(value.to_bytes(2, byteorder='little', signed=False)) 
+            stream.write(value.to_bytes(2, byteorder='little', signed=False))
         stream.seek(0)
         return stream.read()
-        
+
     def to_property_value(self) -> str:
         return ' '.join(map(str, self.values))
 
@@ -1292,7 +1298,6 @@ class INT16ListWithCounts(CDXType):
 class Unformatted(CDXType):
 
     def __init__(self, value: bytes):
-
         self.value = value
 
     @staticmethod
@@ -1318,10 +1323,11 @@ class CDXBracketUsage(CDXType):
     Python doesn't seem to allow having to extend enums when init methods gets more than 1 argument?
     Hence the inner class enum.
     """
+
     def __init__(self, bracket_usage: int, additional_bytes: bytes = b''):
         self.bracket_usage = bracket_usage
         self.additional_bytes = additional_bytes
-        
+
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXBracketUsage':
         length = len(property_bytes)
@@ -1368,7 +1374,6 @@ class CDXBracketUsage(CDXType):
 
 
 class CDXBracketType(CDXType, Enum):
-
     RoundPair = 0
     SquarePair = 1
     CurlyPair = 2
@@ -1401,7 +1406,6 @@ class CDXBracketType(CDXType, Enum):
 
 
 class CDXGraphicType(CDXType, Enum):
-
     Undefined = 0
     Line = 1
     Arc = 2
@@ -1436,7 +1440,6 @@ class CDXGraphicType(CDXType, Enum):
 
 
 class CDXArrowType(CDXType):
-
     OPTIONS = {0: "NoHead", 1: "HalfHead", 2: "FullHead", 4: "Resonance", 8: "Equilibrium", 16: "Hollow",
                32: "RetroSynthetic", 64: "NoGo", 128: "Dipole"}
     OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
@@ -1469,7 +1472,6 @@ class CDXArrowType(CDXType):
 
 
 class CDXArrowHeadType(CDXType, Enum):
-
     Unspecified = 0
     Solid = 1
     Hollow = 2
@@ -1536,7 +1538,6 @@ class CDXArrowHeadPosition(CDXType, Enum):
 
 
 class CDXFillType(CDXType):
-
     OPTIONS = {0: "Unspecified", 1: "None", 2: "Solid", 4: "Shaded", 8: "Gradient", 16: "Pattern"}
     OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
@@ -1567,7 +1568,6 @@ class CDXFillType(CDXType):
 
 
 class CDXJustification(CDXType, Enum):
-
     Right = -1
     Left = 0
     Center = 1
@@ -1612,7 +1612,7 @@ class CDXBondOrder(CDXType):
     """
 
     lookup_table_cdxml = ["1", "2", "3", "4", "5", "6", "0.5", "1.5", "2.5", "3.5", "4.5", "5.5", "dative", "ionic",
-                    "hydrogen", "threecenter"]
+                          "hydrogen", "threecenter"]
     lookup_table_cdx = {"1": 0x0001, "2": 0x0002, "3": 0x0004, "4": 0x0008, "5": 0x0010, "6": 0x0020, "0.5": 0x0040,
                         "1.5": 0x0080, "2.5": 0x0100, "3.5": 0x0200, "4.5": 0x0400, "5.5": 0x0800, "dative": 0x1000,
                         "ionic": 0x2000, "hydrogen": 0x4000, "threecenter": 0x8000}
@@ -1655,11 +1655,10 @@ class CDXBondOrder(CDXType):
             for i
             in range(16)
             if self.order & 1 << i
-    )
+        )
 
 
 class CDXLabelAlignment(CDXType, Enum):
-
     Auto = 0
     Left = 1
     Center = 2
@@ -1739,7 +1738,6 @@ class CDXLineHeight(CDXType):
 
 
 class CDXAtomGeometry(CDXType, Enum):
-
     Unknown = 0
     m_1 = 1
     Linear = 2
@@ -1786,7 +1784,6 @@ class CDXAtomGeometry(CDXType, Enum):
 
 
 class CDXNodeType(CDXType, Enum):
-
     Unspecified = 0
     Element = 1
     ElementList = 2
@@ -1828,7 +1825,6 @@ class CDXNodeType(CDXType, Enum):
 
 
 class CDXSymbolType(CDXType, Enum):
-
     LonePair = 0
     Electron = 1
     RadicalCation = 2
@@ -1873,11 +1869,10 @@ class CDXSymbolType(CDXType, Enum):
 
 
 class CDXTagType(CDXType, Enum):
-
     Unknown = 0
-    Double = 1 # FLOAT64
-    Long = 2   # INT32
-    String = 3 # unformatted string / byte sequence
+    Double = 1  # FLOAT64
+    Long = 2  # INT32
+    String = 3  # unformatted string / byte sequence
 
     TYPE_MAPPING = {"Unknown": "Unformatted", "Double": "FLOAT64", "Long": "INT32", "String": "Unformatted"}
 
@@ -1949,7 +1944,6 @@ class CDXValue(CDXType):
 
 
 class CDXPositioningType(CDXType, Enum):
-
     auto = 0
     angle = 1
     offset = 2
@@ -1980,7 +1974,6 @@ class CDXPositioningType(CDXType, Enum):
 
 
 class CDXOvalType(CDXType):
-
     OPTIONS = {1: "Circle", 2: "Shaded", 4: "Filled", 8: "Dashed", 16: "Bold", 32: "Shadowed"}
     OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
@@ -2023,7 +2016,7 @@ class CDXOrbitalType(CDXType, Enum):
     dz2Minus = 7
     dxy = 8
     sShaded = 256
-    ovalShaded= 257
+    ovalShaded = 257
     lobeShaded = 258
     pShaded = 259
     sFilled = 512
@@ -2061,7 +2054,6 @@ class CDXOrbitalType(CDXType, Enum):
 
 
 class CDXRectangleType(CDXType):
-
     OPTIONS = {0: "Plain", 1: "RoundEdge", 2: "Shadow", 4: "Shaded", 8: "Filled", 16: "Dashed", 32: "Bold"}
     OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
@@ -2090,7 +2082,6 @@ class CDXRectangleType(CDXType):
 
 
 class CDXLineType(CDXType):
-
     OPTIONS = {0: "Solid", 1: "Dashed", 2: "Bold", 4: "Wavy"}
     OPTIONS_INVERTED = {value: key for key, value in OPTIONS.items()}
 
@@ -2119,7 +2110,6 @@ class CDXLineType(CDXType):
 
 
 class CDXPolymerRepeatPattern(CDXType, Enum):
-
     HeadToTail = 0
     HeadToHead = 1
     EitherUnknown = 2
@@ -2149,7 +2139,6 @@ class CDXPolymerRepeatPattern(CDXType, Enum):
 
 
 class CDXPolymerFlipType(CDXType, Enum):
-
     Unspecified = 0
     NoFlip = 1
     Flip = 2
@@ -2179,7 +2168,6 @@ class CDXPolymerFlipType(CDXType, Enum):
 
 
 class CDXConstraintType(CDXType, Enum):
-
     Undefined = 0
     Distance = 1
     Angle = 2
@@ -2210,7 +2198,6 @@ class CDXConstraintType(CDXType, Enum):
 
 
 class CDXLabelDisplay(CDXType, Enum):
-
     Auto = 0
     Left = 1
     Center = 2
@@ -2244,7 +2231,6 @@ class CDXLabelDisplay(CDXType, Enum):
 
 
 class CDXExternalConnectionType(CDXType, Enum):
-
     Unspecified = 0
     Diamond = 1
     Star = 2
@@ -2284,7 +2270,6 @@ class CDXExternalConnectionType(CDXType, Enum):
 
 
 class CDXRxnParticipation(CDXType, Enum):
-
     Unspecified = 0
     ReactionCenter = 1
     MakeOrBreak = 2
@@ -2321,7 +2306,6 @@ class CDXRxnParticipation(CDXType, Enum):
 class CDXRepresents(CDXType):
 
     def __init__(self, object_id: int, attribute: bytes):
-
         self.object_id = object_id
         self.attribute = attribute
 
@@ -2333,14 +2317,12 @@ class CDXRepresents(CDXType):
 
     @staticmethod
     def from_element(represents: ET.Element) -> 'CDXRepresents':
-
         object_id = int(represents.attrib["object"])
         attribute = represents.attrib["attribute"]
         tag_id = pycdxml.cdxml_converter.chemdraw_objects.ChemDrawDocument.PROPERTY_NAME_TO_TAG[attribute]
         return CDXRepresents(object_id, tag_id.to_bytes(2, byteorder='little', signed=True))
 
     def to_bytes(self) -> bytes:
-
         stream = io.BytesIO()
         stream.write(self.object_id.to_bytes(4, byteorder='little', signed=False))
         stream.write(self.attribute)
@@ -2414,7 +2396,6 @@ class CDXCurvePoints(CDXType):
 class CDXCompressed(CDXType):
 
     def __init__(self, data: bytes):
-
         self.data = data
 
     @staticmethod
@@ -2458,7 +2439,6 @@ class CDXAngularSize(CDXType):
 
 
 class CDXAtomRadical(CDXType, Enum):
-
     _None = 0
     Singlet = 1
     Doublet = 2
@@ -2495,7 +2475,6 @@ class CDXAtomRadical(CDXType, Enum):
 
 
 class CDXBioShapeType(CDXType, Enum):
-
     Undefined = 0
     _1SubstrateEnzyme = 1
     _2SubstrateEnzyme = 2
@@ -2542,7 +2521,7 @@ class CDXBioShapeType(CDXType, Enum):
         return self.bioshape_type.to_bytes(2, byteorder='little', signed=False)
 
     def to_property_value(self) -> str:
-        if self.bioshape_type in [1,2]:
+        if self.bioshape_type in [1, 2]:
             val = str(CDXBioShapeType(self.bioshape_type))
             return val.split('.')[1][1:]
         else:
@@ -2551,9 +2530,8 @@ class CDXBioShapeType(CDXType, Enum):
 
 
 class CDXEnhancedStereoType(CDXType, Enum):
-
     Unspecified = 0
-    _None  = 1
+    _None = 1
     Absolute = 2
     Or = 3
     And = 4
@@ -2589,7 +2567,6 @@ class CDXEnhancedStereoType(CDXType, Enum):
 
 
 class CDXDrawingSpace(CDXType, Enum):
-
     # by default (property absent) it is pages so that option isn't really ever used
     # spec says "Poster" but in cdxml it is actually "poster", eg. all lower case
     # assumption that pages is also lower case.
@@ -2621,7 +2598,6 @@ class CDXDrawingSpace(CDXType, Enum):
 
 
 class CDXConnectivity(CDXType, Enum):
-
     Unspecified = 0
     Linear = 1
     Bridged = 2
@@ -2653,7 +2629,6 @@ class CDXConnectivity(CDXType, Enum):
 
 
 class CDXSequenceType(CDXType, Enum):
-
     # No Specification available. Needs testing to figure out more
     Unknown = 0
     Peptide = 1  # HELM peptides
@@ -2688,7 +2663,6 @@ class CDXSequenceType(CDXType, Enum):
 
 
 class CDXSideType(CDXType, Enum):
-
     # No Specification available. Needs testing to figure out more
     Undefined = 0
     Top = 1
@@ -2736,11 +2710,11 @@ class CDXPositioningAngle(CDXType):
 
     @staticmethod
     def from_string(value: str) -> 'CDXPositioningAngle':
-        ang_size = int(float(value) *  CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)
+        ang_size = int(float(value) * CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)
         return CDXPositioningAngle(ang_size)
 
     def to_bytes(self) -> bytes:
         return self.positioning_angle.to_bytes(4, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
-        return str(self.positioning_angle /  CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)
+        return str(self.positioning_angle / CDXPositioningAngle.RADIANS_CONVERSION_FACTOR)

@@ -26,6 +26,10 @@ class LegacyDocumentException(ConversionException):
     pass
 
 
+class MissingFontException(ConversionException):
+    pass
+
+
 class ChemDrawDocument(object):
     HEADER = b'VjCD0100\x04\x03\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
