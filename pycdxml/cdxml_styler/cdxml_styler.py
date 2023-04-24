@@ -58,7 +58,7 @@ class CDXMLStyler(object):
         root = tree.getroot()
         result = self._apply_style(root)
         logger.debug("Style applied. Preparing for output.")
-        xml = cdxml_io.etree_to_cdxml(result)
+        xml = cdxml_io.etree_to_cdxml(result, pretty_print=False)
         if outpath is None:
             logger.info("Output path is None, overwriting input file.")
             outpath = cdxml_path
@@ -78,7 +78,7 @@ class CDXMLStyler(object):
         root = ET.fromstring(bytes(cdxml, encoding='utf8'))
         result = self._apply_style(root)
         logger.debug("Style applied. Returning result cdxml string.")
-        return cdxml_io.etree_to_cdxml(result)
+        return cdxml_io.etree_to_cdxml(result, pretty_print=False)
 
     def apply_style_to_doc(self, doc: ChemDrawDocument):
         """
