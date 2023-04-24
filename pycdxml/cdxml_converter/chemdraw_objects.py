@@ -120,9 +120,9 @@ class ChemDrawDocument(object):
         logger.info("Finished converting document to cdx.")
         return stream.getvalue()
 
-    def to_cdxml(self) -> str:
+    def to_cdxml(self, pretty_print:bool = True) -> str:
 
-        return etree_to_cdxml(self.cdxml)
+        return etree_to_cdxml(self.cdxml, pretty_print)
 
     def _traverse_tree(self, node: ET.Element, stream: io.BytesIO,
                        ignore_unknown_attribute: bool, ignore_unknown_element: bool):

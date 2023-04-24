@@ -5,13 +5,16 @@ CDXML_HEADER = """<?xml version="1.0" encoding="UTF-8" ?>
 """
 
 
-def etree_to_cdxml(xml: ET) -> str:
+def etree_to_cdxml(xml: ET, pretty_print: bool = True) -> str:
     """
     Creates a cdxml string from the given lxml ElementTree instance with the correct xml headers.
     ChemDraw requires these headers to be set exactly like this or else the file is not recognized as cdxml
     """
+    if pretty_print:
+        ET.indent(xml, space="\t")
     xml = ET.tostring(xml, encoding='unicode', method='xml',
-                      doctype="<!DOCTYPE CDXML SYSTEM \"http://www.cambridgesoft.com/xml/cdxml.dtd\" >")
+                      doctype="<!DOCTYPE CDXML SYSTEM \"http://www.cambridgesoft.com/xml/cdxml.dtd\" >",
+                      pretty_print=pretty_print)
     return CDXML_HEADER + xml
 
 

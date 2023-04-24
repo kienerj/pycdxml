@@ -48,12 +48,13 @@ def read_cdxml(cdxml_file) -> ChemDrawDocument:
         # assume opened file-handle
         cdxml = cdxml_file.read()
     cdxml_stream = io.BytesIO(cdxml)
-    return ChemDrawDocument(ET.parse(cdxml_stream))
+    parser = ET.XMLParser(remove_blank_text=True)
+    return ChemDrawDocument(ET.parse(cdxml_stream, parser))
 
 
-def write_cdxml_file(document: ChemDrawDocument, file):
+def write_cdxml_file(document: ChemDrawDocument, file, pretty_print: bool = True):
     with open(file, "w", encoding='UTF-8') as xf:
-        xf.write(document.to_cdxml())
+        xf.write(document.to_cdxml(pretty_print))
 
 
 def write_cdx_file(document: ChemDrawDocument, file,
