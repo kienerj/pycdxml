@@ -43,7 +43,7 @@ class CdxmlConverterTest(unittest.TestCase):
         """
         doc = cdxml_converter.read_cdx(self.standard_in_cdx)
         self.assertIsNotNone(doc, "Document was unexpectedly 'None'.")
-        cdxml_converter.write_cdxml_file(doc, self.standard_out_cdxml)
+        cdxml_converter.write_cdxml_file(doc, self.standard_out_cdxml, pretty_print=False)
         self.assertTrue(filecmp.cmp('tests/files/result_cdx_to_cdxml.cdxml', self.standard_out_cdxml, shallow=False),
                         "Generated cdxml file does not match expected output.")
 
@@ -69,7 +69,7 @@ class CdxmlConverterTest(unittest.TestCase):
         cdxml_converter.write_cdx_file(doc, self.salt_out_cdx)
         self.assertTrue(filecmp.cmp(self.salt_in_cdx, self.salt_out_cdx, shallow=False),
                         "Generated cdx file for salt does not match input.")
-        cdxml_converter.write_cdxml_file(doc, self.salt_out_cdxml)
+        cdxml_converter.write_cdxml_file(doc, self.salt_out_cdxml, pretty_print=False)
         self.assertTrue(filecmp.cmp('tests/files/salt_reference.cdxml', self.salt_out_cdxml, shallow=False),
                         "Generated cdxml file for salt does not match expected output.")
 
@@ -85,7 +85,7 @@ class CdxmlConverterTest(unittest.TestCase):
         """
         doc = cdxml_converter.read_cdx(self.embedded_cdx)
         self.assertIsNotNone(doc, "Document was unexpectedly 'None'.")
-        cdxml_converter.write_cdxml_file(doc, self.embedded_out)
+        cdxml_converter.write_cdxml_file(doc, self.embedded_out, pretty_print=False)
         self.assertTrue(filecmp.cmp(self.embedded_out, 'tests/files/embedded_reference.cdxml', shallow=False),
                         "Generated cdxml file for embedded image test does not match expected output.")
 
