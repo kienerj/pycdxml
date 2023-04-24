@@ -97,7 +97,14 @@ class CDXString(CDXType):
             charset = CDXString.get_charset(fonttable, font_styles)
             text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         except pycdxml.cdxml_converter.chemdraw_objects.MissingFontException as ex:
-            # to deal with issue #30 - 0 style runs and that uint16 is completely omitted
+            # to deal with issue #30 - no style runs and the uint16 defining number of style runs is completely omitted
+            # In that case get_charset will be off by 2 bytes and determine a font id which does not exist in the
+            # document. hence we catch that here and re-read bytes assuming no style runs at all + ascii charset
+            # I have only observed this in newer files from ChemDraw 21.
+            # Potential issue: if the byte offset happens to by accident lead to a valid font, the problem will
+            # emerge somewhere else (possibly only after visual inspection of the file). this is however unlikley to happen
+            # as font_ids usually are around 1-10 which happen to be ASCII control characters unlikely to be at the
+            # start of a string
             stream.seek(0)
             style_runs = 0
             charset = "ascii"
@@ -247,6 +254,7 @@ class CDXFontStyle(CDXType):
         font_type = int.from_bytes(stream.read(2), "little")
         font_size = int.from_bytes(stream.read(2), "little")
         font_color = int.from_bytes(stream.read(2), "little")
+        # TODO: validate data? to avoid potentially issues wih byte shifts (see Issue #30)
 
         return CDXFontStyle(font_id, font_type, font_size, font_color)
 
