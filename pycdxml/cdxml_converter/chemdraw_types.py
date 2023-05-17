@@ -1964,8 +1964,8 @@ class CDXPositioningType(CDXType, Enum):
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXPositioningType':
-        if len(property_bytes) != 2:
-            raise ValueError("CDXPositioningType should consist of exactly 2 bytes.")
+        if len(property_bytes) != 1:
+            raise ValueError("CDXPositioningType should consist of exactly 1 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXPositioningType(value)
 
@@ -1974,7 +1974,7 @@ class CDXPositioningType(CDXType, Enum):
         return CDXPositioningType[value]
 
     def to_bytes(self) -> bytes:
-        return self.positioning_type.to_bytes(2, byteorder='little', signed=True)
+        return self.positioning_type.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
         val = str(CDXPositioningType(self.positioning_type))
