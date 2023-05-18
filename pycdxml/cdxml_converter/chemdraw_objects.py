@@ -4,6 +4,7 @@ import yaml
 from pathlib import Path
 from lxml import etree as ET
 import logging
+import re
 
 from ..utils.cdxml_io import etree_to_cdxml
 
@@ -437,7 +438,7 @@ class CDXReader(object):
             chemdraw_type = ChemDrawDocument.CDX_PROPERTIES[tag_id]["type"]
             logger.debug(f"Reading property {prop_name} of type {chemdraw_type}.")
             klass = globals()[chemdraw_type]
-            if prop_name == "UTF8Text":
+            if prop_name in ["UTF8Text", "Keyword", "Content"]:
                 type_obj = klass.from_bytes(prop_bytes, charset="utf8")
             elif chemdraw_type == "CDXString":
                 type_obj = klass.from_bytes(prop_bytes, fonttable=self.fonttable)
@@ -494,7 +495,16 @@ class CDXReader(object):
                 # adds style tags <s></s> to this t element containing styled text
                 type_obj.to_element(element)
             else:
-                element.attrib[prop_name] = type_obj.to_property_value()
+                try:
+                    element.attrib[prop_name] = type_obj.to_property_value()
+                except ValueError as e:
+                    # https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+                    # This error is usually caused when a control character is found which is invalid in xml
+                    # Since this is rare, we only replace it in case of need for performance reasons
+                    logger.warning(f"{e}. Replacing invalid chars with ''.")
+                    val = type_obj.to_property_value()
+                    val = re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+', '', val)
+                    element.attrib[prop_name] = val
 
         logger.debug('Successfully finished reading attributes.')
         # move back 2 positions, finished reading attributes

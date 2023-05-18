@@ -94,7 +94,8 @@ class CDXString(CDXType):
 
         # get charset from first fontstyle
         try:
-            charset = CDXString.get_charset(fonttable, font_styles)
+            if fonttable is not None:
+                charset = CDXString.get_charset(fonttable, font_styles)
             text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         except pycdxml.cdxml_converter.chemdraw_objects.MissingFontException as ex:
             # to deal with issue #30 - no style runs and the uint16 defining number of style runs is completely omitted
@@ -114,6 +115,10 @@ class CDXString(CDXType):
             value = stream.read(text_length).decode(charset)
         except LookupError:
             logger.warning("Found unsupported charset. Retrying with 'utf8'.")
+            stream.seek(stream.tell() - text_length)
+            value = stream.read(text_length).decode('utf8')
+        except UnicodeDecodeError:
+            logger.warning("Found unsupported character. Retrying with 'utf8'.")
             stream.seek(stream.tell() - text_length)
             value = stream.read(text_length).decode('utf8')
         # Normalize to xml spec where all line breaks in attributes are represented by \n
