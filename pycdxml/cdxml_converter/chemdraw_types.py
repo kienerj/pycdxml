@@ -118,9 +118,14 @@ class CDXString(CDXType):
             stream.seek(stream.tell() - text_length)
             value = stream.read(text_length).decode('utf8')
         except UnicodeDecodeError:
-            logger.warning("Found unsupported character. Retrying with 'utf8'.")
             stream.seek(stream.tell() - text_length)
-            value = stream.read(text_length).decode('utf8')
+            if charset == 'utf8':
+                logger.warning("Found unsupported character for utf8. Retrying with errors=='replace'.")
+            else:
+                logger.warning(f"Found unsupported character for charset {charset}. "
+                               f"Retrying with 'utf8' and errors=='replace'.")
+            value = stream.read(text_length).decode('utf8', errors="replace")
+
         # Normalize to xml spec where all line breaks in attributes are represented by \n
         value = value.replace("\r", "\n")
         logger.debug(f"Read String '{value}' with  {len(font_styles)} different styles.")
