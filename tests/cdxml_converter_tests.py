@@ -11,6 +11,9 @@ logger = logging.getLogger('pycdxml.chemdraw_objects')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
+cwd = os.getcwd()
+if cwd.endswith("tests"):
+    os.chdir(Path(cwd).parent)
 
 class CdxmlConverterTest(unittest.TestCase):
     """
