@@ -339,6 +339,9 @@ class CDXFontTable(CDXType):
     @staticmethod
     def from_element(fonttable: ET.Element) -> 'CDXFontTable':
 
+        if fonttable is None:
+            return None
+
         fonts = []
 
         for font in fonttable.iter(tag="font"):
