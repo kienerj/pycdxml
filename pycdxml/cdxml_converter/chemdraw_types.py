@@ -102,7 +102,7 @@ class CDXString(CDXType):
             # In that case get_charset will be off by 2 bytes and determine a font id which does not exist in the
             # document. hence we catch that here and re-read bytes assuming no style runs at all + ascii charset
             # I have only observed this in newer files from ChemDraw 21.
-            # Potential issue: if the byte offset happens to by accident lead to a valid font, the problem will
+            # Potential issue: if the byte offset happens to lead by accident to a valid font, the problem will
             # emerge somewhere else (possibly only after visual inspection of the file). this is however unlikley to happen
             # as font_ids usually are around 1-10 which happen to be ASCII control characters unlikely to be at the
             # start of a string
@@ -367,6 +367,7 @@ class CDXFontTable(CDXType):
             os_type = CDXFontTable.PLATFORM_MAC
         else:
             # running on linux / not supported -> set to windows
+            logger.info("Detected Linux OS. Setting cdx file platform type to default of 'Windows'.")
             os_type = CDXFontTable.PLATFORM_WINDOWS
         return CDXFontTable(os_type, fonts)
 
