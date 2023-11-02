@@ -94,7 +94,8 @@ class CDXString(CDXType):
 
         # get charset from first fontstyle
         try:
-            charset = CDXString.get_charset(fonttable, font_styles)
+            if fonttable is not None:
+                charset = CDXString.get_charset(fonttable, font_styles)
             text_length = len(property_bytes) - (CDXString.BYTES_PER_STYLE * style_runs) - 2
         except pycdxml.cdxml_converter.chemdraw_objects.MissingFontException as ex:
             # to deal with issue #30 - no style runs and the uint16 defining number of style runs is completely omitted
@@ -116,6 +117,15 @@ class CDXString(CDXType):
             logger.warning("Found unsupported charset. Retrying with 'utf8'.")
             stream.seek(stream.tell() - text_length)
             value = stream.read(text_length).decode('utf8')
+        except UnicodeDecodeError:
+            stream.seek(stream.tell() - text_length)
+            if charset == 'utf8':
+                logger.warning("Found unsupported character for utf8. Retrying with errors=='replace'.")
+            else:
+                logger.warning(f"Found unsupported character for charset {charset}. "
+                               f"Retrying with 'utf8' and errors=='replace'.")
+            value = stream.read(text_length).decode('utf8', errors="replace")
+
         # Normalize to xml spec where all line breaks in attributes are represented by \n
         value = value.replace("\r", "\n")
         logger.debug(f"Read String '{value}' with  {len(font_styles)} different styles.")
@@ -1967,8 +1977,8 @@ class CDXPositioningType(CDXType, Enum):
 
     @staticmethod
     def from_bytes(property_bytes: bytes) -> 'CDXPositioningType':
-        if len(property_bytes) != 2:
-            raise ValueError("CDXPositioningType should consist of exactly 2 bytes.")
+        if len(property_bytes) != 1:
+            raise ValueError("CDXPositioningType should consist of exactly 1 bytes.")
         value = int.from_bytes(property_bytes, "little", signed=True)
         return CDXPositioningType(value)
 
@@ -1977,7 +1987,7 @@ class CDXPositioningType(CDXType, Enum):
         return CDXPositioningType[value]
 
     def to_bytes(self) -> bytes:
-        return self.positioning_type.to_bytes(2, byteorder='little', signed=True)
+        return self.positioning_type.to_bytes(1, byteorder='little', signed=True)
 
     def to_property_value(self) -> str:
         val = str(CDXPositioningType(self.positioning_type))
