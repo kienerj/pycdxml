@@ -355,13 +355,16 @@ class CDXFontTable(CDXType):
         fonts = []
 
         for font in fonttable.iter(tag="font"):
-            logger.debug(f"Reading font {font.attrib}.")
-            font_id = int(font.attrib["id"])
-            if font.attrib["charset"] == "UTF-8":
-                font.attrib["charset"] = "utf8"
-            charset = next(key for key, value in Font.CHARSETS.items() if value == font.attrib["charset"])
-            font_name = font.attrib["name"]
-            fonts.append(Font(font_id, charset, font_name))
+            try:
+                logger.debug(f"Reading font {font.attrib}.")
+                font_id = int(font.attrib["id"])
+                if font.attrib["charset"] == "UTF-8":
+                    font.attrib["charset"] = "utf8"
+                charset = next(key for key, value in Font.CHARSETS.items() if value == font.attrib["charset"])
+                font_name = font.attrib["name"]
+                fonts.append(Font(font_id, charset, font_name))
+            except StopIteration:
+                logger.warning(f"Ignoring font with invalid charset {font.attrib['charset']}.")
 
         if platform.system() == "Windows":
             os_type = CDXFontTable.PLATFORM_WINDOWS
