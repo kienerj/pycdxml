@@ -220,8 +220,11 @@ class CDXString(CDXType):
         :return: the passed in element with the style elements added
         """
         if len(self.style_starts) == 0:
-            raise TypeError('Call of to_element on CDXString is invalid if no styles are present. '
-                            'If CDXString is part of a property there are no styles.')
+            # raise TypeError('Call of to_element on CDXString is invalid if no styles are present. '
+            #                 'If CDXString is part of a property there are no styles.')
+            logger.warning("No style elements (<s>)  found for text element (<t>). "
+                           "Returning text element without any added styles.")
+            return t
         for idx, style in enumerate(self.styles):
             s = style.to_element()
             text_start_index = self.style_starts[idx]
